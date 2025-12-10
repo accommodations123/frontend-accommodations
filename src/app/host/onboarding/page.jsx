@@ -460,7 +460,7 @@ export default function HostOnboardingPage() {
     ]
 
     return (
-        <main className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 pt-20">
+        <main className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 pt-20">
             <Navbar />
 
             <div className="container mx-auto px-4 py-8">
@@ -470,9 +470,9 @@ export default function HostOnboardingPage() {
                         <div className="mb-12">
                             <div className="flex items-center justify-between relative px-2">
                                 {/* Connection Line */}
-                                <div className="absolute left-0 top-5 -translate-y-1/2 w-full h-1 bg-gradient-to-r from-indigo-200 via-purple-200 to-indigo-200 rounded-full -z-10">
+                                <div className="absolute left-0 top-5 -translate-y-1/2 w-full h-1 bg-linear-to-r from-indigo-200 via-purple-200 to-indigo-200 rounded-full -z-10">
                                     <div
-                                        className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 transition-all duration-500 rounded-full"
+                                        className="h-full bg-linear-to-r from-indigo-600 to-purple-600 transition-all duration-500 rounded-full"
                                         style={{ width: `${((step - 1) / (totalSteps - 1)) * 100}%` }}
                                     />
                                 </div>
@@ -486,7 +486,7 @@ export default function HostOnboardingPage() {
                                             <div
                                                 className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 z-10 bg-white shadow-lg
                                                     ${isActive ? 'border-indigo-600 text-indigo-600 scale-110 shadow-xl' :
-                                                        isCompleted ? 'border-indigo-600 bg-gradient-to-br from-indigo-600 to-purple-600 text-white' : 'border-gray-200 text-gray-300'}
+                                                        isCompleted ? 'border-indigo-600 bg-linear-to-br from-indigo-600 to-purple-600 text-white' : 'border-gray-200 text-gray-300'}
                                                 `}
                                             >
                                                 {isCompleted ? <Check className="w-6 h-6" /> : <s.icon className="w-6 h-6" />}
@@ -505,8 +505,8 @@ export default function HostOnboardingPage() {
                             animate={{ opacity: 1, y: 0 }}
                             className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-8 min-h-[600px] flex flex-col relative overflow-hidden"
                         >
-                            <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full blur-3xl pointer-events-none" />
-                            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-3xl pointer-events-none" />
+                            <div className="absolute -top-20 -right-20 w-64 h-64 bg-linear-to-br from-indigo-500/20 to-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+                            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-linear-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-3xl pointer-events-none" />
 
                             <div className="flex-1 relative z-10 grid lg:grid-cols-3 gap-8">
                                 <div className="lg:col-span-2">
@@ -515,7 +515,7 @@ export default function HostOnboardingPage() {
                                     {step === 1 && !isEmailVerified && (
                                         <div className="space-y-8 max-w-2xl">
                                             <div className="flex items-center gap-4 mb-6">
-                                                <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
+                                                <div className="w-14 h-14 bg-linear-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
                                                     <UserCircle className="h-7 w-7" />
                                                 </div>
                                                 <div>
@@ -558,7 +558,7 @@ export default function HostOnboardingPage() {
                                                                     disabled={isEmailVerified}
                                                                     className={`h-12 px-6 rounded-xl font-semibold transition-all ${isEmailVerified
                                                                         ? 'bg-green-100 text-green-700 hover:bg-green-100 border border-green-200 cursor-default'
-                                                                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-200/50'
+                                                                        : 'bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-200/50'
                                                                         }`}
                                                                 >
                                                                     {isEmailVerified ? (
@@ -611,7 +611,7 @@ export default function HostOnboardingPage() {
                                                     {errors.hostIdNumber && <p className="text-sm text-red-500 mt-1">{errors.hostIdNumber}</p>}
                                                 </div>
 
-                                                <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-100">
+                                                <div className="p-6 bg-linear-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-100">
                                                     <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                                                         <MapPin className="w-5 h-5 text-indigo-600" />
                                                         Host Address
@@ -705,7 +705,7 @@ export default function HostOnboardingPage() {
                                     {step === 2 && (
                                         <div className="space-y-8 max-w-2xl">
                                             <div className="flex items-center gap-4 mb-6">
-                                                <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
+                                                <div className="w-14 h-14 bg-linear-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
                                                     <Home className="h-7 w-7" />
                                                 </div>
                                                 <div>
@@ -719,7 +719,7 @@ export default function HostOnboardingPage() {
                                                     <Label className="text-gray-900 text-base font-semibold mb-3 block">Which of these best describes your place?</Label>
                                                     {errors.category && <p className="text-sm text-red-500 mb-2">{errors.category}</p>}
                                                     {preSelectedCategory && selectedCategoryData ? (
-                                                        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-4 flex items-center gap-4">
+                                                        <div className="bg-linear-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-4 flex items-center gap-4">
                                                             <div className="p-3 bg-white rounded-lg shadow-sm text-indigo-600">
                                                                 {React.createElement(selectedCategoryData.icon, { className: "w-7 h-7" })}
                                                             </div>
@@ -831,7 +831,7 @@ export default function HostOnboardingPage() {
                                     {step === 3 && (
                                         <div className="space-y-8 max-w-2xl">
                                             <div className="flex items-center gap-4 mb-6">
-                                                <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
+                                                <div className="w-14 h-14 bg-linear-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
                                                     <MapPin className="h-7 w-7" />
                                                 </div>
                                                 <div>
@@ -906,7 +906,7 @@ export default function HostOnboardingPage() {
                                     {step === 4 && (
                                         <div className="space-y-8 max-w-2xl">
                                             <div className="flex items-center gap-4 mb-6">
-                                                <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
+                                                <div className="w-14 h-14 bg-linear-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
                                                     <Camera className="h-7 w-7" />
                                                 </div>
                                                 <div>
@@ -928,7 +928,7 @@ export default function HostOnboardingPage() {
                                                         ref={fileInputRef}
                                                         onChange={(e) => handleFileChange(e, 'photos')}
                                                     />
-                                                    <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                                                    <div className="w-20 h-20 bg-linear-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                                                         <Upload className={`h-10 w-10 ${errors.photos ? "text-red-400" : "text-gray-400"} group-hover:text-indigo-600`} />
                                                     </div>
                                                     <h3 className="text-xl font-semibold text-gray-900">Drag & drop photos here</h3>
@@ -938,8 +938,8 @@ export default function HostOnboardingPage() {
                                                     {formData.photos.length > 0 && <p className="text-sm text-green-600 mt-2">{formData.photos.length} photos selected</p>}
                                                 </div>
 
-                                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex items-start gap-4">
-                                                    <Video className="w-6 h-6 text-blue-600 mt-0.5 flex-shrink-0" />
+                                                <div className="bg-linear-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex items-start gap-4">
+                                                    <Video className="w-6 h-6 text-blue-600 mt-0.5 -shrink-0" />
                                                     <div className="flex-1">
                                                         <h4 className="font-semibold text-blue-900 text-sm">Add a Video Tour</h4>
                                                         <p className="text-xs text-blue-700 mt-1">Listings with video tours get 20% more bookings and higher ratings.</p>
@@ -968,7 +968,7 @@ export default function HostOnboardingPage() {
                                     {step === 5 && (
                                         <div className="space-y-8 max-w-2xl">
                                             <div className="flex items-center gap-4 mb-6">
-                                                <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
+                                                <div className="w-14 h-14 bg-linear-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
                                                     <Shield className="h-7 w-7" />
                                                 </div>
                                                 <div>
@@ -1000,7 +1000,7 @@ export default function HostOnboardingPage() {
                                                     </div>
                                                 </div>
 
-                                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-6">
+                                                <div className="bg-linear-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-6">
                                                     <Label className="text-amber-900 font-semibold mb-4 flex items-center gap-2">
                                                         <Shield className="w-5 h-5" /> Safety Checklist
                                                     </Label>
@@ -1062,7 +1062,7 @@ export default function HostOnboardingPage() {
                                     {step === 6 && (
                                         <div className="space-y-8 max-w-2xl">
                                             <div className="flex items-center gap-4 mb-6">
-                                                <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
+                                                <div className="w-14 h-14 bg-linear-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg">
                                                     <DollarSign className="h-7 w-7" />
                                                 </div>
                                                 <div>
@@ -1080,7 +1080,7 @@ export default function HostOnboardingPage() {
                                                                 key={model}
                                                                 onClick={() => updateForm('pricingModel', model)}
                                                                 className={`flex-1 p-4 rounded-xl border-2 cursor-pointer transition-all text-center capitalize font-medium ${formData.pricingModel === model
-                                                                    ? 'border-indigo-600 bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-700'
+                                                                    ? 'border-indigo-600 bg-linear-to-br from-indigo-50 to-purple-50 text-indigo-700'
                                                                     : 'border-gray-200 hover:border-indigo-200 text-gray-600'
                                                                     }`}
                                                             >
@@ -1126,7 +1126,7 @@ export default function HostOnboardingPage() {
                                                     </div>
                                                 </div>
 
-                                                <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl space-y-4">
+                                                <div className="p-6 bg-linear-to-br from-gray-50 to-gray-100 rounded-2xl space-y-4">
                                                     <h4 className="font-semibold text-gray-900">Additional Fees</h4>
                                                     <div className="grid md:grid-cols-3 gap-4">
                                                         <div>
@@ -1175,7 +1175,7 @@ export default function HostOnboardingPage() {
                                                 </div>
 
                                                 {formData.pricingModel !== 'monthly' && (
-                                                    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl space-y-4">
+                                                    <div className="p-6 bg-linear-to-br from-gray-50 to-gray-100 rounded-2xl space-y-4">
                                                         <h4 className="font-semibold text-gray-900">Discounts</h4>
                                                         <div className="grid md:grid-cols-2 gap-4">
                                                             {formData.pricingModel === 'nightly' && (
@@ -1215,7 +1215,7 @@ export default function HostOnboardingPage() {
                                             <motion.div
                                                 initial={{ scale: 0.8, opacity: 0 }}
                                                 animate={{ scale: 1, opacity: 1 }}
-                                                className="w-24 h-24 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6"
+                                                className="w-24 h-24 bg-linear-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6"
                                             >
                                                 <CheckCircle className="h-12 w-12 text-green-600" />
                                             </motion.div>
@@ -1245,7 +1245,7 @@ export default function HostOnboardingPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-start gap-3 text-left bg-gradient-to-br from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 max-w-md mx-auto">
+                                            <div className="flex items-start gap-3 text-left bg-linear-to-br from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 max-w-md mx-auto">
                                                 <Checkbox id="confirm" className="mt-1 border-indigo-400 data-[state=checked]:bg-indigo-600" />
                                                 <Label htmlFor="confirm" className="text-sm text-indigo-900 font-medium cursor-pointer leading-relaxed">
                                                     I declare all information is accurate and truthful. I understand my listing may be removed if misleading.
@@ -1265,13 +1265,13 @@ export default function HostOnboardingPage() {
                                         </Button>
 
                                         {step < totalSteps ? (
-                                            <Button onClick={nextStep} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 rounded-xl shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 cursor-pointer">
+                                            <Button onClick={nextStep} className="bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 rounded-xl shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 cursor-pointer">
                                                 Next <ChevronRight className="h-4 w-4 ml-2" />
                                             </Button>
                                         ) : (
                                             <Button
                                                 onClick={handlePublish}
-                                                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 rounded-xl shadow-lg shadow-green-500/30 transition-all hover:scale-105 cursor-pointer"
+                                                className="bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 rounded-xl shadow-lg shadow-green-500/30 transition-all hover:scale-105 cursor-pointer"
                                             >
                                                 Publish Listing
                                             </Button>
@@ -1306,7 +1306,6 @@ export default function HostOnboardingPage() {
     )
 }
 
-import React, { useState, useEffect } from "react"
 import StepIdentity from "@/components/host/StepIdentity" // adjust path if needed
 
 export default function HostOnboarding({ initialHost }) {
