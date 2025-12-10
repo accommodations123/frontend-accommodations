@@ -1,0 +1,301 @@
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { FilterSidebar } from '@/components/search/FilterSidebar';
+import { Navbar } from '@/components/layout/Navbar';
+import { ListingCard } from '@/components/listing/ListingCard';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Search, SlidersHorizontal, ChevronDown, MapPin, Globe, AlignLeft } from 'lucide-react';
+import { MobileSidebar } from '@/components/layout/MobileSidebar';
+import { useCountry } from "@/context/CountryContext";
+import { COUNTRIES } from "@/lib/mock-data";
+import { AnimatePresence, motion } from 'framer-motion';
+import { cn } from "@/lib/utils";
+
+import { useGetApprovedHostDetailsQuery, useGetApprovedPropertiesQuery } from '@/store/api/hostApi';
+import { UserCheck } from 'lucide-react';
+
+export default function SearchPage() {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const [listings, setListings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [total, setTotal] = useState(0);
+
+    // Mobile State
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
+    const [isCountryOpen, setCountryOpen] = useState(false);
+    const { activeCountry, setCountry } = useCountry();
+
+    const { data: approvedHosts } = useGetApprovedHostDetailsQuery();
+    const { data: approvedProperties } = useGetApprovedPropertiesQuery();
+
+
+
+    // Extract filters from URL
+    const filters = {
+        location: searchParams.get('location') || '',
+        category: searchParams.getAll('category'),
+        accommodationType: searchParams.getAll('accommodationType'),
+        minPrice: searchParams.get('minPrice'),
+        maxPrice: searchParams.get('maxPrice'),
+        stayType: searchParams.get('stayType'),
+        furnishing: searchParams.get('furnishing'),
+    };
+
+    const handleFilterChange = (newFilters) => {
+        const params = new URLSearchParams(searchParams);
+        // Clear existing keys handled by filters to avoid duplicates/mess
+        ['location', 'category', 'accommodationType', 'minPrice', 'maxPrice', 'stayType', 'furnishing'].forEach(k => params.delete(k));
+
+        Object.entries(newFilters).forEach(([key, value]) => {
+            if (value) {
+                if (Array.isArray(value)) {
+                    value.forEach(v => params.append(key, v));
+                } else {
+                    params.append(key, value);
+                }
+            }
+        });
+        navigate(`/search?${params.toString()}`);
+    };
+
+    useEffect(() => {
+        const fetchListings = async () => {
+            setLoading(true);
+            try {
+                if (approvedProperties) {
+                    let mapped = approvedProperties.map((property) => ({
+                        _id: property.id || property._id,
+                        title: property.title || "Untitled Property",
+                        location: property.city || "Unknown Location",
+                        fullAddress: property.address || "", // For location filtering
+                        price: property.price_per_month || property.price_per_night || 0,
+                        currency: property.currency || 'INR',
+                        image: (property.photos && property.photos.length > 0)
+                            ? property.photos[0]
+                            : "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=2070&auto=format&fit=crop",
+                        type: property.property_type || "Stays", // Matches 'House', 'Apartment', etc.
+                        category: property.category_id || "Apartment", // Should probably match type
+                        rating: 4.8, // Mock
+                        reviews: 12, // Mock
+                        isVerified: property.status === 'approved',
+                        furnishing: property.furnishing || "Unfurnished", // Backend field
+                        stayType: property.stay_type || "Flexible", // Backend field
+                        tags: property.amenities || []
+                    }));
+
+                    // Apply Filters
+                    const { location, category, minPrice, maxPrice, stayType, furnishing } = filters;
+
+                    if (location) {
+                        const locLower = location.toLowerCase();
+                        mapped = mapped.filter(item =>
+                            item.location.toLowerCase().includes(locLower) ||
+                            item.fullAddress.toLowerCase().includes(locLower) ||
+                            item.title.toLowerCase().includes(locLower)
+                        );
+                    }
+
+                    if (category && category.length > 0) {
+                        // category in Sidebar comes as ['Apartment', 'House'] etc.
+                        // property.category_id or type should match. 
+                        // Backend might retain lowercase or IDs. We'll try flexible matching.
+                        mapped = mapped.filter(item =>
+                            category.some(cat =>
+                                cat.toLowerCase() === (item.category || "").toLowerCase() ||
+                                cat.toLowerCase() === (item.type || "").toLowerCase()
+                            )
+                        );
+                    }
+
+                    if (minPrice) {
+                        mapped = mapped.filter(item => item.price >= Number(minPrice));
+                    }
+
+                    if (maxPrice) {
+                        mapped = mapped.filter(item => item.price <= Number(maxPrice));
+                    }
+
+                    if (furnishing) {
+                        mapped = mapped.filter(item => (item.furnishing || "").toLowerCase() === furnishing.toLowerCase());
+                    }
+
+                    if (stayType) {
+                        // Sidebar uses 'ShortTerm', 'LongTerm'. Backend might use different.
+                        mapped = mapped.filter(item => (item.stayType || "").toLowerCase() === stayType.toLowerCase());
+                    }
+
+                    setListings(mapped);
+                    setTotal(mapped.length);
+                }
+            } catch (err) {
+                console.error("Error filtering listings:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchListings();
+        // Scroll only on initial load or severe changes, not every filter tweak to keep context? 
+        // User likely wants to see results at top if list refreshes.
+        window.scrollTo(0, 0);
+    }, [searchParams, approvedProperties]); // Dependencies correct as searchParams change on filter change
+
+    return (
+        <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
+            {/* Desktop Navbar */}
+            <div className="hidden md:block">
+                <Navbar />
+            </div>
+
+            {/* Mobile Header (Sticky) */}
+            <div className="md:hidden sticky top-0 z-40 bg-white shadow-sm">
+                <MobileSidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+                <div className="flex items-center gap-3 p-4 pb-4">
+                    <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 hover:bg-gray-50 rounded-full">
+                        <AlignLeft className="w-5 h-5 text-gray-700" />
+                    </button>
+
+                    {/* Search Input Mock */}
+                    <div className="flex-1 h-11 bg-gray-50 rounded-xl flex items-center px-4 gap-2 border border-gray-100">
+                        {/* We can make this clickable to open Overlay again if needed */}
+                        <Search className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-900 truncate">
+                            {searchParams.get('location') || "Enter Location"}
+                        </span>
+                    </div>
+
+
+                    {/* Country Selector (Globe) */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setCountryOpen(!isCountryOpen)}
+                            className="p-2.5 bg-gray-50 rounded-xl border border-gray-100 text-gray-700 hover:bg-gray-100"
+                        >
+                            <Globe className="w-5 h-5" />
+                        </button>
+
+                        <AnimatePresence>
+                            {isCountryOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setCountryOpen(false)} />
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-xl py-2 z-50 overflow-hidden ring-1 ring-black/5"
+                                    >
+                                        {COUNTRIES.map((country) => (
+                                            <button
+                                                key={country.code}
+                                                className={cn(
+                                                    "w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between transition-colors",
+                                                    activeCountry.code === country.code ? "text-primary bg-primary/5 font-bold" : "text-gray-700"
+                                                )}
+                                                onClick={() => {
+                                                    setCountry(country);
+                                                    setCountryOpen(false);
+                                                }}
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    {country.flag.startsWith('/') ? (
+                                                        <img src={country.flag} alt={country.name} className="w-6 h-4 object-cover rounded-sm border border-gray-100" />
+                                                    ) : (
+                                                        <span className="text-lg">{country.flag}</span>
+                                                    )}
+                                                    {country.name}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                </>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
+            </div>
+
+            <div className="container mx-auto pt-4 md:pt-24 px-4 md:px-4">
+                <div className="flex flex-col md:flex-row gap-8">
+                    {/* Desktop Sidebar */}
+                    <aside className="w-full md:w-80 hidden md:block shrink-0">
+                        <FilterSidebar filters={filters} onFilterChange={handleFilterChange} />
+                    </aside>
+
+                    {/* Listings Grid */}
+                    <main className="flex-1">
+                        {/* Verified Hosts Strip */}
+                        {approvedHosts && approvedHosts.length > 0 && (
+                            <div className="mb-8">
+                                <h3 className="font-bold text-gray-900 text-lg mb-4">Verified Hosts in your area</h3>
+                                <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                                    {approvedHosts.map((host, idx) => (
+                                        <div key={idx} className="min-w-[200px] bg-white border border-gray-100 p-3 rounded-xl flex items-center gap-3 shadow-sm hover:shadow-md transition-all cursor-pointer">
+                                            <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-gray-100">
+                                                <img
+                                                    src={host.host_id_photo || host.host_selfie_photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(host.host_full_name || "User")}`}
+                                                    alt={host.host_full_name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(host.host_full_name || "User")}`}
+                                                />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h4 className="font-bold text-gray-900 text-sm truncate flex items-center gap-1">
+                                                    {host.host_full_name}
+                                                    <UserCheck className="w-3 h-3 text-primary" />
+                                                </h4>
+                                                <p className="text-xs text-gray-500 truncate">{host.host_city || "Superhost"}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between mb-6 hidden md:flex">
+                            <h1 className="text-2xl font-bold text-gray-900">
+                                {total > 0 ? `${total} Stays found` : 'Find your requested stay'}
+                                {filters.location && <span className="text-gray-500 font-normal ml-2">in {filters.location}</span>}
+                            </h1>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-500">Sort by:</span>
+                                <select className="text-sm font-bold bg-transparent border-none outline-none cursor-pointer">
+                                    <option>Recommended</option>
+                                    <option>Price: Low to High</option>
+                                    <option>Price: High to Low</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {loading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {[1, 2, 3, 4, 5, 6].map((n) => (
+                                    <div key={n} className="bg-white rounded-2xl h-[380px] animate-pulse" />
+                                ))}
+                            </div>
+                        ) : listings.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-8">
+                                {listings.map(item => (
+                                    <ListingCard key={item._id} listing={item} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">No listings found</h3>
+                                <p className="text-gray-500">Try adjusting your filters or search for a different location.</p>
+                                <Button
+                                    variant="link"
+                                    onClick={() => navigate('/')}
+                                    className="mt-4 text-primary font-bold"
+                                >
+                                    Clear all filters
+                                </Button>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            </div>
+        </div>
+    );
+}
