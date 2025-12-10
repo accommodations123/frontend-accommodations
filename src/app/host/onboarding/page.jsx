@@ -20,7 +20,7 @@ import { motion, AnimatePresence } from "framer-motion"
 
 import {
     useCreatePropertyDraftMutation,
-    useUpdatePropertyBasicInfoMutation,
+    useUpdatePropertyBasicMutation,  // Fixed: was useUpdatePropertyBasicInfoMutation
     useUpdatePropertyAddressMutation,
     useUpdatePropertyMediaMutation,
     useUpdatePropertyAmenitiesMutation,
@@ -44,7 +44,7 @@ export default function HostOnboardingPage() {
 
     // API Mutations
     const [createDraft] = useCreatePropertyDraftMutation()
-    const [updateBasicInfo] = useUpdatePropertyBasicInfoMutation()
+    const [updateBasicInfo] = useUpdatePropertyBasicMutation()  // Fixed: was useUpdatePropertyBasicInfoMutation
     const [updateAddress] = useUpdatePropertyAddressMutation()
     const [updateMedia] = useUpdatePropertyMediaMutation()
     const [updateAmenities] = useUpdatePropertyAmenitiesMutation()
