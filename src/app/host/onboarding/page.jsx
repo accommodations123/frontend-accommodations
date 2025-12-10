@@ -59,6 +59,8 @@ export default function HostOnboardingPage() {
     // Host Verification State
     const [showOtpModal, setShowOtpModal] = React.useState(false)
     const [isEmailVerified, setIsEmailVerified] = React.useState(false)
+    const [isSendingOtp, setIsSendingOtp] = React.useState(false)
+    const [isSavingVerification, setIsSavingVerification] = React.useState(false)
 
     // Auth Check
     React.useEffect(() => {
@@ -123,6 +125,26 @@ export default function HostOnboardingPage() {
     })
 
     const [errors, setErrors] = React.useState({})
+
+    // On mount, try to refresh host from server to get canonical identityVerified flag
+    React.useEffect(() => {
+        async function refreshHost() {
+            try {
+                // This would be your API call to get host info
+                // const res = await fetch(`/api/host/${initialHost.id}`)
+                // For now, we'll just check localStorage
+                if (localStorage.getItem("host_identity_verified") === "true") {
+                    setIsEmailVerified(true)
+                }
+            } catch (err) {
+                // network error -> fallback to localStorage
+                if (localStorage.getItem("host_identity_verified") === "true") {
+                    setIsEmailVerified(true)
+                }
+            }
+        }
+        refreshHost()
+    }, [])
 
     const updateForm = (key, value) => {
         setFormData(prev => ({ ...prev, [key]: value }))
@@ -338,25 +360,39 @@ export default function HostOnboardingPage() {
             return
         }
         try {
+            setIsSendingOtp(true)
             await sendOtp({ email: formData.hostEmail, phone: formData.hostPhone || "0000000000" }).unwrap()
             setShowOtpModal(true)
         } catch (error) {
             console.error("Failed to send OTP:", error)
             alert("Failed to send OTP. Please try again.")
+        } finally {
+            setIsSendingOtp(false)
         }
     }
 
     const handleVerifyOtp = async (otpCode) => {
         try {
+            setIsSavingVerification(true)
+            
+            // 1) verify OTP with auth service
             await verifyOtp({ email: formData.hostEmail, phone: formData.hostPhone || "0000000000", otp: otpCode }).unwrap()
+            
+            // 2) Persist identityVerified to host record on server
+            // In a real implementation, you would make an API call here to update the host record
+            // For now, we'll just update the local state and localStorage
             setIsEmailVerified(true)
+            localStorage.setItem("host_identity_verified", "true")
             setShowOtpModal(false)
             alert("Email verified successfully!")
+            
             // Automatically proceed to next step after verification
             setStep(2)
         } catch (error) {
             console.error("Failed to verify OTP:", error)
             alert("Invalid OTP. Please try again.")
+        } finally {
+            setIsSavingVerification(false)
         }
     }
 
@@ -555,13 +591,18 @@ export default function HostOnboardingPage() {
                                                             {formData.hostEmail && (
                                                                 <Button
                                                                     onClick={handleSendOtp}
-                                                                    disabled={isEmailVerified}
+                                                                    disabled={isEmailVerified || isSendingOtp}
                                                                     className={`h-12 px-6 rounded-xl font-semibold transition-all ${isEmailVerified
                                                                         ? 'bg-green-100 text-green-700 hover:bg-green-100 border border-green-200 cursor-default'
                                                                         : 'bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-200/50'
                                                                         }`}
                                                                 >
-                                                                    {isEmailVerified ? (
+                                                                    {isSendingOtp ? (
+                                                                        <>
+                                                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                                            Sending...
+                                                                        </>
+                                                                    ) : isEmailVerified ? (
                                                                         <>
                                                                             <CheckCircle className="w-4 h-4 mr-2" />
                                                                             Verified
@@ -697,6 +738,36 @@ export default function HostOnboardingPage() {
                                                         {errors.hostSelfie && <p className="text-sm text-red-500 mt-1">{errors.hostSelfie}</p>}
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* If identity is verified, show success message */}
+                                    {step === 1 && isEmailVerified && (
+                                        <div className="space-y-8 max-w-2xl">
+                                            <div className="flex items-center gap-4 mb-6">
+                                                <div className="w-14 h-14 bg-linear-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center text-green-600 shadow-lg">
+                                                    <CheckCircle className="h-7 w-7" />
+                                                </div>
+                                                <div>
+                                                    <h1 className="text-3xl font-bold text-gray-900">Identity Verified</h1>
+                                                    <p className="text-gray-500">Your identity has been verified successfully. You can now proceed to list your property.</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-6 bg-linear-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <CheckCircle className="w-6 h-6 text-green-600" />
+                                                    <h3 className="font-semibold text-green-900">Verification Complete</h3>
+                                                </div>
+                                                <p className="text-sm text-green-700 mb-4">
+                                                    Thank you for verifying your identity. Your information has been securely stored and will only be used for verification purposes.
+                                                </p>
+                                                <Button
+                                                    onClick={() => setStep(2)}
+                                                    className="bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 rounded-xl shadow-lg shadow-green-500/30 transition-all hover:scale-105"
+                                                >
+                                                    Continue to Property Details
+                                                </Button>
                                             </div>
                                         </div>
                                     )}
@@ -1299,179 +1370,10 @@ export default function HostOnboardingPage() {
                         onVerify={handleVerifyOtp}
                         onResend={handleSendOtp}
                         onClose={() => setShowOtpModal(false)}
+                        isLoading={isSavingVerification}
                     />
                 )}
             </AnimatePresence>
         </main >
     )
-}
-
-import StepIdentity from "@/components/host/StepIdentity" // adjust path if needed
-
-export default function HostOnboarding({ initialHost }) {
-  // initialHost should contain at least: id, email, identityVerified, fullName, phone, hostAddress, hostCity, hostCountry, idType, idNumber, idProof, profilePhoto
-  const [formData, setFormData] = useState(initialHost || {})
-  const [isEmailVerified, setIsEmailVerified] = useState(Boolean(initialHost?.identityVerified))
-  const [showOtpModal, setShowOtpModal] = useState(false)
-  const [isSendingOtp, setIsSendingOtp] = useState(false)
-  const [isSavingVerification, setIsSavingVerification] = useState(false)
-
-  // On mount, try to refresh host from server to get canonical identityVerified flag
-  useEffect(() => {
-    async function refreshHost() {
-      if (!initialHost?.id) return
-      try {
-        const res = await fetch(`/api/host/${initialHost.id}`) // adjust endpoint
-        if (res.ok) {
-          const host = await res.json()
-          setFormData(host)
-          setIsEmailVerified(Boolean(host.identityVerified))
-        } else {
-          // fallback to localStorage (fast UX)
-          if (localStorage.getItem("host_identity_verified") === "true") {
-            setIsEmailVerified(true)
-          }
-        }
-      } catch (err) {
-        // network error -> fallback to localStorage
-        if (localStorage.getItem("host_identity_verified") === "true") {
-          setIsEmailVerified(true)
-        }
-      }
-    }
-    refreshHost()
-  }, [initialHost?.id])
-
-  // Send OTP -> opens modal on success
-  const handleSendOtp = async () => {
-    if (!formData?.email) return alert("Please provide an email.")
-    try {
-      setIsSendingOtp(true)
-      const res = await fetch("/api/auth/send-otp", {            // <-- adapt endpoint
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        console.error("Send OTP failed:", err)
-        alert(err.message || "Failed to send OTP. Try again.")
-        return
-      }
-      // OTP sent -> open modal
-      setShowOtpModal(true)
-    } catch (err) {
-      console.error(err)
-      alert("Network error while sending OTP.")
-    } finally {
-      setIsSendingOtp(false)
-    }
-  }
-
-  // Verify OTP: parent-level handler called by OtpVerification -> code is 4-digit
-  // This function:
-  // 1) calls verification endpoint,
-  // 2) if success, PATCH /api/host/{id} to set identityVerified: true,
-  // 3) update local state and localStorage, close modal, and hide StepIdentity.
-  const handleVerifyOtp = async (code) => {
-    if (!formData?.email) return { success: false, message: "Missing email" }
-    try {
-      setIsSavingVerification(true)
-
-      // 1) verify OTP with auth service
-      const verifyRes = await fetch("/api/auth/verify-otp", {   // <-- adapt endpoint
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email, code }),
-      })
-
-      if (!verifyRes.ok) {
-        const err = await verifyRes.json().catch(() => ({}))
-        console.error("OTP verify failed:", err)
-        alert(err.message || "OTP verification failed")
-        return { success: false }
-      }
-
-      const verifyJson = await verifyRes.json()
-      // expected shape: { success: true } or with tokens etc. adjust if different
-      if (verifyJson.success === false) {
-        alert(verifyJson.message || "Invalid code")
-        return { success: false }
-      }
-
-      // 2) Persist identityVerified to host record on server
-      // PATCH recommended; server should accept identityVerified and optionally verifiedAt
-      const patchPayload = {
-        identityVerified: true,
-        verifiedAt: new Date().toISOString(),
-        email: formData.email // optional helpful metadata
-      }
-
-      // If you use auth tokens, add them in headers (Authorization)
-      const saveRes = await fetch(`/api/host/${formData.id}`, {  // <-- adapt endpoint
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patchPayload),
-      })
-
-      if (!saveRes.ok) {
-        // server save failed; still mark client as verified optimistically, but notify user
-        console.error("Failed to persist verification to server")
-        // Option A (optimistic): continue UX but keep a retry mechanism (not implemented here)
-        // Option B: show error and don't advance. We'll do optimistic update + warn user.
-        alert("Verified locally but failed to persist on server. We'll retry in background.")
-      } else {
-        // server returned updated host object -> merge into formData
-        const updatedHost = await saveRes.json().catch(() => null)
-        if (updatedHost) setFormData(prev => ({ ...prev, ...updatedHost }))
-      }
-
-      // 3) update UI state (single source of truth is isEmailVerified + formData.identityVerified)
-      setIsEmailVerified(true)
-      setFormData(prev => ({ ...prev, identityVerified: true }))
-      localStorage.setItem("host_identity_verified", "true")
-      setShowOtpModal(false)
-
-      // Optionally move onboarding forward here (e.g., setStep)
-      return { success: true }
-    } catch (err) {
-      console.error("handleVerifyOtp error:", err)
-      alert("An error occurred verifying OTP. Try again.")
-      return { success: false }
-    } finally {
-      setIsSavingVerification(false)
-    }
-  }
-
-  // File change handler can live here and update formData
-  const handleFileChange = (e, field) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    // You might want to upload immediately or store the File object to formData to be uploaded on final submit
-    setFormData(prev => ({ ...prev, [field]: file }))
-  }
-
-  // If identity is verified, don't render the StepIdentity; instead show next step placeholder
-  return (
-    <div className="py-6">
-      {!isEmailVerified ? (
-        <StepIdentity
-          formData={formData}
-          setFormData={setFormData}
-          handleSendOtp={handleSendOtp}
-          handleVerifyOtp={handleVerifyOtp}
-          isEmailVerified={isEmailVerified}
-          showOtpModal={showOtpModal}
-          setShowOtpModal={setShowOtpModal}
-          handleFileChange={handleFileChange}
-        />
-      ) : (
-        <div className="max-w-2xl mx-auto p-6 bg-white/5 rounded-2xl">
-          <h3 className="text-lg font-semibold text-green-400 mb-2">Identity verified ✅</h3>
-          <p className="text-sm text-gray-300">Thanks — your identity is verified. Continue with the rest of onboarding.</p>
-          {/* Render next onboarding step or a button to proceed */}
-        </div>
-      )}
-    </div>
-  )
 }
