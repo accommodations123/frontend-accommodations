@@ -2,229 +2,680 @@
 
 import * as React from "react"
 import { Button } from "@/components/ui/button"
-import { Heart, MessageCircle, Share2, MoreHorizontal, X, Users, Calendar, MapPin, Hash, Flame, Star } from "lucide-react"
+import { Heart, MessageCircle, Share2, MoreHorizontal, X, Users, Calendar, MapPin, Hash, Flame, Star, TrendingUp, Award, Clock, Pin, Image, Video, FileText, Settings, Bell, Search, Filter, Grid, List, ChevronRight, Home, CalendarDays, UserCheck, Shield, Zap, Camera, FolderOpen, Download, Play, Eye, UserPlus, Mail, Phone, Globe, Link2, Bookmark, ThumbsUp, MessageSquare } from "lucide-react"
 
 export function GroupModal({ isOpen, onClose, group }) {
     if (!isOpen || !group) return null
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-            <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-                onClick={onClose}
-            />
-            <div className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+    const [activeTab, setActiveTab] = React.useState("feed")
+    const [viewMode, setViewMode] = React.useState("grid")
 
-                {/* Close Button */}
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors backdrop-blur-sm"
-                >
-                    <X className="h-5 w-5" />
-                </button>
+    // Handle close with event stop propagation
+    const handleClose = (e) => {
+        e?.stopPropagation()
+        onClose()
+    }
 
-                {/* Header / Cover */}
-                <div className="h-64 bg-gradient-to-br from-[#07182A] to-[#0A1F36] relative shrink-0">
-                    {group.image && (
-                        <img src={group.image} alt={group.title} className="w-full h-full object-cover opacity-40" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-0 left-0 p-8 text-white">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                                <Users className="h-5 w-5" />
-                            </div>
-                            <h2 className="text-3xl font-bold">{group.title || group.name}</h2>
-                        </div>
-                        <p className="text-sm opacity-90 flex items-center gap-2">
-                            <span>{group.members} members</span>
-                            <span>•</span>
-                            <span>Public Group</span>
-                        </p>
-                    </div>
-                </div>
+    // Handle backdrop click
+    const handleBackdropClick = (e) => {
+        if (e.target === e.currentTarget) {
+            onClose()
+        }
+    }
 
-                {/* Content */}
-                <div className="flex flex-1 overflow-hidden">
-                    {/* Main Feed */}
-                    <div className="flex-1 overflow-y-auto">
-                        {/* Tabs */}
-                        <div className="bg-white/50 backdrop-blur-sm border-b border-gray-100">
-                            <div className="flex px-6 pt-4">
-                                {["Posts", "About", "Members", "Photos"].map((tab, i) => (
-                                    <button
-                                        key={tab}
-                                        className={`pb-4 px-4 text-sm font-semibold transition-colors ${
-                                            i === 0 
-                                                ? "text-[#C93A30] border-b-2 border-[#C93A30]" 
-                                                : "text-gray-500 hover:text-[#07182A]"
-                                        }`}
-                                    >
-                                        {tab}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+    // Close on Escape key
+    React.useEffect(() => {
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                onClose()
+            }
+        }
 
-                        {/* Create Post Input */}
-                        <div className="p-6 bg-gradient-to-br from-[#F1E7D6] to-[#E8D5C4] border-b border-gray-100">
+        if (isOpen) {
+            document.addEventListener('keydown', handleEscape)
+            document.body.style.overflow = 'hidden'
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscape)
+            document.body.style.overflow = 'unset'
+        }
+    }, [isOpen, onClose])
+
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case "feed":
+                return (
+                    <div className="p-4 lg:p-6 space-y-6">
+                        {/* Create Post */}
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                             <div className="flex gap-3">
-                                <div className="w-10 h-10 bg-[#07182A] text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center font-bold">
                                     ME
                                 </div>
                                 <div className="flex-1">
-                                    <input
-                                        type="text"
-                                        placeholder="What's on your mind? Share with the group..."
-                                        className="w-full bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#C93A30]/50"
+                                    <textarea
+                                        placeholder="Share something with the community..."
+                                        className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                                        rows={3}
                                     />
+                                    <div className="flex items-center justify-between mt-3">
+                                        <div className="flex gap-2">
+                                            <button className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors">
+                                                <Image className="h-4 w-4" />
+                                            </button>
+                                            <button className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors">
+                                                <Video className="h-4 w-4" />
+                                            </button>
+                                            <button className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors">
+                                                <Calendar className="h-4 w-4" />
+                                            </button>
+                                            <button className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors">
+                                                <FileText className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                                            Post
+                                        </Button>
+                                    </div>
                                 </div>
-                                <Button className="bg-[#C93A30] hover:bg-[#B82E28] text-white rounded-xl px-6 py-3 text-sm font-semibold">
-                                    Post
-                                </Button>
                             </div>
                         </div>
 
-                        {/* Feed */}
-                        <div className="p-6 space-y-6">
-                            {group.feed?.map((post, index) => (
-                                <div key={post.id || index} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border border-gray-100">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-[#07182A] to-[#0A1F36] text-white rounded-full flex items-center justify-center font-bold text-sm">
-                                                {post.avatar}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-[#07182A] text-sm">{post.author}</h4>
-                                                <p className="text-xs text-gray-500">{post.time}</p>
-                                            </div>
-                                        </div>
-                                        <button className="text-gray-400 hover:text-gray-600">
-                                            <MoreHorizontal className="h-5 w-5" />
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="mb-4">
-                                        <p className="text-gray-700 text-sm leading-relaxed mb-3">
-                                            {post.content}
-                                        </p>
-                                        {post.image && (
-                                            <div className="rounded-xl overflow-hidden mb-3">
-                                                <img 
-                                                    src={post.image} 
-                                                    alt="Post attachment" 
-                                                    className="w-full h-64 object-cover"
-                                                />
-                                            </div>
-                                        )}
-                                        {post.link && (
-                                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-[#07182A] rounded-lg flex items-center justify-center">
-                                                        <Hash className="h-5 w-5 text-white" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-semibold text-[#07182A]">{post.link.title}</p>
-                                                        <p className="text-xs text-gray-500">{post.link.url}</p>
-                                                    </div>
+                        {/* Feed Posts */}
+                        <div className="space-y-4">
+                            {[
+                                {
+                                    id: 1,
+                                    author: "Alex Thompson",
+                                    avatar: "AT",
+                                    time: "2 hours ago",
+                                    content: "Just finished an amazing workshop on design systems! The insights on component scalability were game-changing. Here's a summary of key takeaways...",
+                                    image: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800",
+                                    likes: 42,
+                                    comments: 18,
+                                    shares: 5
+                                },
+                                {
+                                    id: 2,
+                                    author: "Sarah Chen",
+                                    avatar: "SC",
+                                    time: "5 hours ago",
+                                    content: "Looking for feedback on our latest project. We've been experimenting with new interaction patterns and would love to hear your thoughts!",
+                                    likes: 28,
+                                    comments: 12
+                                }
+                            ].map((post) => (
+                                <div key={post.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-gray-700">
+                                    <div className="p-6">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center font-bold">
+                                                    {post.avatar}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{post.author}</h4>
+                                                    <p className="text-sm text-gray-500">{post.time}</p>
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
-                                    
-                                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                        <div className="flex items-center gap-6">
-                                            <button className="flex items-center gap-2 text-gray-500 hover:text-[#C93A30] transition-colors">
-                                                <Heart className="h-5 w-5" />
-                                                <span className="text-sm">{post.likes}</span>
-                                            </button>
-                                            <button className="flex items-center gap-2 text-gray-500 hover:text-[#07182A] transition-colors">
-                                                <MessageCircle className="h-5 w-5" />
-                                                <span className="text-sm">{post.comments}</span>
-                                            </button>
-                                            <button className="flex items-center gap-2 text-gray-500 hover:text-[#07182A] transition-colors">
-                                                <Share2 className="h-5 w-5" />
-                                                <span className="text-sm">Share</span>
+                                            <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                                <MoreHorizontal className="h-5 w-5" />
                                             </button>
                                         </div>
-                                        <button className="text-gray-400 hover:text-gray-600">
-                                            <MoreHorizontal className="h-5 w-5" />
-                                        </button>
+
+                                        <div className="mb-4">
+                                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
+                                                {post.content}
+                                            </p>
+                                            {post.image && (
+                                                <div className="rounded-xl overflow-hidden">
+                                                    <img
+                                                        src={post.image}
+                                                        alt="Post attachment"
+                                                        className="w-full h-64 object-cover hover:scale-105 transition-transform duration-300"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+                                            <div className="flex items-center gap-6">
+                                                <button className="flex items-center gap-2 text-gray-500 hover:text-red-500 transition-colors">
+                                                    <Heart className="h-5 w-5" />
+                                                    <span className="text-sm">{post.likes}</span>
+                                                </button>
+                                                <button className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors">
+                                                    <MessageCircle className="h-5 w-5" />
+                                                    <span className="text-sm">{post.comments}</span>
+                                                </button>
+                                                <button className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors">
+                                                    <Share2 className="h-5 w-5" />
+                                                    <span className="text-sm">{post.shares || 0}</span>
+                                                </button>
+                                            </div>
+                                            <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                                <Bookmark className="h-5 w-5" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
+                )
 
-                    {/* Sidebar */}
-                    <div className="w-80 bg-gradient-to-br from-[#F9FAFB] to-[#F1E7D6] p-6 border-l border-gray-100 hidden md:block overflow-y-auto">
-                        {/* Join Button */}
-                        <div className="mb-8">
-                            <Button className="w-full bg-gradient-to-r from-[#C93A30] to-[#B82E28] hover:from-[#B82E28] hover:to-[#A72520] text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-                                Join Group
+            case "events":
+                return (
+                    <div className="p-4 lg:p-6">
+                        <div className="mb-6 flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Upcoming Events</h2>
+                            <Button className="bg-indigo-600 hover:bg-indigo-700">
+                                <CalendarDays className="h-4 w-4 mr-2" />
+                                Create Event
                             </Button>
                         </div>
 
-                        {/* Group Info */}
-                        <div className="mb-8">
-                            <h3 className="font-bold text-[#07182A] mb-4 text-sm uppercase tracking-wide">About</h3>
-                            <p className="text-sm text-gray-600 leading-relaxed mb-4">
-                                {group.description || "A vibrant community for like-minded individuals to connect, share experiences, and grow together. Join us to discover new friendships and opportunities!"}
-                            </p>
-                            
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-3 text-sm">
-                                    <MapPin className="h-4 w-4 text-gray-400" />
-                                    <span className="text-gray-600">{group.location || "Worldwide"}</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {[
+                                {
+                                    id: 1,
+                                    title: "Design Systems Workshop",
+                                    date: "June 15, 2024",
+                                    time: "2:00 PM - 5:00 PM",
+                                    location: "Virtual Event",
+                                    attendees: 45,
+                                    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800",
+                                    description: "Learn how to build scalable design systems from scratch"
+                                },
+                                {
+                                    id: 2,
+                                    title: "Monthly Networking Meetup",
+                                    date: "June 22, 2024",
+                                    time: "6:00 PM - 8:00 PM",
+                                    location: "Tech Hub, Downtown",
+                                    attendees: 32,
+                                    image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800",
+                                    description: "Connect with fellow professionals and expand your network"
+                                },
+                                {
+                                    id: 3,
+                                    title: "React Advanced Patterns",
+                                    date: "June 28, 2024",
+                                    time: "3:00 PM - 6:00 PM",
+                                    location: "Online Workshop",
+                                    attendees: 68,
+                                    image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800",
+                                    description: "Deep dive into advanced React patterns and best practices"
+                                }
+                            ].map((event) => (
+                                <div key={event.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700">
+                                    <div className="h-48 relative">
+                                        <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                        <div className="absolute bottom-4 left-4 text-white">
+                                            <h3 className="text-xl font-bold mb-1">{event.title}</h3>
+                                            <p className="text-sm opacity-90">{event.date}</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-6">
+                                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{event.description}</p>
+                                        <div className="space-y-2 mb-4">
+                                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                <Clock className="h-4 w-4" />
+                                                <span>{event.time}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                <MapPin className="h-4 w-4" />
+                                                <span>{event.location}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                <Users className="h-4 w-4" />
+                                                <span>{event.attendees} attending</span>
+                                            </div>
+                                        </div>
+                                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
+                                            Register Now
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm">
-                                    <Calendar className="h-4 w-4 text-gray-400" />
-                                    <span className="text-gray-600">Created {group.created || "2 years ago"}</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm">
-                                    <Users className="h-4 w-4 text-gray-400" />
-                                    <span className="text-gray-600">{group.members} members</span>
-                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )
+
+            case "members":
+                return (
+                    <div className="p-4 lg:p-6">
+                        <div className="mb-6 flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Group Members</h2>
+                            <div className="flex gap-2">
+                                <Button variant="outline">
+                                    <UserPlus className="h-4 w-4 mr-2" />
+                                    Invite
+                                </Button>
+                                <Button variant="outline">
+                                    <Filter className="h-4 w-4 mr-2" />
+                                    Filter
+                                </Button>
                             </div>
                         </div>
 
-                        {/* Group Rules */}
-                        <div className="mb-8">
-                            <h3 className="font-bold text-[#07182A] mb-4 text-sm uppercase tracking-wide">Group Rules</h3>
-                            <ul className="space-y-2 text-sm text-gray-600">
-                                <li className="flex items-start gap-2">
-                                    <span className="text-[#C93A30] mt-1">•</span>
-                                    <span>Be kind and respectful to all members</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                    <span className="text-[#C93A30] mt-1">•</span>
-                                    <span>No spam or self-promotion</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                    <span className="text-[#C93A30] mt-1">•</span>
-                                    <span>Respect privacy and confidentiality</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                    <span className="text-[#C93A30] mt-1">•</span>
-                                    <span>Help each other and contribute positively</span>
-                                </li>
-                            </ul>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {[
+                                { name: "Alex Thompson", role: "Admin", avatar: "AT", posts: 245, joined: "Jan 2023", status: "online" },
+                                { name: "Sarah Chen", role: "Moderator", avatar: "SC", posts: 189, joined: "Mar 2023", status: "online" },
+                                { name: "Mike Johnson", role: "Member", avatar: "MJ", posts: 156, joined: "May 2023", status: "offline" },
+                                { name: "Emma Wilson", role: "Member", avatar: "EW", posts: 134, joined: "Jun 2023", status: "online" },
+                                { name: "David Kim", role: "Member", avatar: "DK", posts: 98, joined: "Jul 2023", status: "away" },
+                                { name: "Lisa Anderson", role: "Moderator", avatar: "LA", posts: 267, joined: "Feb 2023", status: "online" }
+                            ].map((member, index) => (
+                                <div key={index} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-gray-700 p-6">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="relative">
+                                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center font-bold text-xl">
+                                                {member.avatar}
+                                            </div>
+                                            <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white dark:border-gray-800 ${member.status === 'online' ? 'bg-green-500' :
+                                                    member.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
+                                                }`} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-gray-900 dark:text-white">{member.name}</h3>
+                                            <p className="text-sm text-indigo-600">{member.role}</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2 text-sm text-gray-500">
+                                        <div className="flex justify-between">
+                                            <span>Posts</span>
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">{member.posts}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Joined</span>
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">{member.joined}</span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 flex gap-2">
+                                        <Button size="sm" variant="outline" className="flex-1">
+                                            <MessageSquare className="h-3 w-3 mr-1" />
+                                            Message
+                                        </Button>
+                                        <Button size="sm" variant="outline" className="flex-1">
+                                            View Profile
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )
+
+            case "media":
+                return (
+                    <div className="p-4 lg:p-6">
+                        <div className="mb-6 flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Media Gallery</h2>
+                            <div className="flex gap-2">
+                                <Button variant="outline">
+                                    <Camera className="h-4 w-4 mr-2" />
+                                    Upload
+                                </Button>
+                                <Button variant="outline">
+                                    <FolderOpen className="h-4 w-4 mr-2" />
+                                    Albums
+                                </Button>
+                            </div>
                         </div>
 
-                        {/* Admin Info */}
-                        <div>
-                            <h3 className="font-bold text-[#07182A] mb-4 text-sm uppercase tracking-wide">Admins</h3>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-[#C93A30] to-[#B82E28] text-white rounded-full flex items-center justify-center font-bold text-sm">
-                                    AD
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {[
+                                { type: "image", url: "https://images.unsplash.com/photo-1551650975-87deedd944c3?w=400", title: "Team Building Event" },
+                                { type: "image", url: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400", title: "Workshop Session" },
+                                { type: "video", url: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400", title: "Conference Talk" },
+                                { type: "image", url: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=400", title: "Networking Dinner" },
+                                { type: "image", url: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400", title: "Product Launch" },
+                                { type: "video", url: "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=400", title: "Tutorial Video" },
+                                { type: "image", url: "https://images.unsplash.com/photo-1497366216548-375f70e94255?w=400", title: "Office Space" },
+                                { type: "image", url: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=400", title: "Design Sprint" }
+                            ].map((media, index) => (
+                                <div key={index} className="relative group cursor-pointer">
+                                    <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700">
+                                        <img
+                                            src={media.url}
+                                            alt={media.title}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                        />
+                                        {media.type === 'video' && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                                <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                                                    <Play className="h-6 w-6 text-gray-900 ml-1" />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl">
+                                        <div className="absolute bottom-2 left-2 right-2">
+                                            <p className="text-white text-sm font-medium truncate">{media.title}</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Eye className="h-3 w-3 text-white/80" />
+                                                <span className="text-xs text-white/80">1.2k views</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-semibold text-[#07182A]">Admin Team</p>
-                                    <p className="text-xs text-gray-500">Group Administrator</p>
+                            ))}
+                        </div>
+                    </div>
+                )
+
+            case "resources":
+                return (
+                    <div className="p-4 lg:p-6">
+                        <div className="mb-6 flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Resources & Documents</h2>
+                            <Button className="bg-indigo-600 hover:bg-indigo-700">
+                                <FileText className="h-4 w-4 mr-2" />
+                                Add Resource
+                            </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {[
+                                {
+                                    title: "Getting Started Guide",
+                                    description: "Complete guide for new members to get acquainted with the community",
+                                    type: "PDF",
+                                    size: "2.4 MB",
+                                    downloads: 156,
+                                    icon: FileText,
+                                    color: "from-red-500 to-pink-500"
+                                },
+                                {
+                                    title: "Best Practices Handbook",
+                                    description: "Collection of best practices and guidelines for community participation",
+                                    type: "PDF",
+                                    size: "5.1 MB",
+                                    downloads: 89,
+                                    icon: FileText,
+                                    color: "from-blue-500 to-indigo-500"
+                                },
+                                {
+                                    title: "Video Tutorials Library",
+                                    description: "Comprehensive video tutorials covering various topics and skills",
+                                    type: "Link",
+                                    size: "External",
+                                    downloads: 234,
+                                    icon: Video,
+                                    color: "from-purple-500 to-pink-500"
+                                },
+                                {
+                                    title: "Templates & Assets",
+                                    description: "Downloadable templates and design assets for community projects",
+                                    type: "ZIP",
+                                    size: "12.7 MB",
+                                    downloads: 67,
+                                    icon: FolderOpen,
+                                    color: "from-green-500 to-teal-500"
+                                }
+                            ].map((resource, index) => (
+                                <div key={index} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-gray-700 p-6">
+                                    <div className="flex items-start gap-4">
+                                        <div className={`w-12 h-12 bg-gradient-to-br ${resource.color} rounded-lg flex items-center justify-center text-white flex-shrink-0`}>
+                                            <resource.icon className="h-6 w-6" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{resource.title}</h3>
+                                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{resource.description}</p>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3 text-xs text-gray-500">
+                                                    <span>{resource.type}</span>
+                                                    <span>•</span>
+                                                    <span>{resource.size}</span>
+                                                    <span>•</span>
+                                                    <span>{resource.downloads} downloads</span>
+                                                </div>
+                                                <Button size="sm" variant="outline">
+                                                    <Download className="h-3 w-3 mr-1" />
+                                                    Download
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-8 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-indigo-200 dark:border-indigo-700">
+                            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Quick Links</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <a href="#" className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700">
+                                    <Link2 className="h-4 w-4" />
+                                    Community Guidelines
+                                </a>
+                                <a href="#" className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700">
+                                    <Link2 className="h-4 w-4" />
+                                    Help Center
+                                </a>
+                                <a href="#" className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700">
+                                    <Link2 className="h-4 w-4" />
+                                    API Documentation
+                                </a>
+                                <a href="#" className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700">
+                                    <Link2 className="h-4 w-4" />
+                                    Contact Support
+                                </a>
                             </div>
                         </div>
                     </div>
+                )
+
+            default:
+                return null
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/80 backdrop-blur-lg transition-opacity"
+                onClick={handleBackdropClick}
+            />
+
+            {/* Modal Container */}
+            <div className="relative w-full h-full sm:h-auto sm:max-w-7xl bg-white dark:bg-gray-900 sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[100vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-300">
+
+                {/* Mobile Header */}
+                <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 relative z-10">
+                    <button
+                        onClick={handleClose}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                        type="button"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                    <h2 className="font-semibold text-gray-900 dark:text-white truncate">{group.title || group.name}</h2>
+                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+                        <MoreHorizontal className="h-5 w-5" />
+                    </button>
+                </div>
+
+                {/* Desktop Header */}
+                <div className="hidden lg:block relative h-64 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 overflow-hidden">
+                    <div className="absolute inset-0 bg-black/20" />
+                    <div className="absolute inset-0">
+                        <div className="absolute top-0 left-0 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse animation-delay-2000"></div>
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-96 h-96 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse animation-delay-4000"></div>
+                    </div>
+                    {group.image && (
+                        <img src={group.image} alt={group.title} className="w-full h-full object-cover opacity-20 mix-blend-overlay" />
+                    )}
+
+                    {/* Close Button - Desktop */}
+                    <button
+                        onClick={handleClose}
+                        className="absolute top-4 right-4 z-20 p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all"
+                        type="button"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+
+                    <div className="absolute bottom-0 left-0 right-0 p-8">
+                        <div className="flex items-center gap-6">
+                            <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border-4 border-white">
+                                <Users className="h-10 w-10 text-white" />
+                            </div>
+                            <div className="flex-1">
+                                <h1 className="text-3xl font-bold text-white mb-2">{group.title || group.name}</h1>
+                                <div className="flex items-center gap-4 text-white/90 text-sm">
+                                    <span className="flex items-center gap-1">
+                                        <Users className="h-4 w-4" />
+                                        {group.members} members
+                                    </span>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-1">
+                                        <Star className="h-4 w-4" />
+                                        4.9 Rating
+                                    </span>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-1">
+                                        <Zap className="h-4 w-4" />
+                                        Very Active
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <Button variant="outline" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">
+                                    <Bell className="h-4 w-4 mr-2" />
+                                    Notify
+                                </Button>
+                                <Button className="bg-white text-indigo-600 hover:bg-gray-100 font-semibold">
+                                    Join Group
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Navigation Tabs */}
+                <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between px-4 lg:px-6">
+                        <div className="flex gap-1 overflow-x-auto">
+                            {[
+                                { id: "feed", label: "Feed", icon: Home },
+                                { id: "events", label: "Events", icon: CalendarDays },
+                                { id: "members", label: "Members", icon: UserCheck },
+                                { id: "media", label: "Media", icon: Image },
+                                { id: "resources", label: "Resources", icon: FileText },
+                            ].map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-all ${activeTab === tab.id
+                                            ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
+                                            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                        }`}
+                                >
+                                    <tab.icon className="h-4 w-4" />
+                                    <span className="hidden sm:inline">{tab.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="hidden lg:flex items-center gap-2">
+                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+                                <Search className="h-4 w-4" />
+                            </button>
+                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+                                <Filter className="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Content Area */}
+                <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+                    {/* Main Content */}
+                    <div className="flex-1 overflow-y-auto">
+                        {renderTabContent()}
+                    </div>
+
+                    {/* Sidebar - Hidden on mobile */}
+                    <div className="hidden lg:block w-80 bg-gray-50 dark:bg-gray-800/30 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
+                        {/* Group Info */}
+                        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wide">About Group</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
+                                A vibrant community of professionals passionate about design, technology, and innovation. Join us to learn, share, and grow together.
+                            </p>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3 text-sm">
+                                    <Globe className="h-4 w-4 text-gray-400" />
+                                    <span className="text-gray-600 dark:text-gray-300">Public Group</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm">
+                                    <MapPin className="h-4 w-4 text-gray-400" />
+                                    <span className="text-gray-600 dark:text-gray-300">Worldwide</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm">
+                                    <Calendar className="h-4 w-4 text-gray-400" />
+                                    <span className="text-gray-600 dark:text-gray-300">Created Jan 2023</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Group Stats */}
+                        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wide">Group Stats</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                                    <p className="text-xl font-bold text-indigo-600">{group.members}</p>
+                                    <p className="text-xs text-gray-500">Members</p>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                                    <p className="text-xl font-bold text-purple-600">1.2k</p>
+                                    <p className="text-xs text-gray-500">Posts</p>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                                    <p className="text-xl font-bold text-green-600">89%</p>
+                                    <p className="text-xs text-gray-500">Active</p>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                                    <p className="text-xl font-bold text-yellow-600">4.9</p>
+                                    <p className="text-xs text-gray-500">Rating</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Recent Activity */}
+                        <div className="p-6">
+                            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wide">Recent Activity</h3>
+                            <div className="space-y-3">
+                                {[
+                                    { action: "New post by", user: "Alex Thompson", time: "2h ago" },
+                                    { action: "Event created by", user: "Sarah Chen", time: "5h ago" },
+                                    { action: "New member:", user: "Mike Johnson", time: "1d ago" },
+                                    { action: "Resource added by", user: "Emma Wilson", time: "2d ago" }
+                                ].map((activity, index) => (
+                                    <div key={index} className="flex items-start gap-3">
+                                        <div className="w-2 h-2 bg-indigo-600 rounded-full mt-1.5"></div>
+                                        <div className="flex-1">
+                                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                {activity.action} <span className="font-medium text-gray-900 dark:text-white">{activity.user}</span>
+                                            </p>
+                                            <p className="text-xs text-gray-500">{activity.time}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mobile Bottom Action Bar */}
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4">
+                    <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">
+                        Join Group
+                    </Button>
                 </div>
             </div>
         </div>
