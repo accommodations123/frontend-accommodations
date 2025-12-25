@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 
 export function FilterPanel() {
     return (
-        <div className="bg-white border border-gray-200 rounded-xl p-3 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+        <div className="bg-white border border-gray-200 rounded-xl p-3 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-start justify-start">
             {/* Search */}
             <div className="relative flex-1 w-full border border-gray-300 rounded-lg">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -17,20 +17,42 @@ export function FilterPanel() {
 
             {/* Filters Row */}
             <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-                <Button variant="outline" size="sm" className="h-9 border-gray-300 text-white font-medium whitespace-nowrap hover:bg-gray-50 hover:text-gray-900">
-                    <SlidersHorizontal className="h-3.5 w-3.5 mr-2" /> All Filters
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-gray-300 text-white font-medium whitespace-nowrap hover:bg-gray-50 hover:text-gray-900"
+                >
+                    <SlidersHorizontal className="h-3.5 w-3.5 mr-2" />
+                    All Filters
                 </Button>
 
                 <div className="h-6 w-px bg-gray-200 mx-1"></div>
 
-                <Button variant="outline" size="sm" className="h-9 border-gray-300 text-white font-medium whitespace-nowrap hover:bg-gray-50 hover:text-gray-900">
-                    Price Range <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-50" />
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-gray-300 text-white font-medium whitespace-nowrap hover:bg-gray-50 hover:text-gray-900"
+                >
+                    Price Range
+                    <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-50" />
                 </Button>
-                <Button variant="outline" size="sm" className="h-9 border-gray-300 text-whitefont-medium whitespace-nowrap hover:bg-gray-50 hover:text-gray-900">
-                    Condition <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-50" />
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-gray-300 text-white font-medium whitespace-nowrap hover:bg-gray-50 hover:text-gray-900"
+                >
+                    Condition
+                    <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-50" />
                 </Button>
-                <Button variant="outline" size="sm" className="h-9 border-gray-300 text-white font-medium whitespace-nowrap hover:bg-gray-50 hover:text-gray-900">
-                    Category <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-50" />
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-gray-300 text-white font-medium whitespace-nowrap hover:bg-gray-50 hover:text-gray-900"
+                >
+                    Category
+                    <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-50" />
                 </Button>
 
                 <div className="ml-auto md:ml-2">

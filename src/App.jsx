@@ -34,8 +34,8 @@ const SupportPage = lazy(() => import("./components/mentorship/page"));
 const MarketplacePage = lazy(() => import("@/app/marketplace/page"));
 const ProductDetailsPage = lazy(() => import("@/app/marketplace/[id]/page"));
 const ChatPage = lazy(() => import("@/app/ChatPage"));
-const PropertiesList = lazy(() => import("@/app/properties/page")); // <- add this
-
+const PropertiesList = lazy(() => import("@/app/properties/page"));
+const HostPage = lazy(() => import("@/app/host/page")); // Add this line
 
 export default function App() {
     return (
@@ -57,6 +57,7 @@ export default function App() {
                             <Route path="/events/:id" element={<EventDetailsPage />} />
                             <Route path="/groups" element={<Groups />} />
                             <Route path="/support" element={<SupportPage />} />
+                            <Route path="/host" element={<HostPage />} /> {/* Add this route */}
                             <Route path="/host/onboarding" element={<HostOnboardingPage />} />
                             <Route path="/rooms" element={<Navigate to="/search" replace />} />
                             <Route path="/rooms/:id" element={<RoomDetails />} />

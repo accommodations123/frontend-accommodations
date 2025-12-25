@@ -9,8 +9,9 @@ import { ProductCard } from "@/components/marketplace/ProductCard";
 import { SellForm } from "@/components/marketplace/SellForm";
 import { ChatPopup } from "@/components/marketplace/ChatPopup";
 import { VerificationModal } from "@/components/marketplace/VerificationModal";
-import { EssentialsBundle } from "@/components/marketplace/EssentialsBundle";
+import EssentialsBundle from "@/components/marketplace/EssentialsBundle"; // Changed to default import
 import { ShieldCheck, Zap, Tag } from 'lucide-react';
+import { useCountry } from "@/context/CountryContext"; // Added import
 
 // Mock Data
 const PRODUCTS = [
@@ -22,7 +23,8 @@ const PRODUCTS = [
         postedTime: "2 hours ago",
         condition: "Like New",
         image: "https://images.unsplash.com/photo-1505693416388-b0346efee539?auto=format&fit=crop&q=80&w=600&h=450",
-        tags: ["moving"]
+        tags: ["moving"],
+        country: "US" // Added country field
     },
     {
         id: 2,
@@ -32,7 +34,8 @@ const PRODUCTS = [
         postedTime: "5 hours ago",
         condition: "Good",
         image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca4?auto=format&fit=crop&q=80&w=600&h=450",
-        tags: ["urgent"]
+        tags: ["urgent"],
+        country: "US" // Added country field
     },
     {
         id: 3,
@@ -42,7 +45,8 @@ const PRODUCTS = [
         postedTime: "1 day ago",
         condition: "Used",
         image: "https://images.unsplash.com/photo-1544233726-9f1d2b27be8b?auto=format&fit=crop&q=80&w=600&h=450",
-        tags: []
+        tags: [],
+        country: "US" // Added country field
     },
     {
         id: 4,
@@ -52,7 +56,8 @@ const PRODUCTS = [
         postedTime: "3 hours ago",
         condition: "Fair",
         image: "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&q=80&w=600&h=450",
-        tags: ["moving"]
+        tags: ["moving"],
+        country: "US" // Added country field
     },
     {
         id: 5,
@@ -62,7 +67,8 @@ const PRODUCTS = [
         postedTime: "30 mins ago",
         condition: "Brand New",
         image: "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=600&h=450",
-        tags: []
+        tags: [],
+        country: "US" // Added country field
     },
     {
         id: 6,
@@ -72,7 +78,8 @@ const PRODUCTS = [
         postedTime: "1 hour ago",
         condition: "Like New",
         image: "https://images.unsplash.com/photo-1585237672814-8f85a8118bf6?auto=format&fit=crop&q=80&w=600&h=450",
-        tags: ["urgent"]
+        tags: ["urgent"],
+        country: "US" // Added country field
     }
 ];
 
@@ -83,17 +90,39 @@ export default function MarketplacePage() {
     const [isVerificationOpen, setIsVerificationOpen] = useState(false);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { activeCountry, isSelected } = useCountry(); // Added country context
 
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/marketplace/products');
+                // Include country in the API request if a country is selected
+                const countryParam = isSelected && activeCountry ? `?country=${activeCountry.code}` : '';
+                const response = await fetch(`http://localhost:5000/api/marketplace/products${countryParam}`);
+                
                 if (response.ok) {
                     const data = await response.json();
                     setProducts(data);
+                } else {
+                    // Fallback to mock data if API fails
+                    console.warn("API request failed, using mock data");
+                    if (isSelected && activeCountry) {
+                        // Filter mock data by country
+                        const filteredProducts = PRODUCTS.filter(product => product.country === activeCountry.code);
+                        setProducts(filteredProducts);
+                    } else {
+                        setProducts(PRODUCTS);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching products:", error);
+                // Fallback to mock data if API fails
+                if (isSelected && activeCountry) {
+                    // Filter mock data by country
+                    const filteredProducts = PRODUCTS.filter(product => product.country === activeCountry.code);
+                    setProducts(filteredProducts);
+                } else {
+                    setProducts(PRODUCTS);
+                }
             } finally {
                 setLoading(false);
             }
@@ -102,7 +131,54 @@ export default function MarketplacePage() {
         if (activeTab === 'buy') {
             fetchProducts();
         }
-    }, [activeTab]);
+    }, [activeTab, isSelected, activeCountry]); // Added dependencies
+
+    // Listen for country changes
+    useEffect(() => {
+        const handleCountryChange = () => {
+            if (activeTab === 'buy') {
+                setLoading(true);
+                // Refetch products when country changes
+                const fetchProducts = async () => {
+                    try {
+                        const countryParam = isSelected && activeCountry ? `?country=${activeCountry.code}` : '';
+                        const response = await fetch(`http://localhost:5000/api/marketplace/products${countryParam}`);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            setProducts(data);
+                        } else {
+                            // Fallback to mock data
+                            if (isSelected && activeCountry) {
+                                const filteredProducts = PRODUCTS.filter(product => product.country === activeCountry.code);
+                                setProducts(filteredProducts);
+                            } else {
+                                setProducts(PRODUCTS);
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Error fetching products:", error);
+                        // Fallback to mock data
+                        if (isSelected && activeCountry) {
+                            const filteredProducts = PRODUCTS.filter(product => product.country === activeCountry.code);
+                            setProducts(filteredProducts);
+                        } else {
+                            setProducts(PRODUCTS);
+                        }
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                
+                fetchProducts();
+            }
+        };
+
+        window.addEventListener('country-change', handleCountryChange);
+        return () => {
+            window.removeEventListener('country-change', handleCountryChange);
+        };
+    }, [activeTab, isSelected, activeCountry]);
 
     const handleMessage = (product) => {
         setSelectedProduct(product);
@@ -131,15 +207,45 @@ export default function MarketplacePage() {
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                                    {products.map(product => (
-                                        <ProductCard
-                                            key={product._id}
-                                            product={product}
-                                            onMessage={handleMessage}
-                                        />
-                                    ))}
-                                </div>
+                                <>
+                                    {isSelected && activeCountry && (
+                                        <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-center gap-3 mb-4">
+                                            <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
+                                                {activeCountry.flag.startsWith('/') ? (
+                                                    <img src={activeCountry.flag} alt={activeCountry.name} className="w-5 h-4 object-cover rounded-sm" />
+                                                ) : (
+                                                    <span className="text-lg">{activeCountry.flag}</span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-blue-900 text-sm">Showing items in {activeCountry.name}</h4>
+                                                <p className="text-xs text-blue-700 mt-1">Products are filtered based on your selected country</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {products.length > 0 ? (
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                                            {products.map(product => (
+                                                <ProductCard
+                                                    key={product._id || product.id}
+                                                    product={product}
+                                                    onMessage={handleMessage}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-gray-500">No products found for the selected country.</p>
+                                            <button 
+                                                className="mt-4 px-4 py-2 bg-primary text-white rounded-lg"
+                                                onClick={() => window.location.reload()}
+                                            >
+                                                Try Again
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
