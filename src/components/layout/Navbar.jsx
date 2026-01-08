@@ -64,7 +64,7 @@ export function Navbar({ minimal = false, onMenuClick }) {
             return;
         }
 
-        const apiUrl = "http://3.147.226.49:5000";
+        const apiUrl = "https://accomodation.api.test.nextkinlife.live";
         if (!apiUrl) {
             console.error("❌ Socket URL missing in environment config");
             return;
