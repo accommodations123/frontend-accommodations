@@ -23,7 +23,7 @@ export const getSocket = () => {
             withCredentials: true,
 
             // 🔒 polling can assist if websockets are blocked in prod
-            transports: ["polling", "websocket"],
+            transports: ["websocket"],
 
             // 🔒 prevent race conditions
             autoConnect: false,

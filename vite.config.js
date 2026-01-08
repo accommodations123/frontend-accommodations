@@ -19,7 +19,8 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),
         headers: {
-          'Host': 'accomodation.api.test.nextkinlife.live'
+          'Host': 'accomodation.api.test.nextkinlife.live',
+          'Origin': 'https://accomodation.test.nextkinlife.live'
         },
         configure: (proxy, _options) => {
           proxy.on('proxyRes', (proxyRes, req, res) => {
@@ -42,8 +43,24 @@ export default defineConfig({
         secure: false,
         ws: true,
         headers: {
-          'Host': 'accomodation.api.test.nextkinlife.live'
+          'Host': 'accomodation.api.test.nextkinlife.live',
+          'Origin': 'https://accomodation.test.nextkinlife.live',
+          'Referer': 'https://accomodation.test.nextkinlife.live/'
         },
+        configure: (proxy, _options) => {
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            const setCookie = proxyRes.headers['set-cookie'];
+            if (setCookie) {
+              proxyRes.headers['set-cookie'] = setCookie.map(cookie => {
+                // Remove Domain, Secure, SameSite and explicitly add SameSite=Lax
+                return cookie
+                  .replace(/;?\s*Domain=[^;]+/i, '')
+                  .replace(/;?\s*Secure/i, '')
+                  .replace(/;?\s*SameSite=[^;]+/i, '') + '; SameSite=Lax';
+              });
+            }
+          });
+        }
       },
       '/nominatim': {
         target: 'https://nominatim.openstreetmap.org',

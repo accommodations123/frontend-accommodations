@@ -64,11 +64,7 @@ export function Navbar({ minimal = false, onMenuClick }) {
             return;
         }
 
-        const apiUrl = "https://accomodation.api.test.nextkinlife.live";
-        if (!apiUrl) {
-            console.error("❌ Socket URL missing in environment config");
-            return;
-        }
+
 
         // const token = localStorage.getItem("access_token");
         // if (!token) {
