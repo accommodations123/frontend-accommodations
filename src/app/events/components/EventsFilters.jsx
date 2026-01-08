@@ -1,0 +1,169 @@
+import React, { memo } from "react"
+import { Grid, List, Filter } from "lucide-react"
+import { Button } from "@/components/ui/button"
+
+export const EventsFilters = memo(({
+    activeFilter,
+    setActiveFilter,
+    eventCategories,
+    viewMode,
+    setViewMode,
+    showFilters,
+    setShowFilters,
+    selectedFilters,
+    handleFilterChange,
+    clearFilters,
+    hasActiveFilters,
+    isScrolled
+}) => {
+    return (
+        <div className={`bg-white py-4 sm:py-6 px-4 sticky top-16 z-20 shadow-md transition-all duration-300 ${isScrolled ? 'shadow-lg' : 'shadow-sm'}`}>
+            <div className="container mx-auto max-w-7xl">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    {/* Category Filters */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto scrollbar-hide">
+                        <button
+                            onClick={() => setActiveFilter("all")}
+                            className={`px-3 sm:px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all duration-300 transform hover:scale-105 flex items-center gap-2 text-sm ${activeFilter === "all"
+                                ? "bg-[#00152d] text-white shadow-md"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                }`}
+                        >
+                            <Grid className="h-4 w-4" />
+                            All Events
+                        </button>
+
+                        {eventCategories.map((category) => (
+                            <button
+                                key={category.id}
+                                onClick={() => setActiveFilter(category.id)}
+                                className={`px-3 sm:px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all duration-300 transform hover:scale-105 flex items-center gap-2 text-sm ${activeFilter === category.id
+                                    ? "bg-[#ff0000] text-white shadow-md"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    }`}
+                            >
+                                {category.icon && <span className="text-lg">{category.icon}</span>}
+                                {category.title}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Filter Controls */}
+                    <div className="flex items-center gap-2">
+                        {/* View Mode Toggle */}
+                        <div className="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
+                            <button
+                                onClick={() => setViewMode("grid")}
+                                className={`p-2 rounded-md transition-all duration-300 ${viewMode === "grid" ? "bg-white shadow-sm" : ""}`}
+                            >
+                                <Grid className="h-4 w-4 text-gray-700" />
+                            </button>
+                            <button
+                                onClick={() => setViewMode("list")}
+                                className={`p-2 rounded-md transition-all duration-300 ${viewMode === "list" ? "bg-white shadow-sm" : ""}`}
+                            >
+                                <List className="h-4 w-4 text-gray-700" />
+                            </button>
+                        </div>
+
+                        {/* More Filters Button */}
+                        <Button
+                            variant="outline"
+                            className={`h-10 sm:h-12 px-4 sm:px-6 rounded-lg transition-all duration-300 transform hover:scale-105 relative ${hasActiveFilters
+                                ? "bg-[#ff0000]/10 border-[#ff0000]/30 text-[#ff0000] hover:bg-[#ff0000]/20"
+                                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                                }`}
+                            onClick={() => setShowFilters(!showFilters)}
+                        >
+                            <Filter className="h-4 w-4 mr-2" />
+                            <span className="hidden sm:inline">Filters</span>
+                            {hasActiveFilters && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ff0000] text-white text-xs rounded-full flex items-center justify-center">
+                                    {Object.values(selectedFilters).filter(v => v !== "").length}
+                                </span>
+                            )}
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Advanced Filters Panel */}
+                {showFilters && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200 animate-fade-in shadow-inner">
+                        <div className="flex flex-col md:flex-row gap-4 items-start">
+                            {/* Date Filter */}
+                            <div className="flex-1 min-w-[200px]">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                                <select
+                                    value={selectedFilters.date}
+                                    onChange={(e) => handleFilterChange("date", e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff0000] focus:border-transparent bg-white"
+                                >
+                                    <option value="">Any Date</option>
+                                    <option value="today">Today</option>
+                                    <option value="tomorrow">Tomorrow</option>
+                                    <option value="this-week">This Week</option>
+                                    <option value="this-weekend">This Weekend</option>
+                                    <option value="next-week">Next Week</option>
+                                    <option value="this-month">This Month</option>
+                                </select>
+                            </div>
+
+                            {/* Price Filter */}
+                            <div className="flex-1 min-w-[200px]">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
+                                <select
+                                    value={selectedFilters.price}
+                                    onChange={(e) => handleFilterChange("price", e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff0000] focus:border-transparent bg-white"
+                                >
+                                    <option value="">Any Price</option>
+                                    <option value="free">Free</option>
+                                    <option value="0-25">$0 - $25</option>
+                                    <option value="25-50">$25 - $50</option>
+                                    <option value="50-100">$50 - $100</option>
+                                    <option value="100+">$100+</option>
+                                </select>
+                            </div>
+
+                            {/* Location Filter */}
+                            <div className="flex-1 min-w-[200px]">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                                <select
+                                    value={selectedFilters.location}
+                                    onChange={(e) => handleFilterChange("location", e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff0000] focus:border-transparent bg-white"
+                                >
+                                    <option value="">Any Location</option>
+                                    <option value="online">Online</option>
+                                    <option value="nearby">Near Me</option>
+                                    <option value="new-york">New York</option>
+                                    <option value="london">London</option>
+                                    <option value="tokyo">Tokyo</option>
+                                    <option value="paris">Paris</option>
+                                </select>
+                            </div>
+
+                            {/* Filter Actions */}
+                            <div className="flex items-end gap-2 md:self-end">
+                                <Button
+                                    onClick={clearFilters}
+                                    variant="outline"
+                                    className="px-4 py-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-300 h-10"
+                                >
+                                    Clear
+                                </Button>
+                                <Button
+                                    className="px-4 py-2 bg-[#ff0000] hover:bg-[#cc0000] text-white rounded-lg transition-all duration-300 h-10"
+                                    onClick={() => setShowFilters(false)}
+                                >
+                                    Apply
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+})
+EventsFilters.displayName = "EventsFilters"

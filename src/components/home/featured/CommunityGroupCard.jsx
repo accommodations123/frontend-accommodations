@@ -1,0 +1,98 @@
+import React from 'react';
+import { MapPin, Calendar, Users as UsersIcon } from 'lucide-react';
+import { CardContainer } from './PropertyCard.jsx';
+
+const HostPhoto = ({ host }) => {
+    const photoUrl =
+        host?.avatar_image ||
+        host?.selfie_photo ||
+        host?.photo ||
+        host?.image ||
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop";
+
+    return (
+        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+            <img
+                src={photoUrl}
+                alt="Creator"
+                className="w-full h-full object-cover"
+                loading="lazy"
+            />
+        </div>
+    );
+};
+
+export const CommunityGroupCard = ({ group }) => {
+    const groupId = group.id || group._id;
+    const groupName = group.name || group.title || "";
+    const groupImage = group.avatar_image || group.cover_image || group.image || "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?q=80&w=400&h=200&fit=crop";
+    const groupLocation = group.city ? `${group.city}, ${group.country || ""}` : group.location || "";
+    const membersCount = group.members_count || 0;
+    const upcomingEvents = group.upcoming_events_count || 0;
+    const category = group.category || group.type || "Community";
+    const creator = group.creator || group.host || group.admin || group.Creator || group.Host || group.Admin;
+
+    return (
+        <CardContainer linkTo={`/groups/${groupId}`}>
+            {/* Group Image */}
+            <div className="relative h-40 overflow-hidden rounded-t-xl">
+                <img
+                    src={groupImage}
+                    alt={groupName}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                <div className="absolute bottom-3 left-3">
+                    <span className="bg-white/90 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
+                        {category}
+                    </span>
+                </div>
+                <div className="absolute top-3 right-3 bg-white/90 rounded-full px-3 py-1.5 flex items-center gap-1 shadow-sm">
+                    <UsersIcon className="w-3 h-3 text-gray-700" />
+                    <span className="text-xs font-semibold text-gray-800">
+                        {membersCount.toLocaleString()}
+                    </span>
+                </div>
+            </div>
+
+            {/* Group Info */}
+            <div className="p-5 flex-grow flex flex-col">
+                <h3 className="font-bold text-gray-900 text-sm mb-2 line-clamp-2">
+                    {groupName}
+                </h3>
+
+                {/* Creator Info */}
+                {(creator?.full_name || creator?.name || creator?.User?.full_name) && (
+                    <div className="flex items-center gap-2 mb-3">
+                        <HostPhoto host={creator} />
+                        <p className="text-xs text-gray-500 truncate">
+                            Created by <span className="font-medium text-gray-700">{creator.full_name || creator.name || creator.User?.full_name}</span>
+                        </p>
+                    </div>
+                )}
+
+                <div className="flex items-center gap-1 text-gray-600 text-xs mb-3">
+                    <MapPin className="w-3 h-3" />
+                    <span>{groupLocation}</span>
+                </div>
+
+                <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-1 text-gray-500 text-xs">
+                        <Calendar className="w-3 h-3" />
+                        <span>{upcomingEvents} community events</span>
+                    </div>
+                    <button
+                        className="bg-accent hover:bg-accent/90 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm hover:shadow transition-all"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            // Handle join group logic
+                        }}
+                    >
+                        Join
+                    </button>
+                </div>
+            </div>
+        </CardContainer>
+    );
+};
