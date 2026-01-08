@@ -22,8 +22,8 @@ export const getSocket = () => {
         socket = io(socketUrl, {
             withCredentials: true,
 
-            // 🔒 CRITICAL: disable polling completely
-            transports: ["websocket"],
+            // 🔒 polling can assist if websockets are blocked in prod
+            transports: ["polling", "websocket"],
 
             // 🔒 prevent race conditions
             autoConnect: false,
