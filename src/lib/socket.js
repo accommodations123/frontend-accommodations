@@ -22,7 +22,7 @@ export const getSocket = () => {
         socket = io(socketUrl, {
             withCredentials: true,
             // 🔒 polling fails on Prod due to missing sticky sessions. Force websocket.
-            transports: ["websocket"],
+            transports: ["polling", "websocket"],
 
             // Allow auto-connect for singleton pattern
             reconnection: true,
