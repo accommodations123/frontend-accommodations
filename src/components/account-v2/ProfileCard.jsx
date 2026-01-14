@@ -38,7 +38,7 @@ export const ProfileCard = ({ user, onUpdate, isLoading }) => {
     }
 
     const fd = new FormData();
-    fd.append("profile_image", file);
+    fd.append("profile_image", file)
     onUpdate(fd);
   };
 
