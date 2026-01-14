@@ -147,7 +147,7 @@ export const useHostEvent = () => {
                     event_type: formData.event_type,
                     event_mode: formData.event_mode
                 })
-                currentId = draftResponse?.id || draftResponse?._id || draftResponse?.event?.id || draftResponse?.event?._id || draftResponse?.data?.id || draftResponse?.data?._id
+                currentId = draftResponse?.eventId || draftResponse?.id || draftResponse?._id || draftResponse?.event?.id || draftResponse?.event?._id || draftResponse?.data?.id || draftResponse?.data?._id
                 if (!currentId) throw new Error("Failed to create event draft")
                 setEventId(currentId)
             }

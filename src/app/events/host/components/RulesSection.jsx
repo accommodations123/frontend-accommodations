@@ -5,13 +5,14 @@ import { Label } from "@/components/ui/label"
 import { EVENT_RULES } from "@/lib/mock-events"
 
 export const RulesSection = ({ country, handleFileChange }) => {
-    const activeRules = EVENT_RULES?.[country] || EVENT_RULES?.default || [
+    const rawData = EVENT_RULES?.[country] || EVENT_RULES?.default;
+    const activeRules = rawData?.rules || [
         "Event must comply with local laws and regulations",
         "Ensure proper safety measures are in place",
         "Provide accurate event information",
         "Maintain a safe and inclusive environment",
         "Follow platform community guidelines"
-    ]
+    ];
 
     return (
         <div className="space-y-6">
