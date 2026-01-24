@@ -21,20 +21,10 @@ export const getSocket = () => {
         const socketUrl = import.meta.env.DEV
             ? "/"
             : (import.meta.env.VITE_SOCKET_URL || "https://accomodation.api.test.nextkinlife.live");
-        socket = io(socketUrl, {
-            withCredentials: true,
-            auth: {
-                token: typeof document !== "undefined"
-                    ? document.cookie
-                        .split("; ")
-                        .find((c) => c.startsWith("access_token="))
-                        ?.split("=")[1]
-                    : null
-            },
-            // 🔒 polling fails on Prod due to missing sticky sessions. Force websocket.
-            transports: ["websocket", "polling"],
 
-            // Allow auto-connect for singleton pattern
+        socket = io(socketUrl, {
+            withCredentials: true,  // Browser will send cookies automatically
+            transports: ["websocket", "polling"],
             reconnection: true,
             reconnectionAttempts: Infinity,
             reconnectionDelay: 2000,
