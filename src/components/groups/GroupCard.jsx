@@ -18,10 +18,12 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
         return null;
     }
 
+    const isJoined = data.isJoined || data.is_member || data.isMember || false;
+
     // This function prevents the card click from firing when the button is clicked
     const handleButtonClick = (e) => {
         e.stopPropagation();
-        if (data.isJoined) {
+        if (isJoined) {
             onLeave();
         } else {
             onJoin();
@@ -36,15 +38,15 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
     // --- COUNTRY CARD ---
     if (type === "country") {
         return (
-            <div 
+            <div
                 className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-300 min-w-[280px] flex flex-col items-center text-center group cursor-pointer transform hover:-translate-y-1"
                 onClick={handleCardClick}
             >
                 {data.avatar_image ? (
                     <div className="w-20 h-20 rounded-full overflow-hidden mb-4">
-                        <img 
-                            src={data.avatar_image} 
-                            alt={data.name} 
+                        <img
+                            src={data.avatar_image}
+                            alt={data.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500"
                         />
                     </div>
@@ -62,12 +64,12 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
                         <span>{data.members_count} members</span>
                     </div>
                 )}
-                <Button 
-                    className={`w-full ${data.isJoined ? 'bg-gray-500 hover:bg-gray-600' : 'bg-[#C93A30] hover:bg-[#B82E28]'} text-white rounded-full font-semibold text-sm py-3 px-6 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105`}
+                <Button
+                    className={`w-full ${isJoined ? 'bg-gray-500 hover:bg-gray-600' : 'bg-[#C93A30] hover:bg-[#B82E28]'} text-white rounded-full font-semibold text-sm py-3 px-6 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105`}
                     onClick={handleButtonClick}
                     disabled={isJoining}
                 >
-                    {isJoining ? 'Processing...' : data.isJoined ? 'Leave Community' : 'Join Community'}
+                    {isJoining ? 'Processing...' : isJoined ? 'Leave Community' : 'Join Community'}
                 </Button>
             </div>
         )
@@ -76,7 +78,7 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
     // --- CITY CARD ---
     if (type === "city") {
         return (
-            <div 
+            <div
                 className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-300 group cursor-pointer h-full flex flex-col"
                 onClick={handleCardClick}
             >
@@ -115,13 +117,13 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
                             {data.description}
                         </p>
                     )}
-                    <Button 
-                        variant={data.isJoined ? "default" : "outline"} 
-                        className={`w-full ${data.isJoined ? 'bg-gray-500 hover:bg-gray-600 text-white' : 'border-[#C93A30] text-[#C93A30] hover:bg-[#C93A30] hover:text-white'} rounded-full font-semibold text-sm py-3 px-6 transition-all duration-300 hover:scale-105`}
+                    <Button
+                        variant={isJoined ? "default" : "outline"}
+                        className={`w-full ${isJoined ? 'bg-gray-500 hover:bg-gray-600 text-white' : 'border-[#C93A30] text-[#C93A30] hover:bg-[#C93A30] hover:text-white'} rounded-full font-semibold text-sm py-3 px-6 transition-all duration-300 hover:scale-105`}
                         onClick={handleButtonClick}
                         disabled={isJoining}
                     >
-                        {isJoining ? 'Processing...' : data.isJoined ? 'Leave Group' : 'Join Group'}
+                        {isJoining ? 'Processing...' : isJoined ? 'Leave Group' : 'Join Group'}
                     </Button>
                 </div>
             </div>
@@ -132,9 +134,9 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
     if (type === "purpose") {
         // Get the icon component based on the icon name from data
         const IconComponent = iconMap[data.icon] || iconMap.default;
-        
+
         return (
-            <div 
+            <div
                 className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:border-[#C93A30]/30 hover:shadow-xl transition-all duration-300 cursor-pointer flex items-start gap-4 transform hover:translate-x-2"
                 onClick={handleCardClick}
             >
@@ -167,14 +169,14 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
                             <div className="w-1 h-1 bg-[#C93A30] rounded-full"></div>
                         </div>
                     )}
-                    <Button 
-                        variant="ghost" 
+                    <Button
+                        variant="ghost"
                         size="sm"
-                        className={`mt-2 ${data.isJoined ? 'text-gray-500' : 'text-[#C93A30]'} hover:bg-transparent hover:underline p-0 h-auto font-normal`}
+                        className={`mt-2 ${isJoined ? 'text-gray-500' : 'text-[#C93A30]'} hover:bg-transparent hover:underline p-0 h-auto font-normal`}
                         onClick={handleButtonClick}
                         disabled={isJoining}
                     >
-                        {isJoining ? 'Processing...' : data.isJoined ? 'Leave' : 'Join'}
+                        {isJoining ? 'Processing...' : isJoined ? 'Leave' : 'Join'}
                     </Button>
                 </div>
             </div>
@@ -184,7 +186,7 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
     // --- TRENDING CARD ---
     if (type === "trending") {
         return (
-            <div 
+            <div
                 className="relative rounded-2xl overflow-hidden h-64 group cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300"
                 onClick={handleCardClick}
             >
@@ -208,13 +210,13 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
                     <h3 className="text-white font-bold text-2xl mb-4">
                         {data.name || data.title}
                     </h3>
-                    <Button 
-                        size="lg" 
-                        className={`${data.isJoined ? 'bg-gray-500 hover:bg-gray-600' : 'bg-white text-[#07182A] hover:bg-gray-100'} rounded-full font-semibold shadow-md hover:shadow-lg w-full transition-all duration-300 hover:scale-105`}
+                    <Button
+                        size="lg"
+                        className={`${isJoined ? 'bg-gray-500 hover:bg-gray-600' : 'bg-white text-[#07182A] hover:bg-gray-100'} rounded-full font-semibold shadow-md hover:shadow-lg w-full transition-all duration-300 hover:scale-105`}
                         onClick={handleButtonClick}
                         disabled={isJoining}
                     >
-                        {isJoining ? 'Processing...' : data.isJoined ? 'Joined' : 'Join Now'}
+                        {isJoining ? 'Processing...' : isJoined ? 'Joined' : 'Join Now'}
                     </Button>
                 </div>
             </div>
@@ -224,7 +226,7 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
     // --- RECOMMENDED CARD ---
     if (type === "recommended") {
         return (
-            <div 
+            <div
                 className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center justify-between gap-4 hover:shadow-xl transition-all duration-300 transform hover:translate-x-2"
                 onClick={handleCardClick}
             >
@@ -247,16 +249,16 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
                         </p>
                     )}
                 </div>
-                <Button 
-                    size="icon" 
-                    variant={data.isJoined ? "default" : "ghost"} 
-                    className={`rounded-full ${data.isJoined ? 'bg-gray-500 hover:bg-gray-600 text-white' : 'hover:bg-[#F1E7D6] text-[#07182A]'} h-10 w-10 transition-all duration-300 hover:scale-110`}
+                <Button
+                    size="icon"
+                    variant={isJoined ? "default" : "ghost"}
+                    className={`rounded-full ${isJoined ? 'bg-gray-500 hover:bg-gray-600 text-white' : 'hover:bg-[#F1E7D6] text-[#07182A]'} h-10 w-10 transition-all duration-300 hover:scale-110`}
                     onClick={handleButtonClick}
                     disabled={isJoining}
                 >
                     {isJoining ? (
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                    ) : data.isJoined ? (
+                    ) : isJoined ? (
                         <UserCheck className="h-5 w-5" />
                     ) : (
                         <ArrowRight className="h-5 w-5" />
@@ -269,7 +271,7 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
     // --- EVENT CARD ---
     if (type === "event") {
         return (
-            <div 
+            <div
                 className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer"
                 onClick={handleCardClick}
             >
@@ -300,14 +302,14 @@ export function GroupCard({ type, data, onJoin, onLeave, isJoining, onCardClick 
                                 </div>
                             )}
                         </div>
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             size="sm"
-                            className={`w-full ${data.isJoined ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white'} rounded-full`}
+                            className={`w-full ${isJoined ? 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white'} rounded-full`}
                             onClick={handleButtonClick}
                             disabled={isJoining}
                         >
-                            {isJoining ? 'Processing...' : data.isJoined ? 'Attending' : 'Attend Event'}
+                            {isJoining ? 'Processing...' : isJoined ? 'Attending' : 'Attend Event'}
                         </Button>
                     </div>
                 </div>

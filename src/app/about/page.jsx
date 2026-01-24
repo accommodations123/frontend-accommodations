@@ -1,246 +1,417 @@
-"use client"
+import React, { useState, useEffect, useRef } from "react";
+import { Calendar, Globe, Plus, Minus, CheckCircle, Star, Users, Award, Code, ArrowRight } from "lucide-react";
 
-import React from "react"
-import { Navbar } from "@/components/layout/Navbar"
-import { Footer } from "@/components/layout/Footer"
-import { motion, useScroll, useTransform } from "framer-motion"
-import { Users, Globe, Shield, Zap, Heart, Target, Sparkles, Map, ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+/* ================= DATA ================= */
 
-const FeatureCard = ({ icon: Icon, title, description, delay }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ delay, duration: 0.5 }}
-        className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-sm group"
-    >
-        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-            <Icon className="text-white h-6 w-6" />
+const processSteps = [
+  {
+    step: "01",
+    title: "Discover",
+    desc: "We dive deep to understand your business, audience, and goals. This research forms the foundation for everything we do.",
+  },
+  {
+    step: "02",
+    title: "Define",
+    desc: "We clarify the project scope, set goals, and align our strategy with your vision to ensure a clear path forward.",
+  },
+  {
+    step: "03",
+    title: "Design",
+    desc: "Our creative team brings ideas to life with engaging UI/UX designs that prioritize user experience and brand identity.",
+  },
+  {
+    step: "04",
+    title: "Develop",
+    desc: "We transform designs into fully functional digital products using the latest technologies and best practices.",
+  },
+  {
+    step: "05",
+    title: "Deploy",
+    desc: "We rigorously test and launch your project, ensuring it works flawlessly across devices and platforms.",
+  },
+  {
+    step: "06",
+    title: "Deliver",
+    desc: "Even after deployment, we provide ongoing support, updates, and improvements to ensure long-term success.",
+  },
+];
+
+const whyChooseUsItems = [
+  {
+    title: "Custom Web & Application Development",
+    content:
+      "We design and develop responsive, user-friendly websites and custom applications tailored to your business needs. From concept to deployment, we ensure scalable and secure solutions.",
+  },
+  {
+    title: "Data Engineering & Analytics",
+    content:
+      "We unlock the power of data with robust pipelines, dashboards, and analytics that drive smarter decisions.",
+  },
+  {
+    title: "AI Integration",
+    content:
+      "We integrate AI-driven solutions to automate workflows and enhance customer experiences.",
+  },
+  {
+    title: "Cloud Services",
+    content:
+      "Secure, scalable cloud architectures built for performance and reliability.",
+  },
+  {
+    title: "Enterprise Software Development",
+    content:
+      "Enterprise-grade software designed for long-term scalability and growth.",
+  },
+  {
+    title: "IT Consulting",
+    content:
+      "Strategic consulting that aligns technology with your business goals.",
+  },
+];
+
+/* ================= ANIMATION HOOK ================= */
+
+const useScrollAnimation = (threshold = 0.1) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, [threshold]);
+
+  return [ref, isVisible];
+};
+
+/* ================= COMPONENT ================= */
+
+const AboutUs = () => {
+  const [openIndex, setOpenIndex] = useState(0);
+  
+  // Animation refs
+  const [processRef, processVisible] = useScrollAnimation(0.1);
+
+  return (
+    <section className="w-full">
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fadeInUp {
+          animation: fadeInUp 0.8s ease-out forwards;
+        }
+      `}</style>
+
+      {/* ================= HERO ================= */}
+      <div
+        className="relative bg-cover bg-center min-h-[520px] flex items-center"
+        style={{ backgroundImage: "url('/colleagues-working-project-discussing-details.jpg')" }}
+      >
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="relative max-w-6xl mx-auto px-6 text-center text-white">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">About Us</h1>
+          <h2 className="text-xl md:text-2xl font-semibold mb-6">
+            Welcome to The IT Consulting Agency
+          </h2>
+          <p className="max-w-3xl mx-auto text-gray-200">
+            At NextKinLife, we believe in meaningful innovation that transforms
+            lives. We build technology around people, growth, and impact.
+          </p>
         </div>
-        <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
-        <p className="text-blue-100/70 leading-relaxed">
-            {description}
-        </p>
-    </motion.div>
-)
+      </div>
 
-const StatItem = ({ value, label }) => (
-    <div className="text-center">
-        <div className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-2">
-            {value}
+      {/* ================= INFO CARDS ================= */}
+      <div className="bg-[#f4f3ff] py-16">
+        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            {
+              title: "Who Are We",
+              text:
+                "A passionate team of innovators, designers, and strategists delivering user-centric digital solutions.",
+            },
+            {
+              title: "Our Mission",
+              text:
+                "To build long-term partnerships through innovation, mentorship, and reliable technology.",
+            },
+            {
+              title: "What We Do",
+              list: [
+                "UI UX Design",
+                "Website Development",
+                "Marketing",
+                "Social Media",
+                "eCommerce Store",
+                "Tech Support",
+              ],
+            },
+          ].map((card, i) => (
+            <div key={i} className="bg-white rounded-lg shadow-md p-8">
+              <div className="w-12 h-1 bg-purple-600 mb-6" />
+              <h3 className="text-2xl font-bold mb-4">{card.title}</h3>
+              {card.text ? (
+                <p className="text-gray-600">{card.text}</p>
+              ) : (
+                <ul className="space-y-2 text-gray-700">
+                  {card.list.map((item) => (
+                    <li key={item}>▶ {item}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
         </div>
-        <div className="text-sm text-blue-200/60 uppercase tracking-widest font-medium">{label}</div>
-    </div>
-)
+      </div>
 
-export default function AboutPage() {
-    const { scrollYProgress } = useScroll()
-    const y = useTransform(scrollYProgress, [0, 1], [0, -50])
+      {/* ================= FOUNDED ================= */}
+      <div className="bg-[#f5f4ff] py-20">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <h2 className="text-4xl font-bold mb-6">Founded on Innovation</h2>
+            <p className="text-gray-600 mb-6">
+              A global IT Services & Consulting company headquartered in the USA
+              with a strong team based in India.
+            </p>
+            <p className="text-gray-600 mb-10">
+              We deliver end-to-end software solutions and build future-ready
+              digital products.
+            </p>
+            <div className="flex gap-10 text-purple-600 font-medium">
+              <span className="flex items-center gap-2">
+                <Calendar size={20} /> Founded: 2025
+              </span>
+              <span className="flex items-center gap-2">
+                <Globe size={20} /> Global Reach
+              </span>
+            </div>
+          </div>
+          <img
+            src="/photo-1522071820081-009f0129c71c.avif"
+            alt="Team"
+            className="rounded-xl shadow-lg w-full h-[420px] object-cover"
+          />
+        </div>
+      </div>
 
-    return (
-        <main className="min-h-screen bg-[#0B0F19] font-sans selection:bg-blue-500/30">
-            <Navbar />
+      {/* ================= 6-D PROCESS ================= */}
+      <div ref={processRef} className="py-24 relative" style={{ backgroundColor: "#f5f4ff" }}>
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className={`text-4xl md:text-5xl font-bold text-center mb-20 ${processVisible ? 'animate-fadeInUp' : 'opacity-0'}`} style={{ color: "var(--color-primary)" }}>
+            Our 6-D Process
+          </h2>
 
-            {/* Immersive Hero */}
-            <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-20">
-                {/* Dynamic Background */}
-                <div className="absolute inset-0 z-0">
-                    <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse" />
-                    <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse animation-delay-2000" />
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-[#0B0F19]/0 via-[#0B0F19]/50 to-[#0B0F19]" />
-                </div>
+          <div className="relative">
+            {/* Process flow line for desktop */}
+            <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-red-500 transform -translate-y-1/2 z-0"></div>
 
-                <div className="container mx-auto px-4 relative z-10 text-center">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.8 }}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
+              {processSteps.map((item, i) => {
+                // Define different colors for each step
+                const stepColors = [
+                  { bg: "bg-blue-100", text: "text-blue-600", icon: "text-blue-500" },
+                  { bg: "bg-purple-100", text: "text-purple-600", icon: "text-purple-500" },
+                  { bg: "bg-pink-100", text: "text-pink-600", icon: "text-pink-500" },
+                  { bg: "bg-amber-100", text: "text-amber-600", icon: "text-amber-500" },
+                  { bg: "bg-green-100", text: "text-green-600", icon: "text-green-500" },
+                  { bg: "bg-red-100", text: "text-red-600", icon: "text-red-500" }
+                ];
+
+                const color = stepColors[i % stepColors.length];
+
+                // Define icons for each step
+                const icons = [
+                  <Globe size={32} className={color.icon} />,
+                  <CheckCircle size={32} className={color.icon} />,
+                  <Star size={32} className={color.icon} />,
+                  <Code size={32} className={color.icon} />,
+                  <Award size={32} className={color.icon} />,
+                  <Users size={32} className={color.icon} />
+                ];
+
+                return (
+                  <div
+                    key={item.step}
+                    className={`process-step relative bg-white rounded-xl p-8 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2 ${processVisible ? 'animate-fadeInUp' : 'opacity-0'}`}
+                    style={{ animationDelay: `${i * 0.1}s` }}
+                  >
+                    {/* Step number with gradient background */}
+                    <div
+                      className={`absolute -top-4 -left-4 w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ${color.bg.replace('100', '500')}`}
                     >
-                        <span className="inline-block px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-400 text-sm font-medium tracking-wider uppercase mb-6 backdrop-blur-md">
-                            Welcome to the Future of Living
-                        </span>
-                        <h1 className="text-5xl md:text-8xl font-bold text-white mb-8 tracking-tight">
-                            Beyond <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
-                                Boundaries.
-                            </span>
-                        </h1>
-                        <p className="text-xl text-blue-100/70 max-w-2xl mx-auto leading-relaxed mb-10">
-                            NextKinLife is reimagining how the world connects. We are building a borderless ecosystem for travelers, creators, and dreamers to call home, anywhere.
-                        </p>
-
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Button className="h-14 px-8 rounded-full bg-white text-[#0B0F19] hover:bg-gray-100 font-bold text-lg transition-transform hover:scale-105">
-                                Explore Our World
-                            </Button>
-                            <Button variant="outline" className="h-14 px-8 rounded-full border-white/20 text-white hover:bg-white/10 font-bold text-lg backdrop-blur-sm">
-                                Read Our Manifesto
-                            </Button>
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Global Impact Stats */}
-            <section className="py-20 border-y border-white/5 bg-white/[0.02]">
-                <div className="container mx-auto px-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
-                        <StatItem value="50+" label="Countries" />
-                        <StatItem value="10k+" label="Community Hosts" />
-                        <StatItem value="1M+" label="Stories Shared" />
-                        <StatItem value="∞" label="Possibilities" />
-                    </div>
-                </div>
-            </section>
-
-            {/* The Vision Section */}
-            <section className="py-32 relative">
-                <div className="container mx-auto px-4">
-                    <div className="grid lg:grid-cols-2 gap-20 items-center">
-                        <motion.div
-                            initial={{ opacity: 0, x: -50 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6 }}
-                            className="relative"
-                        >
-                            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/10 aspect-[4/3]">
-                                <img
-                                    src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1951&q=80"
-                                    alt="Community"
-                                    className="object-cover w-full h-full hover:scale-105 transition-transform duration-700"
-                                />
-                                <div className="absolute inset-0 bg-blue-900/20 mix-blend-multiply" />
-                            </div>
-                            {/* Floating Card */}
-                            <div className="absolute -bottom-10 -right-10 bg-[#161B28] p-6 rounded-2xl border border-white/10 shadow-xl max-w-xs hidden md:block">
-                                <div className="flex items-center gap-4 mb-3">
-                                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
-                                        <Zap size={20} />
-                                    </div>
-                                    <div>
-                                        <div className="text-white font-bold">Rapid Growth</div>
-                                        <div className="text-xs text-white/50">Joined by 500+ today</div>
-                                    </div>
-                                </div>
-                                <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                    <div className="h-full w-3/4 bg-green-500 rounded-full" />
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        <div className="space-y-8">
-                            <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
-                                We Are The <br />
-                                <span className="text-blue-500">Global Citizens.</span>
-                            </h2>
-                            <p className="text-blue-100/70 text-lg leading-relaxed">
-                                Traditional boundaries are dissolving. The future belongs to those who seek connection over separation. At NextKinLife, we provide the infrastructure for a life without borders—merging technology with the warmth of human hospitality.
-                            </p>
-                            <ul className="space-y-4">
-                                {['Curated Experiences', 'Verified Safety Standards', 'Seamless Digital Nomad Living'].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-3 text-white/90">
-                                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                            <Sparkles size={14} />
-                                        </div>
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
-                            <div className="pt-4">
-                                <Button variant="link" className="text-blue-400 p-0 text-lg hover:text-blue-300 gap-2">
-                                    Learn about our culture <ArrowRight size={18} />
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Values Grid */}
-            <section className="py-32 bg-[#0F1420]">
-                <div className="container mx-auto px-4">
-                    <div className="text-center max-w-3xl mx-auto mb-20">
-                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Built on Principles</h2>
-                        <p className="text-blue-100/60 text-lg">
-                            Our core values are the compass that guides every decision we make, ensuring we build a future that is inclusive, sustainable, and exciting.
-                        </p>
+                      {item.step}
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <FeatureCard
-                            icon={Globe}
-                            title="Borderless Thinking"
-                            delay={0.1}
-                            description="We see the world as one interconnected home. Our platform removes friction from cultural exchange and travel."
-                        />
-                        <FeatureCard
-                            icon={Heart}
-                            title="Radical Empathy"
-                            delay={0.2}
-                            description="Understanding the diverse needs of our global community is at the heart of our design and service."
-                        />
-                        <FeatureCard
-                            icon={Shield}
-                            title="Uncompromising Trust"
-                            delay={0.3}
-                            description="Safety is not a feature, it's our foundation. We employ state-of-the-art verification to ensure peace of mind."
-                        />
-                        <FeatureCard
-                            icon={Target}
-                            title="Impact Driven"
-                            delay={0.4}
-                            description="We measure success not just by growth, but by the positive footprint we leave on local communities."
-                        />
-                        <FeatureCard
-                            icon={Users}
-                            title="Community First"
-                            delay={0.5}
-                            description="Technology connects us, but people define us. We empower hosts and guests to build lasting relationships."
-                        />
-                        <FeatureCard
-                            icon={Zap}
-                            title="Continuous Innovation"
-                            delay={0.6}
-                            description="We are constantly challenging the status quo to deliver magical experiences that surprise and delight."
-                        />
+                    {/* Icon container */}
+                    <div className="flex justify-center mb-6 mt-4">
+                      <div className={`w-16 h-16 rounded-full ${color.bg} flex items-center justify-center`}>
+                        {icons[i]}
+                      </div>
                     </div>
-                </div>
-            </section>
 
-            {/* CTA / Final Section */}
-            <section className="py-32 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/40 to-transparent pointer-events-none" />
+                    <h3 className={`text-2xl font-bold mb-4 text-center ${color.text}`}>{item.title}</h3>
+                    <p className="text-gray-600 text-center">{item.desc}</p>
 
-                <div className="container mx-auto px-4 text-center relative z-10">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.8 }}
+                    {/* Arrow pointing to next step on desktop */}
+                    {i < 5 && (
+                      <div className="hidden lg:block absolute top-1/2 -right-6 transform -translate-y-1/2">
+                        <ArrowRight size={24} className="text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= WHY CHOOSE US ================= */}
+      <div className="bg-[#f5f4ff] py-24">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16">
+          <img
+            src="/businesspeople-meeting-office-working.jpg"
+            alt="Why Choose Us"
+            className="w-full h-[520px] object-cover rounded-xl"
+          />
+
+          <div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              Why Choose Us?
+            </h2>
+            <p className="text-gray-600 mb-10 max-w-xl">
+              We blend innovation, expertise, and a client-first mindset to
+              deliver scalable, future-ready digital solutions.
+            </p>
+
+            <div className="space-y-4">
+              {whyChooseUsItems.map((item, index) => {
+                const isOpen = openIndex === index;
+                return (
+                  <div key={index} className="bg-white rounded-lg px-6 py-5">
+                    <button
+                      onClick={() =>
+                        setOpenIndex(isOpen ? null : index)
+                      }
+                      className="w-full flex justify-between items-center text-left"
                     >
-                        <h2 className="text-5xl md:text-7xl font-bold text-white mb-8">
-                            Ready to go <span className="text-blue-500">Anywhere?</span>
-                        </h2>
-                        <p className="text-xl text-blue-100/60 max-w-2xl mx-auto mb-12">
-                            Join millions of others who have found their place in the world with NextKinLife. Your journey starts here.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                            <Button className="h-16 px-10 text-lg font-bold rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 shadow-lg hover:shadow-blue-500/25 transition-all">
-                                Start Your Journey
-                            </Button>
-                            <span className="text-white/40 font-medium">or</span>
-                            <Button href="/contact" variant="ghost" className="text-white hover:text-white hover:bg-white/10 text-lg font-medium">
-                                Contact Sales
-                            </Button>
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
+                      <span
+                        className={`font-semibold ${isOpen ? "text-purple-600" : "text-gray-900"
+                          }`}
+                      >
+                        {item.title}
+                      </span>
+                      {isOpen ? (
+                        <Minus size={20} />
+                      ) : (
+                        <Plus size={20} />
+                      )}
+                    </button>
 
-            <Footer />
-        </main>
-    )
-}
+                    {isOpen && (
+                      <p className="mt-4 text-gray-600">{item.content}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= STATS ================= */}
+      <div className="bg-[#f5f4ff] py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col lg:flex-row justify-between gap-10 mb-20">
+            {/* Left */}
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Some Numbers
+              </h3>
+              <p className="text-gray-600">Our Clients</p>
+            </div>
+
+            {/* Numbers */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
+              <div>
+                <h4 className="text-5xl font-bold text-purple-600">6</h4>
+                <p className="text-gray-700 font-medium mt-2">
+                  Satisfied Clients
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-5xl font-bold text-purple-600">9</h4>
+                <p className="text-gray-700 font-medium mt-2">
+                  Projects Completed
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-5xl font-bold text-purple-600">6</h4>
+                <p className="text-gray-700 font-medium mt-2">
+                  Accolades Earned
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-5xl font-bold text-purple-600">35K+</h4>
+                <p className="text-gray-700 font-medium mt-2">
+                  Lines of Code
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ================= CTA CARD ================= */}
+          <div className="bg-white rounded-2xl shadow-lg p-12 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-10">
+            {/* Text */}
+            <div className="max-w-2xl">
+              <h3 className="text-3xl font-bold text-purple-600 mb-4">
+                Would you like to start a project with us?
+              </h3>
+
+              <p className="text-gray-600 leading-relaxed">
+                Let's turn your ideas into reality. Whether you're building
+                something new or enhancing an existing project, our team is
+                here to help you every step of the way. Reach out and let's
+                create something exceptional together.
+              </p>
+            </div>
+
+            {/* Button */}
+            <button className="bg-purple-600 hover:bg-purple-700 transition text-white font-semibold px-8 py-4 rounded-lg">
+              BOOK A CALL
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default AboutUs;

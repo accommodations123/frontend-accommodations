@@ -404,7 +404,7 @@ export const Trips = () => {
                                                     <div className="flex items-center gap-2.5 px-4 py-2 bg-neutral/5 rounded-xl border border-neutral/10">
                                                         <Clock className="w-4 h-4 text-accent" />
                                                         <span className="text-sm font-semibold text-primary/80">
-                                                            {trip.departure_time.slice(0, 5)}
+                                                            {trip.departure_time ? trip.departure_time.slice(0, 5) : 'N/A'}
                                                         </span>
                                                     </div>
                                                 </div>

@@ -21,31 +21,37 @@ export const EventsFilters = memo(({
             <div className="container mx-auto max-w-7xl">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     {/* Category Filters */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto scrollbar-hide">
-                        <button
-                            onClick={() => setActiveFilter("all")}
-                            className={`px-3 sm:px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all duration-300 transform hover:scale-105 flex items-center gap-2 text-sm ${activeFilter === "all"
-                                ? "bg-[#00152d] text-white shadow-md"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                }`}
-                        >
-                            <Grid className="h-4 w-4" />
-                            All Events
-                        </button>
-
-                        {eventCategories.map((category) => (
+                    <div className="relative flex-1 w-full md:w-auto overflow-hidden">
+                        {/* Shadow masks for scroll indication */}
+                        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none md:hidden"></div>
+                        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none md:hidden"></div>
+                        
+                        <div className="flex items-center gap-3 overflow-x-auto py-2 no-scrollbar w-full translate-x-0">
                             <button
-                                key={category.id}
-                                onClick={() => setActiveFilter(category.id)}
-                                className={`px-3 sm:px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all duration-300 transform hover:scale-105 flex items-center gap-2 text-sm ${activeFilter === category.id
-                                    ? "bg-[#ff0000] text-white shadow-md"
-                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                onClick={() => setActiveFilter("all")}
+                                className={`px-5 py-2.5 rounded-xl font-semibold whitespace-nowrap transition-all duration-300 flex items-center gap-2 text-sm shadow-sm hover:shadow-md ${activeFilter === "all"
+                                    ? "bg-[#00152d] text-white ring-2 ring-[#00152d] ring-offset-2"
+                                    : "bg-white text-gray-600 border border-gray-100 hover:bg-gray-50 hover:border-gray-200"
                                     }`}
                             >
-                                {category.icon && <span className="text-lg">{category.icon}</span>}
-                                {category.title}
+                                <Grid className="h-4 w-4" />
+                                All Events
                             </button>
-                        ))}
+
+                            {eventCategories.map((category) => (
+                                <button
+                                    key={category.id}
+                                    onClick={() => setActiveFilter(category.id)}
+                                    className={`px-5 py-2.5 rounded-xl font-semibold whitespace-nowrap transition-all duration-300 flex items-center gap-2 text-sm shadow-sm hover:shadow-md ${activeFilter === category.id
+                                        ? "bg-[#ff0000] text-white ring-2 ring-[#ff0000] ring-offset-2"
+                                        : "bg-white text-gray-600 border border-gray-100 hover:bg-gray-50 hover:border-gray-200"
+                                        }`}
+                                >
+                                    {category.icon && <span className="text-base grayscale group-hover:grayscale-0 transition-all">{category.icon}</span>}
+                                    {category.title}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Filter Controls */}

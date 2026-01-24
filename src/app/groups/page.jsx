@@ -17,6 +17,7 @@ import {
 } from "@/store/api/hostApi"
 import { Users, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { useCountry } from "@/context/CountryContext"
 
 export default function GroupsPage() {
   const navigate = useNavigate()
@@ -24,8 +25,11 @@ export default function GroupsPage() {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [activeFilter, setActiveFilter] = React.useState("All")
 
+  const { activeCountry } = useCountry();
   // API hooks
-  const { data: communities, isLoading, error, refetch: refetchList } = useGetCommunitiesQuery();
+  const { data: communities, isLoading, error, refetch: refetchList } = useGetCommunitiesQuery(activeCountry?.name);
+  const [joinCommunity] = useJoinCommunityMutation();
+  const [leaveCommunity] = useLeaveCommunityMutation();
 
   // --- Filter Logic ---
   const filteredCommunities = React.useMemo(() => {

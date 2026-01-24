@@ -55,7 +55,7 @@ export default function PropertiesListPage() {
   // -------------------- STATES --------------------
   if (isLoading || isFetching) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-12">
+      <div className="min-h-screen flex items-center justify-center p-8 sm:p-12">
         <LoadingSpinner />
       </div>
     );
@@ -63,9 +63,9 @@ export default function PropertiesListPage() {
 
   if (isError) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-12">
-        <div className="text-center">
-          <h2 className="text-xl font-bold mb-2">
+      <div className="min-h-screen flex items-center justify-center p-8 sm:p-12">
+        <div className="text-center max-w-md mx-auto">
+          <h2 className="text-xl sm:text-2xl font-bold mb-2">
             Failed to load properties
           </h2>
           <p className="text-gray-500">Please try again later.</p>
@@ -76,9 +76,9 @@ export default function PropertiesListPage() {
 
   // -------------------- UI --------------------
   return (
-    <main className="container mx-auto px-4 py-12">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
+    <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
           {view === "recommended"
             ? "Recommended"
             : view === "related"
@@ -100,7 +100,7 @@ export default function PropertiesListPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-20 text-gray-500">
+        <div className="text-center py-12 sm:py-20 text-gray-500">
           <div className="mb-4">
             <svg
               className="mx-auto h-12 w-12 text-gray-400"
@@ -119,12 +119,12 @@ export default function PropertiesListPage() {
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             No properties found
           </h3>
-          <p className="text-gray-500">
+          <p className="text-gray-500 max-w-md mx-auto">
             No listings available for the selected country
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filtered.map((it) => (
             <Link
               to={`/rooms/${it.id}`}
@@ -132,7 +132,7 @@ export default function PropertiesListPage() {
               className="block group"
             >
               <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-xl hover:border-gray-300 transition-all duration-300 transform hover:-translate-y-1">
-                <div className="relative h-48 overflow-hidden bg-gray-100">
+                <div className="relative h-48 sm:h-52 lg:h-48 overflow-hidden bg-gray-100">
                   <img
                     src={it.image}
                     alt={it.title}
@@ -143,8 +143,8 @@ export default function PropertiesListPage() {
                   </div>
                 </div>
 
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 text-lg truncate">
+                <div className="p-3 sm:p-4">
+                  <h3 className="font-semibold text-gray-900 text-base sm:text-lg truncate">
                     {it.title}
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
@@ -154,7 +154,7 @@ export default function PropertiesListPage() {
                   </p>
 
                   <div className="mt-3 flex items-center justify-between">
-                    <span className="text-xl font-bold text-primary">
+                    <span className="text-lg sm:text-xl font-bold text-primary">
                       {it.currency === "INR" ? "₹" : "$"}
                       {Number(it.price).toLocaleString()}
                     </span>

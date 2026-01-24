@@ -3,10 +3,26 @@
 import React from "react"
 import { ArrowRight, ShieldCheck, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useNavigate } from "react-router-dom"
+import { useGetMeQuery } from "@/store/api/authApi"
+import { toast } from "sonner"
 
 export function Hero() {
+  const navigate = useNavigate()
+  const { data: userData } = useGetMeQuery()
+
+  const handleJoinCommunity = () => {
+    if (!userData?.user) {
+      navigate('/signup')
+    } else if (userData.user.isHost) {
+      toast.info("You are already a registered host!")
+    } else {
+      navigate('/groups')
+    }
+  }
+
   return (
-    <div className="relative bg-white overflow-hidden min-h-[auto] md:min-h-[70vh] flex items-center pt-24 pb-4">
+    <div className="relative bg-white overflow-hidden min-h-screen md:min-h-[90vh] flex items-center pt-24 pb-12 md:pb-20">
 
       {/* 1. Dynamic Background Shape */}
       <div className="absolute top-0 right-0 w-full md:w-2/3 h-full bg-[#FFF5F5] skew-y-12 md:skew-y-0 md:skew-x-12 translate-y-32 md:translate-y-0 md:translate-x-32 z-0 opacity-50 md:opacity-100" />
@@ -47,7 +63,7 @@ export function Hero() {
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button size="lg" className="h-12 md:h-14 px-8 md:px-10 rounded-full bg-[#C93A30] hover:bg-[#b02e25] text-white text-base md:text-lg font-bold shadow-lg transition-all hover:-translate-y-1 w-full sm:w-auto">
+              <Button onClick={handleJoinCommunity} size="lg" className="h-12 md:h-14 px-8 md:px-10 rounded-full bg-[#C93A30] hover:bg-[#b02e25] text-white text-base md:text-lg font-bold shadow-lg transition-all hover:-translate-y-1 w-full sm:w-auto cursor-pointer">
                 Join Community
               </Button>
 

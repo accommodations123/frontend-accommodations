@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer"
 import { EVENT_CATEGORIES } from "@/lib/mock-events"
 import { TrendingUp, Sparkles, ChevronRight } from "lucide-react"
 import { useGetApprovedEventsQuery } from "@/store/api/hostApi"
+import { useCountry } from "@/context/CountryContext"
 
 // Components
 import { EventsHero } from "./components/EventsHero"
@@ -21,7 +22,8 @@ const DEBOUNCE_DELAY = 100
 
 const EventsPage = () => {
   const navigate = useNavigate()
-  const { data: apiEvents = [], isLoading, isError } = useGetApprovedEventsQuery()
+  const { activeCountry } = useCountry()
+  const { data: apiEvents = [], isLoading, isError } = useGetApprovedEventsQuery(activeCountry?.code)
 
   // (Removed handleScroll and visibleSections logic)
   const [activeFilter, setActiveFilter] = useState("all")

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Menu, Globe, User, ChevronDown, X, Search, Users, Briefcase, Home, Calendar, Building, Plane, BookOpen, ShoppingBag, HomeIcon, Bell, Check, Sparkles, Settings as SettingsIcon } from "lucide-react"
+import { Menu, Globe, User, ChevronDown, X, Search, Users, Briefcase, Home, Calendar, Building, Plane, BookOpen, ShoppingBag, HomeIcon, Check, Sparkles, Settings as SettingsIcon, Grid3X3 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -14,7 +14,7 @@ import { getSocket, disconnectSocket } from "@/lib/socket"
 import { useDispatch, useSelector } from "react-redux"
 import { useGetMeQuery, useLogoutMutation, authApi } from "@/store/api/authApi"
 import { useGetHostProfileQuery, hostApi } from "@/store/api/hostApi"
-import { addNotification, markAllAsRead } from "@/store/slices/notificationSlice"
+import { NotificationDropdown } from "@/components/common/NotificationDropdown"
 
 export function Navbar({ minimal = false, onMenuClick }) {
     const navigate = useNavigate()
@@ -34,37 +34,34 @@ export function Navbar({ minimal = false, onMenuClick }) {
     const { data: userData, isLoading: isAuthLoading, isError: isAuthError } = useGetMeQuery()
     const isAuthenticated = !!userData && !isAuthError
 
-    // ================= NOTIFICATION STATE (REDUX) =================
-    const notifications = useSelector(state => state.notifications.items)
-    const unreadCount = useSelector(state => state.notifications.unreadCount)
-    const [isNotificationOpen, setIsNotificationOpen] = React.useState(false)
-    const notificationRef = useClickOutside(() => setIsNotificationOpen(false))
-
-
     // Fetch host profile if authenticated
     const { data: hostProfile } = useGetHostProfileQuery(undefined, {
         skip: !isAuthenticated,
     })
     const resolvedUser = React.useMemo(() => {
+        const userDetails = userData?.user || userData || {};
+
         return {
-            ...(userData || {}),
             ...(hostProfile || {}),
+            ...userDetails,
             profile_image:
-                userData?.profile_image ||
+                userDetails?.profile_image ||
                 hostProfile?.profile_image ||
                 null
         };
     }, [userData, hostProfile]);
 
     const displayName = React.useMemo(() => {
-        return (
-            hostProfile?.full_name ||
-            userData?.full_name ||
-            userData?.name ||
-            userData?.email?.split("@")[0] ||
-            "User"
-        );
-    }, [hostProfile, userData]);
+        const name = resolvedUser?.name;
+        const fullName = resolvedUser?.full_name;
+        const emailName = resolvedUser?.email?.split("@")[0];
+
+        if (name && name.trim() !== "") return name;
+        if (fullName && fullName.trim() !== "") return fullName;
+        if (emailName) return emailName;
+
+        return "User";
+    }, [resolvedUser]);
 
 
     // Auto-scroll listener
@@ -84,23 +81,15 @@ export function Navbar({ minimal = false, onMenuClick }) {
         socketRef.current = socket;
 
         const onConnect = () => {
-            console.log("✅ Connected to Socket.IO Server:", socket.id);
+            // Socket connected
         };
 
         const onConnectError = (err) => {
             console.error("❌ Socket Connection Error:", err.message);
         };
 
-        const onNotification = (data) => {
-            console.log("📩 Received Notification:", data);
-            if (data) {
-                dispatch(addNotification(data));
-            }
-        };
-
         socket.on("connect", onConnect);
         socket.on("connect_error", onConnectError);
-        socket.on("notification", onNotification);
 
         isSocketInitialized.current = true;
 
@@ -108,18 +97,10 @@ export function Navbar({ minimal = false, onMenuClick }) {
             if (socketRef.current) {
                 socketRef.current.off("connect", onConnect);
                 socketRef.current.off("connect_error", onConnectError);
-                socketRef.current.off("notification", onNotification);
                 socketRef.current = null;
             }
         };
-    }, [isAuthenticated, dispatch]);
-
-
-
-    // Helper to mark all as read
-    const handleMarkAllAsRead = () => {
-        dispatch(markAllAsRead())
-    }
+    }, [isAuthenticated]);
 
     // Mobile State
     const [isMobileCountryOpen, setIsMobileCountryOpen] = React.useState(false)
@@ -208,9 +189,9 @@ export function Navbar({ minimal = false, onMenuClick }) {
                 )}
             >
                 <div className="container mx-auto px-6 flex items-center justify-between">
-                    {/* Logo - Glass Effect */}
+                    {/* Logo - Glass Effect - INCREASED SIZE */}
                     <Link to="/" className="flex items-center gap-3 group relative items-center">
-                        <div className="relative w-12 h-12 rounded-2xl overflow-hidden ring-1 ring-white/10 group-hover:ring-accent/50 transition-all shadow-2xl shadow-black/20">
+                        <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-1 ring-white/10 group-hover:ring-accent/50 transition-all shadow-2xl shadow-black/20">
                             <div className="absolute inset-0 bg-gradient-to-tr from-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                             <img
                                 src="/logo.jpeg"
@@ -218,20 +199,16 @@ export function Navbar({ minimal = false, onMenuClick }) {
                                 className="object-cover w-full h-full transform group-hover:scale-110 transition-transform duration-700 ease-out"
                             />
                         </div>
-                        <div className="hidden lg:block relative">
-                            <div className="flex flex-col leading-none">
-                                <span className={cn(
-                                    "text-white font-bold text-lg tracking-tight transition-all duration-300",
-                                    isScrolled ? "text-white" : "text-white drop-shadow-md"
-                                )}>NextKin</span>
-                                <span className="text-accent font-black text-lg tracking-wide uppercase text-[10px]">Life</span>
-                            </div>
+                        <div className="flex items-center">
+                            <span className="text-white font-bold text-xl">Next</span>
+                            <span className="text-white font-bold text-xl">Kin</span>
+                            <span className="text-accent font-bold text-xl">Life</span>
                         </div>
                     </Link>
 
-                    {/* Desktop Navigation - Pill Design */}
+                    {/* Desktop Navigation - Pill Design - IMPROVED RESPONSIVENESS */}
                     {!minimal && (
-                        <nav className="flex items-center gap-1 p-1.5 rounded-full bg-white/5 border border-white/5 backdrop-blur-md shadow-inner shadow-black/20">
+                        <nav className="hidden lg:flex items-center gap-1 p-1.5 rounded-full bg-white/5 border border-white/5 backdrop-blur-md shadow-inner shadow-black/20">
                             {navItems.map((item) => {
                                 const isActive = location.pathname === item.path;
                                 return (
@@ -259,10 +236,24 @@ export function Navbar({ minimal = false, onMenuClick }) {
                         </nav>
                     )}
 
+                    {/* Tablet Navigation - HIDDEN ITEMS DROPDOWN */}
+                    {!minimal && (
+                        <div className="hidden md:flex lg:hidden">
+                            <button
+                                className="p-2 rounded-full text-white/80 hover:bg-white/10 transition-colors"
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            >
+                                <Menu className="w-6 h-6" />
+                            </button>
+                        </div>
+                    )}
+
                     {/* Desktop Right Actions */}
                     <div className="flex items-center gap-3">
+                        {isAuthenticated && <NotificationDropdown />}
+
                         {/* Country Selector */}
-                        <div className="relative" ref={countryRef}>
+                        <div className="relative hidden sm:block" ref={countryRef}>
                             <button
                                 className={cn(
                                     "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all border group",
@@ -338,7 +329,7 @@ export function Navbar({ minimal = false, onMenuClick }) {
                         </div>
 
                         {/* Become Host Button - Glowing Effect */}
-                        <div className="relative" ref={hostDropdownRef}>
+                        <div className="relative hidden sm:block" ref={hostDropdownRef}>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -350,7 +341,8 @@ export function Navbar({ minimal = false, onMenuClick }) {
                             >
                                 <div className="absolute inset-0 bg-white/20 opacity-0 hover:opacity-100 transition-opacity" />
                                 <Sparkles className="w-4 h-4 fill-white/20" />
-                                Become Host
+                                <span className="hidden sm:inline">Become Host</span>
+                                <span className="sm:hidden">Host</span>
                             </motion.button>
 
                             <AnimatePresence>
@@ -389,88 +381,14 @@ export function Navbar({ minimal = false, onMenuClick }) {
                             </AnimatePresence>
                         </div>
 
-                        {/* Notification Bell */}
-                        <div className="relative" ref={notificationRef}>
-                            <button
-                                className={cn(
-                                    "relative p-2.5 rounded-xl transition-all border group",
-                                    isNotificationOpen
-                                        ? "bg-white/10 border-white/20 text-white"
-                                        : "bg-transparent border-transparent hover:bg-white/5 text-white/70 hover:text-white"
-                                )}
-                                onClick={() => {
-                                    setIsNotificationOpen(!isNotificationOpen)
-                                    if (isNotificationOpen) markAllAsRead()
-                                }}
-                            >
-                                <Bell className="h-5 w-5 group-hover:scale-110 transition-transform" />
-                                {unreadCount > 0 && (
-                                    <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-accent rounded-full animate-pulse ring-2 ring-[#0A1A2F]" />
-                                )}
-                            </button>
-
-                            <AnimatePresence>
-                                {isNotificationOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        className="absolute top-full right-0 mt-3 w-96 bg-[#0F2238]/95 backdrop-blur-xl rounded-3xl shadow-[0_30px_60px_-12px_rgba(0,0,0,0.5)] z-50 border border-white/10 overflow-hidden"
-                                    >
-                                        <div className="px-5 py-4 border-b border-white/5 flex justify-between items-center bg-white/5">
-                                            <p className="text-sm font-bold text-white">Notifications</p>
-                                            {unreadCount > 0 && (
-                                                <button
-                                                    onClick={handleMarkAllAsRead}
-                                                    className="text-[10px] font-bold text-accent hover:text-white transition-colors bg-accent/10 px-2 py-1 rounded-lg uppercase tracking-wider"
-                                                >
-                                                    Mark Read
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
-                                            {notifications.length === 0 ? (
-                                                <div className="text-center py-12 text-white/30">
-                                                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                                                        <Bell className="w-8 h-8 opacity-50" />
-                                                    </div>
-                                                    <p className="text-sm font-medium">No new notifications</p>
-                                                </div>
-                                            ) : (
-                                                notifications.map((notif) => (
-                                                    <div
-                                                        key={notif.id}
-                                                        className={cn(
-                                                            "px-5 py-4 border-b border-white/5 last:border-0 hover:bg-white/5 cursor-pointer transition-colors group",
-                                                            !notif.read && "bg-accent/5 hover:bg-accent/10"
-                                                        )}
-                                                    >
-                                                        <div className="flex gap-4">
-                                                            <div className={cn(
-                                                                "mt-2 h-2 w-2 rounded-full shrink-0 shadow-[0_0_10px_currentColor]",
-                                                                notif.read ? "bg-transparent shadow-none" : "bg-accent text-accent"
-                                                            )} />
-                                                            <div>
-                                                                <p className="text-sm text-white/90 font-medium group-hover:text-white transition-colors">{notif.message}</p>
-                                                                <p className="text-xs text-white/40 mt-1.5 font-medium">{notif.time}</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-
                         {/* Profile / Sign In */}
                         {!isAuthenticated ? (
                             <Button
                                 onClick={() => navigate("/signin")}
                                 className="rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white hover:text-[#0A1A2F] px-6 font-bold tracking-wide transition-all shadow-lg hover:shadow-white/20"
                             >
-                                Sign In
+                                <span className="hidden sm:inline">Sign In</span>
+                                <span className="sm:hidden">Sign</span>
                             </Button>
                         ) : (
                             <div className="relative" ref={profileRef}>
@@ -582,32 +500,102 @@ export function Navbar({ minimal = false, onMenuClick }) {
                 </div >
             </header >
 
-            {/* ================= MOBILE LAYOUT (Sidebar) ================= */}
+            {/* ================= MOBILE NAVBAR ================= */}
             <div className="md:hidden">
                 {/* Mobile Top Bar */}
                 <div className={cn(
-                    "fixed top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between transition-all duration-300",
-                    isScrolled || isMobileMenuOpen ? "bg-[#0A1A2F]/95 backdrop-blur-xl border-b border-white/10 shadow-lg" : "bg-transparent"
+                    "fixed top-0 left-0 right-0 z-50 px-4 py-3 transition-all duration-300",
+                    isScrolled || isMobileMenuOpen ? "bg-[#0A1A2F]/95 backdrop-blur-xl border-b border-white/10 shadow-lg" : "bg-[#0A1A2F]"
                 )}>
-                    <Link to="/" className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-white/20">
-                            <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover" />
-                        </div>
-                        <span className="text-white font-bold text-lg">NextKin<span className="text-accent text-xs align-top ml-0.5">LIFE</span></span>
-                    </Link>
-
-                    <div className="flex items-center gap-3">
-                        {!isMobileMenuOpen && (
-                            <Link to="/search" className="p-2 hover:bg-white/10 rounded-full text-white/80 transition-colors">
-                                <Search className="w-5 h-5" />
-                            </Link>
-                        )}
+                    <div className="flex items-center justify-between">
+                        {/* Left: Hamburger Menu */}
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             className="p-2 text-white hover:bg-white/10 rounded-full transition-colors relative z-50"
                         >
                             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                         </button>
+
+                        {/* Center: Logo/Brand */}
+                        <Link to="/" className="flex items-center gap-2">
+                            <div className="relative w-8 h-8 rounded-lg overflow-hidden ring-1 ring-white/10">
+                                <img
+                                    src="/logo.jpeg"
+                                    alt="NextKinLife Logo"
+                                    className="object-cover w-full h-full"
+                                />
+                            </div>
+                            <div className="flex items-center">
+                                <span className="text-white font-bold text-base">Next</span>
+                                <span className="text-white font-bold text-base">Kin</span>
+                                <span className="text-accent font-bold text-base">Life</span>
+                            </div>
+                        </Link>
+
+                        {/* Right: Country Selector */}
+                        <div className="flex items-center gap-2">
+                            {/* Country Selector */}
+                            <div className="relative" ref={mobileCountryRef}>
+                                <button
+                                    className={cn(
+                                        "flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm font-medium transition-all",
+                                        isMobileCountryOpen
+                                            ? "bg-white/10 text-white"
+                                            : "bg-white/5 text-white/80 hover:bg-white/10"
+                                    )}
+                                    onClick={() => setIsMobileCountryOpen(!isMobileCountryOpen)}
+                                >
+                                    {!isSelected ? (
+                                        <span className="text-sm">India</span>
+                                    ) : (
+                                        <span className="text-sm">{activeCountry?.name || "India"}</span>
+                                    )}
+                                    <ChevronDown className={cn("h-3 w-3 transition-transform", isMobileCountryOpen && "rotate-180")} />
+                                </button>
+
+                                <AnimatePresence>
+                                    {isMobileCountryOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            className="absolute top-full right-0 mt-2 w-64 bg-[#0F2238]/95 backdrop-blur-xl rounded-xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.5)] z-50 border border-white/10 overflow-hidden"
+                                        >
+                                            <div className="px-4 py-2 border-b border-white/5 bg-white/5">
+                                                <p className="text-[10px] font-black text-accent uppercase tracking-widest">Select Region</p>
+                                            </div>
+                                            <div className="max-h-64 overflow-y-auto py-2 px-2 scrollbar-hide">
+                                                {COUNTRIES.map((country) => (
+                                                    <button
+                                                        key={country.code}
+                                                        className={cn(
+                                                            "w-full text-left px-3 py-2 text-sm rounded-lg flex items-center justify-between transition-all",
+                                                            getCountryCode() === country.code
+                                                                ? "bg-accent text-white"
+                                                                : "text-white/70 hover:bg-white/5 hover:text-white"
+                                                        )}
+                                                        onClick={() => {
+                                                            setCountry(country)
+                                                            setIsMobileCountryOpen(false)
+                                                        }}
+                                                    >
+                                                        <span className="flex items-center gap-3">
+                                                            {country.flag.startsWith('/') ? (
+                                                                <img src={country.flag} alt={country.name} className="w-5 h-3 object-cover rounded" />
+                                                            ) : (
+                                                                <span className="text-base">{country.flag}</span>
+                                                            )}
+                                                            <span className="font-medium">{country.name}</span>
+                                                        </span>
+                                                        {getCountryCode() === country.code && <Check className="w-3 h-3" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -626,15 +614,14 @@ export function Navbar({ minimal = false, onMenuClick }) {
 
                             {/* Drawer */}
                             <motion.div
-                                initial={{ x: "100%" }}
+                                initial={{ x: "-100%" }}
                                 animate={{ x: 0 }}
-                                exit={{ x: "100%" }}
+                                exit={{ x: "-100%" }}
                                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                                className="fixed inset-y-0 right-0 w-[85%] max-w-sm bg-[#0F2238] z-40 overflow-y-auto border-l border-white/10 shadow-2xl"
+                                className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-[#0F2238] z-40 overflow-y-auto border-r border-white/10 shadow-2xl"
                                 ref={mobileMenuRef}
                             >
                                 <div className="min-h-full flex flex-col pt-20 pb-8 px-6">
-
                                     {/* User Profile Section */}
                                     <div className="mb-8 p-4 rounded-2xl bg-white/5 border border-white/5">
                                         {isAuthenticated ? (
@@ -650,13 +637,13 @@ export function Navbar({ minimal = false, onMenuClick }) {
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-white font-bold truncate">{displayName}</p>
-                                                    <Link to="/account-v2" className="text-xs text-accent hover:underline">View Profile</Link>
+                                                    <Link to="/account-v2" className="text-xs text-accent hover:underline" onClick={() => setIsMobileMenuOpen(false)}>View Profile</Link>
                                                 </div>
                                             </div>
                                         ) : (
                                             <div className="flex flex-col gap-3">
                                                 <p className="text-white font-bold text-center mb-1">Welcome to NextKin</p>
-                                                <Button onClick={() => navigate("/signin")} className="w-full bg-accent hover:bg-accent/90 text-white font-bold rounded-xl">
+                                                <Button onClick={() => { navigate("/signin"); setIsMobileMenuOpen(false); }} className="w-full bg-accent hover:bg-accent/90 text-white font-bold rounded-xl">
                                                     Sign In / Sign Up
                                                 </Button>
                                             </div>
@@ -675,6 +662,7 @@ export function Navbar({ minimal = false, onMenuClick }) {
                                                         ? "bg-accent text-white font-bold shadow-lg shadow-accent/20"
                                                         : "text-white/70 hover:bg-white/5 hover:text-white"
                                                 )}
+                                                onClick={() => setIsMobileMenuOpen(false)}
                                             >
                                                 {item.name}
                                                 {location.pathname === item.path && <div className="w-2 h-2 rounded-full bg-white" />}
@@ -704,6 +692,22 @@ export function Navbar({ minimal = false, onMenuClick }) {
                                                 </button>
                                             ))}
                                         </div>
+                                    </div>
+
+                                    {/* Become Host Button */}
+                                    <div className="mb-8">
+                                        <motion.button
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={() => {
+                                                navigate(getHostPath('property', isAuthenticated))
+                                                setIsMobileMenuOpen(false)
+                                            }}
+                                            className="w-full relative overflow-hidden rounded-xl px-5 py-3 font-bold text-sm transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-accent to-[#E04642] text-white shadow-lg shadow-accent/25"
+                                        >
+                                            <Sparkles className="w-4 h-4 fill-white/20" />
+                                            Become Host
+                                        </motion.button>
                                     </div>
 
                                     {/* Logout if authenticated */}

@@ -48,7 +48,7 @@ const EssentialsBundle = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Loading...
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -66,11 +66,11 @@ const EssentialsBundle = () => {
 
       {/* ===================== TOP SEARCH BAR ===================== */}
       <div className="sticky top-0 z-40 bg-white border-b">
-        <div className="max-w-7xl mx-auto p-4 flex gap-4 items-center">
+        <div className="max-w-7xl mx-auto p-3 sm:p-4 flex gap-3 sm:gap-4 items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
             <input
-              className="w-full pl-10 py-2 border rounded-lg"
+              className="w-full pl-9 sm:pl-10 py-2 border rounded-lg text-sm"
               placeholder="Search products..."
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -79,7 +79,7 @@ const EssentialsBundle = () => {
 
           <button
             onClick={() => navigate("/sell")}
-            className="bg-[#00152D] text-white px-5 py-2 rounded-lg text-sm"
+            className="bg-[#00152D] text-white px-4 sm:px-5 py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap"
           >
             Sell Your Product
           </button>
@@ -87,13 +87,13 @@ const EssentialsBundle = () => {
       </div>
 
       {/* ===================== PRODUCTS GRID ===================== */}
-      <div className="max-w-7xl mx-auto p-4">
+      <div className="max-w-7xl mx-auto p-3 sm:p-4">
         {filteredListings.length === 0 ? (
-          <div className="text-center text-gray-500 mt-20">
+          <div className="text-center text-gray-500 mt-12 sm:mt-20">
             No products found
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             {filteredListings.map(item => (
               <div
                 key={item._id}
@@ -103,7 +103,7 @@ const EssentialsBundle = () => {
                 <img
                   src={item.images?.[0] || "https://picsum.photos/300"}
                   alt={item.title}
-                  className="h-40 w-full object-cover rounded-t-lg"
+                  className="h-32 sm:h-40 w-full object-cover rounded-t-lg"
                 />
 
                 <div className="p-3">
@@ -130,38 +130,38 @@ const EssentialsBundle = () => {
 
       {/* ===================== DETAIL MODAL ===================== */}
       {selectedItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 sm:p-4 z-50">
           <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
 
             {/* HEADER */}
-            <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="font-bold">{selectedItem.title}</h2>
+            <div className="flex justify-between items-center p-3 sm:p-4 border-b">
+              <h2 className="font-bold text-sm sm:text-base">{selectedItem.title}</h2>
               <button onClick={() => setSelectedId(null)}>
-                <X />
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
 
             {/* BODY */}
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <img
                 src={selectedItem.images?.[0]}
                 alt={selectedItem.title}
-                className="w-full h-72 object-cover rounded mb-4"
+                className="w-full h-48 sm:h-72 object-cover rounded mb-4"
               />
 
-              <p className="text-xl font-bold text-indigo-600 mb-2">
+              <p className="text-lg sm:text-xl font-bold text-indigo-600 mb-2">
                 ₹{selectedItem.price}
               </p>
 
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 text-sm sm:text-base mb-4">
                 {selectedItem.description}
               </p>
 
-              <div className="flex gap-4 flex-wrap">
+              <div className="flex flex-wrap gap-2 sm:gap-4">
                 {selectedItem.seller?.phone && (
                   <a
                     href={`tel:${selectedItem.seller.phone}`}
-                    className="flex items-center gap-2 border px-4 py-2 rounded"
+                    className="flex items-center gap-2 border px-3 sm:px-4 py-2 rounded text-sm"
                   >
                     <Phone size={16} /> Call
                   </a>
@@ -172,7 +172,7 @@ const EssentialsBundle = () => {
                     href={`https://wa.me/${selectedItem.seller.phone}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-2 border px-4 py-2 rounded"
+                    className="flex items-center gap-2 border px-3 sm:px-4 py-2 rounded text-sm"
                   >
                     <FaWhatsapp /> WhatsApp
                   </a>
@@ -181,7 +181,7 @@ const EssentialsBundle = () => {
                 {selectedItem.seller?.email && (
                   <a
                     href={`mailto:${selectedItem.seller.email}`}
-                    className="flex items-center gap-2 border px-4 py-2 rounded"
+                    className="flex items-center gap-2 border px-3 sm:px-4 py-2 rounded text-sm"
                   >
                     <Mail size={16} /> Email
                   </a>

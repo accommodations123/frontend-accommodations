@@ -4,6 +4,7 @@ import {
     Twitter,
     Instagram,
     Linkedin,
+    Globe, // Added Globe icon for Google
     Mail,
     MapPin,
     Phone
@@ -14,6 +15,29 @@ import { useCountry } from "@/context/CountryContext";
 
 export function Footer() {
     const { activeCountry } = useCountry();
+
+    const socialLinks = [
+        {
+            icon: Facebook,
+            url: "https://www.facebook.com/people/Nextkinlife-LLC/61577029054815/?mibextid=wwXIfr&rdid=pk37kk7FzbBW2j1M&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1C2FRbhoeA%2F%3Fmibextid%3DwwXIfr"
+        },
+        {
+            icon: Twitter,
+            url: "https://x.com/NextKinLife"
+        },
+        {
+            icon: Instagram,
+            url: "https://www.instagram.com/nextkinlife?igsh=MXZqenA5cjdqMGt2bw%3D%3D"
+        },
+        {
+            icon: Linkedin,
+            url: "https://www.linkedin.com/company/nextkin/"
+        },
+        {
+            icon: Globe, // Using Globe icon for Google
+            url: "https://nextkinlife.com/"
+        }
+    ];
 
     return (
         <footer className="bg-navy-dark text-white font-sans pt-16 pb-8 border-t border-white/5">
@@ -37,14 +61,17 @@ export function Footer() {
                             Connecting you with unique stays and vibrant communities. The world is yours to explore.
                         </p>
                         <div className="flex items-center gap-4">
-                            {[Facebook, Twitter, Instagram, Linkedin].map((Icon, i) => (
-                                <Link
+                            {socialLinks.map((social, i) => (
+                                <a
                                     key={i}
-                                    to="#"
+                                    href={social.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent hover:text-white transition-all text-white/70"
+                                    aria-label={social.icon.name}
                                 >
-                                    <Icon size={16} />
-                                </Link>
+                                    <social.icon size={16} />
+                                </a>
                             ))}
                         </div>
                     </div>

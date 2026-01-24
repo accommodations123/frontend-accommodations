@@ -46,8 +46,16 @@ const baseQueryWithLogger = async (args, api, extraOptions) => {
                 console.warn(`🔐 Auth: Unauthorized (401) on ${url}`);
             } else if (status === 403) {
                 console.warn(`🚫 Auth: Forbidden (403) on ${url}`);
+            } else if (status === 400 && (String(url).includes('/join') || String(url).includes('/leave'))) {
+                // Suppress 400 for join/leave as these are often "Already member" / "Not member" handled by UI
+                console.warn(`⚠️ API: Handled 400 on ${url} - ${result.error.data?.message || 'Bad Request'}`);
             } else {
                 console.error(`⬅️ RTK Request Error [${status}] on ${url}:`, result.error);
+            }
+
+            // Sync localStorage on auth errors
+            if (status === 401 || status === 403) {
+                localStorage.removeItem("user");
             }
         }
         return result
@@ -60,13 +68,14 @@ const baseQueryWithLogger = async (args, api, extraOptions) => {
 export const hostApi = createApi({
     reducerPath: "hostApi",
     baseQuery: baseQueryWithLogger,
-    tagTypes: ["Property", "Host", "Event", "Community", "BuySell", "Review", "Job"],
+    tagTypes: ["Property", "Host", "Event", "Community", "BuySell", "Review", "Job", "Trips", "Match"],
     endpoints: (builder) => ({
         saveHost: builder.mutation({
             query: (hostData) => ({
                 url: "host/save",
                 method: "POST",
                 body: hostData,
+                credentials: "include"
             }),
             invalidatesTags: ["Host"],
         }),
@@ -104,12 +113,18 @@ export const hostApi = createApi({
         }),
 
         getApprovedHostDetails: builder.query({
-            query: () => "admin/approved/approved-host-details",
+            query: (country) => ({
+                url: "admin/approved/approved-host-details",
+                params: country ? { country } : undefined
+            }),
             transformResponse: (response) => response?.data || response?.hosts || response || [],
         }),
 
         getApprovedProperties: builder.query({
-            query: () => "property/approved",
+            query: (country) => ({
+                url: "property/approved",
+                params: country ? { country } : undefined
+            }),
             providesTags: ["Property"],
             transformResponse: (response) => {
                 const items = response?.properties || response?.data?.properties || response?.data || response || [];
@@ -138,24 +153,26 @@ export const hostApi = createApi({
         }),
 
         getApprovedEvents: builder.query({
-            query: () => {
+            query: (countryCode) => {
                 // Events prefer country CODE (e.g. "IN")
-                const countryData = localStorage.getItem("selectedCountry");
-                let countryCode = "IN";
-                if (countryData) {
-                    try {
-                        const c = JSON.parse(countryData);
-                        if (c.code) countryCode = c.code;
-                    } catch (e) { console.error(e); }
-                }
+                const code = countryCode || (() => {
+                    const countryData = localStorage.getItem("selectedCountry");
+                    if (countryData) {
+                        try {
+                            const c = JSON.parse(countryData);
+                            return c.code || "IN";
+                        } catch (e) { console.error(e); }
+                    }
+                    return "IN";
+                })();
+
                 return {
                     url: "events/approved",
-                    headers: { "X-Country": countryCode }
+                    headers: { "X-Country": code }
                 };
             },
             providesTags: ["Event"],
             transformResponse: (response) => {
-                console.log("Events API Response:", response);
                 const items = response?.data?.events || response?.events || response?.data || response || [];
                 return Array.isArray(items) ? items : [];
             }
@@ -192,6 +209,7 @@ export const hostApi = createApi({
                 url: "upload",
                 method: "POST",
                 body: formData,
+                credentials: "include"
             }),
         }),
 
@@ -200,6 +218,7 @@ export const hostApi = createApi({
                 url: "property/create-draft",
                 method: "POST",
                 body: data,
+                credentials: "include"
             }),
         }),
 
@@ -208,6 +227,7 @@ export const hostApi = createApi({
                 url: `property/basic-info/${id}`,
                 method: "PUT",
                 body: data,
+                credentials: "include"
             }),
         }),
 
@@ -216,6 +236,7 @@ export const hostApi = createApi({
                 url: `property/address/${id}`,
                 method: "PUT",
                 body: data,
+                credentials: "include"
             }),
         }),
 
@@ -224,6 +245,7 @@ export const hostApi = createApi({
                 url: `property/pricing/${id}`,
                 method: "PUT",
                 body: data,
+                credentials: "include"
             }),
         }),
 
@@ -232,6 +254,7 @@ export const hostApi = createApi({
                 url: `property/amenities/${id}`,
                 method: "PUT",
                 body: { amenities },
+                credentials: "include"
             }),
         }),
 
@@ -240,6 +263,7 @@ export const hostApi = createApi({
                 url: `property/rules/${id}`,
                 method: "PUT",
                 body: { rules },
+                credentials: "include"
             }),
         }),
 
@@ -248,6 +272,7 @@ export const hostApi = createApi({
                 url: `property/media/${id}`,
                 method: "PUT",
                 body: formData,
+                credentials: "include"
             }),
         }),
 
@@ -256,6 +281,7 @@ export const hostApi = createApi({
                 url: `property/media/video/${id}`,
                 method: "PUT",
                 body: formData,
+                credentials: "include"
             }),
         }),
 
@@ -264,11 +290,16 @@ export const hostApi = createApi({
                 url: `property/legal/${id}`,
                 method: "PUT",
                 body: formData,
+                credentials: "include"
             }),
         }),
 
         submitProperty: builder.mutation({
-            query: (id) => ({ url: `property/submit/${id}`, method: "PUT" }),
+            query: (id) => ({
+                url: `property/submit/${id}`,
+                method: "PUT",
+                credentials: "include"
+            }),
             invalidatesTags: (result, error, id) => [{ type: "Property", id: "LIST" }, { type: "Property", id: id }, "Property"],
         }),
 
@@ -288,7 +319,10 @@ export const hostApi = createApi({
         }),
 
         getBuySellListings: builder.query({
-            query: () => "buy-sell/get",
+            query: (country) => ({
+                url: "buy-sell/get",
+                params: country ? { country } : undefined
+            }),
             providesTags: ["BuySell"],
             transformResponse: (response) => {
                 const res = response?.listings || response?.data?.listings || response?.data || response;
@@ -326,7 +360,10 @@ export const hostApi = createApi({
         }),
 
         getCommunities: builder.query({
-            query: () => "community",
+            query: (country) => ({
+                url: "community",
+                params: country ? { country } : undefined
+            }),
             providesTags: ["Community"],
             transformResponse: (response) => {
                 const items = response?.communities || response?.data?.communities || response?.data || response || [];
@@ -336,7 +373,20 @@ export const hostApi = createApi({
 
         getCommunityById: builder.query({
             query: (id) => `community/${id}`,
-            transformResponse: (response) => response?.community || response?.data || response,
+            providesTags: (result, error, id) => [{ type: "Community", id }],
+            transformResponse: (response) => {
+                const community = response?.community || response?.data || response;
+                // Merge is_member/isJoined if it exists at the root level but not in the community object
+                if (community && typeof community === 'object') {
+                    if (response?.is_member !== undefined && community.is_member === undefined) {
+                        return { ...community, is_member: response.is_member };
+                    }
+                    if (response?.isJoined !== undefined && community.isJoined === undefined) {
+                        return { ...community, isJoined: response.isJoined };
+                    }
+                }
+                return community;
+            },
         }),
 
         joinCommunity: builder.mutation({
@@ -531,6 +581,50 @@ export const hostApi = createApi({
                 body: formData,
             }),
         }),
+
+        // Travel Endpoints
+        getMyTrips: builder.query({
+            query: () => "travel/trips/me",
+            providesTags: ["Trips"],
+        }),
+
+        getPublicTrips: builder.query({
+            query: (params) => ({
+                url: "travel/trips",
+                params
+            }),
+            providesTags: ["Trips"],
+        }),
+
+        searchTrips: builder.query({
+            query: (params) => ({
+                url: "travel/trips/search",
+                params
+            }),
+        }),
+
+        createTrip: builder.mutation({
+            query: (data) => ({
+                url: "travel/trips",
+                method: "POST",
+                body: data
+            }),
+            invalidatesTags: ["Trips"]
+        }),
+
+        getMatches: builder.query({
+            query: () => "travel/matches/received",
+            providesTags: ["Match"],
+        }),
+
+        travelMatchAction: builder.mutation({
+            query: (data) => ({
+                url: "travel/matches/action",
+                method: "POST",
+                body: data
+            }),
+            invalidatesTags: ["Match", "Trips"]
+        }),
     }),
 });
 
@@ -588,4 +682,11 @@ export const {
     useApplyForJobMutation,
     useGetJobsQuery,
     useGetJobByIdQuery,
+    useGetMyTripsQuery,
+    useGetPublicTripsQuery,
+    useSearchTripsQuery,
+    useLazySearchTripsQuery,
+    useCreateTripMutation,
+    useGetMatchesQuery,
+    useTravelMatchActionMutation,
 } = hostApi;

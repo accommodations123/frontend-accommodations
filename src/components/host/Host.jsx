@@ -1,9 +1,12 @@
 import { useSaveHostMutation, useGetHostProfileQuery } from "@/store/api/hostApi";
+import { useGetMeQuery } from "@/store/api/authApi";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { FaWhatsapp, FaInstagram, FaFacebook } from "react-icons/fa";
 import { fetchAddressByPincode } from "@/lib/pincodeUtils";
 import { Navbar } from "@/components/layout/Navbar";
+import { Country, State, City } from 'country-state-city';
+import SearchableDropdown from "@/components/ui/SearchableDropdown";
 
 export default function HostOnboardingForm() {
   const [formData, setFormData] = useState({
@@ -11,22 +14,24 @@ export default function HostOnboardingForm() {
     email: "",
     phone: "",
     country: "",
+    countryCode: "",
     state: "",
+    stateCode: "",
     city: "",
     zip_code: "",
     street_address: "",
     whatsapp: "",
     facebook: "",
-    instagram: "",
-    latitude: null,
-    longitude: null
+    instagram: ""
   });
+
+  const [countriesList] = useState(Country.getAllCountries());
+  const [statesList, setStatesList] = useState([]);
+  const [citiesList, setCitiesList] = useState([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [locationError, setLocationError] = useState("");
   const [activeSocials, setActiveSocials] = useState({
     whatsapp: false,
     facebook: false,
@@ -36,10 +41,13 @@ export default function HostOnboardingForm() {
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Using the provided API hook
+  // Using the provided API hooks
+  const { data: userData } = useGetMeQuery();
   const [saveHost, { isLoading: isSubmitLoading, isError, error }] = useSaveHostMutation();
 
-  const { data: hostProfile, isLoading: isProfileLoading } = useGetHostProfileQuery();
+  const { data: hostProfile, isLoading: isProfileLoading } = useGetHostProfileQuery(undefined, {
+    skip: !userData
+  });
 
   // Redirect if already a host
   useEffect(() => {
@@ -60,6 +68,24 @@ export default function HostOnboardingForm() {
         zip_code: hostProfile.zip_code || prev.zip_code || "",
       }));
 
+      // Populate location lists if country exists
+      if (hostProfile.country) {
+        const countryObj = countriesList.find(c => c.name === hostProfile.country);
+        if (countryObj) {
+          setFormData(prev => ({ ...prev, countryCode: countryObj.isoCode }));
+          const states = State.getStatesOfCountry(countryObj.isoCode);
+          setStatesList(states);
+
+          if (hostProfile.state) {
+            const stateObj = states.find(s => s.name === hostProfile.state);
+            if (stateObj) {
+              setFormData(prev => ({ ...prev, stateCode: stateObj.isoCode }));
+              setCitiesList(City.getCitiesOfState(countryObj.isoCode, stateObj.isoCode));
+            }
+          }
+        }
+      }
+
       // Set active socials if data exists
       setActiveSocials({
         whatsapp: !!(hostProfile.whatsapp || formData.whatsapp),
@@ -77,12 +103,25 @@ export default function HostOnboardingForm() {
         setPincodeLoading(true);
         const addressData = await fetchAddressByPincode(pincode);
         if (addressData) {
+          const matchedCountry = countriesList.find(c => c.name.toLowerCase() === (addressData.country || "India").toLowerCase());
+          const countryCode = matchedCountry?.isoCode || "IN";
+
+          const states = State.getStatesOfCountry(countryCode);
+          const matchedState = states.find(s => s.name.toLowerCase() === addressData.state?.toLowerCase());
+
           setFormData(prev => ({
             ...prev,
             city: addressData.city || prev.city,
-            state: addressData.state || prev.state,
-            country: addressData.country || "India"
+            state: matchedState?.name || addressData.state || prev.state,
+            stateCode: matchedState?.isoCode || "",
+            country: matchedCountry?.name || addressData.country || "India",
+            countryCode: countryCode
           }));
+
+          if (countryCode) setStatesList(states);
+          if (countryCode && matchedState?.isoCode) {
+            setCitiesList(City.getCitiesOfState(countryCode, matchedState.isoCode));
+          }
         }
         setPincodeLoading(false);
       }
@@ -109,73 +148,6 @@ export default function HostOnboardingForm() {
     }));
   };
 
-  const handleUseLocation = async () => {
-    setLocationLoading(true);
-    setLocationError("");
-
-    if (!navigator.geolocation) {
-      setLocationError("Geolocation not supported. Please enter your address manually.");
-      setLocationLoading(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-
-        try {
-          // Use environment variable for Nominatim proxy or fallback to dev proxy
-          const nominatimBase = import.meta.env.VITE_NOMINATIM_URL || "/nominatim";
-          const nominatimUrl = `${nominatimBase}/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`;
-          const response = await fetch(nominatimUrl);
-
-          if (!response.ok) {
-            throw new Error("Failed to fetch address from the geocoding service.");
-          }
-
-          const data = await response.json();
-
-          setFormData(prev => ({
-            ...prev,
-            latitude,
-            longitude,
-            country: data.address?.country || "",
-            state: data.address?.state || "",
-            city: data.address?.city || data.address?.town || data.address?.village || "",
-            street_address: data.display_name || "",
-            zip_code: data.address?.postcode || "",
-          }));
-        } catch (error) {
-          console.error("Error fetching address:", error);
-          setLocationError("Failed to retrieve address. Please check your network connection or enter it manually.");
-        } finally {
-          setLocationLoading(false);
-        }
-      },
-      (error) => {
-        setLocationLoading(false);
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setLocationError("Location access denied. Please enable location permissions in your browser and try again, or enter your address manually.");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setLocationError("Location unavailable. Please check your GPS/device settings or enter it manually.");
-            break;
-          case error.TIMEOUT:
-            setLocationError("Location request timed out. Please try again in a better signal area, or enter your address manually.");
-            break;
-          case error.UNKNOWN_ERROR:
-            setLocationError("An unknown location error occurred. Please enter your address manually.");
-            break;
-        }
-      },
-      {
-        enableHighAccuracy: false, // Changed to false for faster response
-        timeout: 10000, // Reduced from 20000 to 10000ms
-        maximumAge: 300000 // Cache location for 5 minutes
-      }
-    );
-  };
 
   const toggleSocial = (social) => {
     setActiveSocials(prev => ({
@@ -248,13 +220,10 @@ export default function HostOnboardingForm() {
           country: "",
           state: "",
           city: "",
-          zip_code: "",
           street_address: "",
           whatsapp: "",
           facebook: "",
-          instagram: "",
-          latitude: null,
-          longitude: null
+          instagram: ""
         });
       }, 3000);
     } catch (err) {
@@ -264,6 +233,10 @@ export default function HostOnboardingForm() {
       if (err.status === 'PARSING_ERROR' && err.originalStatus === 500) {
         // Server returned HTML instead of JSON (500 error)
         setSubmitError("Server error occurred. Please try again later or contact support if the problem persists.");
+      } else if (err.status === 401) {
+        setSubmitError("Your session has expired. Please sign in again to submit your host application.");
+        // Optional: clear local user data
+        localStorage.removeItem("user");
       } else if (err.data?.message) {
         setSubmitError(err.data.message);
       } else if (err.error) {
@@ -474,93 +447,61 @@ export default function HostOnboardingForm() {
                     <p className="text-sm text-gray-600">Where are you located?</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleUseLocation}
-                  disabled={locationLoading}
-                  className={`inline-flex items-center px-4 py-2 border border-transparent text-xs font-medium rounded-full shadow-sm text-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all ${locationLoading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-primary hover:bg-primary/80"
-                    }`}
-                >
-                  {locationLoading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Getting Location...
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      Use Current Location
-                    </>
-                  )}
-                </button>
               </div>
 
-              {locationError && (
-                <div className="bg-red-50 border-l-4 border-red-400 p-3 mb-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-red-700">{locationError}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
-                    Country
-                  </label>
-                  <input
-                    id="country"
-                    name="country"
-                    required
-                    placeholder="Country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    className="block w-full px-4 py-3 border-2 border-gray-200 bg-gray-50 rounded-lg shadow-sm placeholder-gray-400 text-black focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-all"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-                    State
-                  </label>
-                  <input
-                    id="state"
-                    name="state"
-                    required
-                    placeholder="State"
-                    value={formData.state}
-                    onChange={handleChange}
-                    className="block w-full px-4 py-3 border-2 border-gray-200 bg-gray-50 rounded-lg shadow-sm placeholder-gray-400 text-black focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-all"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-                    City
-                  </label>
-                  <input
-                    id="city"
-                    name="city"
-                    required
-                    placeholder="City"
-                    value={formData.city}
-                    onChange={handleChange}
-                    className="block w-full px-4 py-3 border-2 border-gray-200 bg-gray-50 rounded-lg shadow-sm placeholder-gray-400 text-black focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-all"
-                  />
-                </div>
+                <SearchableDropdown
+                  label="Country"
+                  placeholder="Select Country"
+                  options={countriesList}
+                  value={formData.country}
+                  onChange={(country) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      country: country.name,
+                      countryCode: country.isoCode,
+                      state: "",
+                      stateCode: "",
+                      city: ""
+                    }));
+                    setStatesList(State.getStatesOfCountry(country.isoCode));
+                    setCitiesList([]);
+                  }}
+                />
+
+                <SearchableDropdown
+                  label="State / Province"
+                  placeholder="Select State"
+                  options={statesList}
+                  value={formData.state}
+                  disabled={!formData.countryCode}
+                  isLoading={!statesList.length && formData.countryCode}
+                  onChange={(state) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      state: state.name,
+                      stateCode: state.isoCode,
+                      city: ""
+                    }));
+                    setCitiesList(City.getCitiesOfState(formData.countryCode, state.isoCode));
+                  }}
+                />
+
+                <SearchableDropdown
+                  label="City"
+                  placeholder="Select City"
+                  options={citiesList}
+                  value={formData.city}
+                  disabled={!formData.stateCode}
+                  isLoading={!citiesList.length && formData.stateCode}
+                  onChange={(city) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      city: city.name
+                    }));
+                  }}
+                />
+
                 <div>
                   <label htmlFor="zip_code" className="block text-sm font-medium text-gray-700 mb-1">
                     ZIP Code

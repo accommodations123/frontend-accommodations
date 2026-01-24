@@ -26,8 +26,8 @@ export default function SearchPage() {
     const [isCountryOpen, setCountryOpen] = useState(false);
     const { activeCountry, setCountry } = useCountry();
 
-    const { data: approvedHosts } = useGetApprovedHostDetailsQuery();
-    const { data: approvedProperties } = useGetApprovedPropertiesQuery();
+    const { data: approvedHosts } = useGetApprovedHostDetailsQuery(activeCountry?.name);
+    const { data: approvedProperties } = useGetApprovedPropertiesQuery(activeCountry?.name);
 
 
 

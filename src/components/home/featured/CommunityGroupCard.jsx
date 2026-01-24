@@ -11,7 +11,7 @@ const HostPhoto = ({ host }) => {
         "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop";
 
     return (
-        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
             <img
                 src={photoUrl}
                 alt="Creator"
@@ -35,7 +35,7 @@ export const CommunityGroupCard = ({ group }) => {
     return (
         <CardContainer linkTo={`/groups/${groupId}`}>
             {/* Group Image */}
-            <div className="relative h-40 overflow-hidden rounded-t-xl">
+            <div className="relative h-36 sm:h-40 md:h-44 overflow-hidden rounded-t-xl">
                 <img
                     src={groupImage}
                     alt={groupName}
@@ -44,11 +44,11 @@ export const CommunityGroupCard = ({ group }) => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
                 <div className="absolute bottom-3 left-3">
-                    <span className="bg-white/90 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
+                    <span className="bg-white/90 text-gray-800 text-xs font-semibold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-sm">
                         {category}
                     </span>
                 </div>
-                <div className="absolute top-3 right-3 bg-white/90 rounded-full px-3 py-1.5 flex items-center gap-1 shadow-sm">
+                <div className="absolute top-3 right-3 bg-white/90 rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5 flex items-center gap-1 shadow-sm">
                     <UsersIcon className="w-3 h-3 text-gray-700" />
                     <span className="text-xs font-semibold text-gray-800">
                         {membersCount.toLocaleString()}
@@ -57,8 +57,8 @@ export const CommunityGroupCard = ({ group }) => {
             </div>
 
             {/* Group Info */}
-            <div className="p-5 flex-grow flex flex-col">
-                <h3 className="font-bold text-gray-900 text-sm mb-2 line-clamp-2">
+            <div className="p-4 sm:p-5 flex-grow flex flex-col">
+                <h3 className="font-bold text-gray-900 text-sm sm:text-base mb-2 line-clamp-2">
                     {groupName}
                 </h3>
 
@@ -74,16 +74,16 @@ export const CommunityGroupCard = ({ group }) => {
 
                 <div className="flex items-center gap-1 text-gray-600 text-xs mb-3">
                     <MapPin className="w-3 h-3" />
-                    <span>{groupLocation}</span>
+                    <span className="line-clamp-1">{groupLocation}</span>
                 </div>
 
-                <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
+                <div className="mt-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 sm:pt-4 border-t border-gray-100">
                     <div className="flex items-center gap-1 text-gray-500 text-xs">
                         <Calendar className="w-3 h-3" />
                         <span>{upcomingEvents} community events</span>
                     </div>
                     <button
-                        className="bg-accent hover:bg-accent/90 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm hover:shadow transition-all"
+                        className="bg-accent hover:bg-accent/90 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs font-semibold shadow-sm hover:shadow transition-all w-full sm:w-auto"
                         onClick={(e) => {
                             e.preventDefault();
                             // Handle join group logic

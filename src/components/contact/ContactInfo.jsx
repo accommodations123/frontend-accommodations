@@ -1,92 +1,139 @@
-import { MapPin, Mail, Phone, Clock } from "lucide-react"
+import { MapPin, Mail, Phone, Clock, Globe, MessageCircle, Star, Shield } from "lucide-react"
+import { motion } from "framer-motion" // ← Missing import added here
 
 const CONTACT_DETAILS = [
     {
-        icon: MapPin,
-        title: "Visit Us",
-        content: (
-            <>
-                123 Innovation Drive<br />
-                Tech Valley, CA 94043<br />
-                United States
-            </>
-        )
+        icon: Globe,
+        title: "Global Headquarters",
+        content: "8795 Stonehouse Dr, Ellicott City, MD - 21043",
+        subcontent: "United States",
+        badge: "Main Office"
     },
     {
         icon: Mail,
         title: "Email Us",
-        content: (
-            <>
-                <a href="mailto:hello@haven.com" className="hover:text-accent transition-colors">hello@haven.com</a><br />
-                <a href="mailto:support@haven.com" className="hover:text-accent transition-colors">support@haven.com</a>
-            </>
-        )
+        content: "careers@nextkinlife.com",
+        subcontent: "support@nextkinlife.com",
+        badge: "24/7 Support"
     },
     {
         icon: Phone,
-        title: "Call / WhatsApp",
-        content: (
-            <>
-                <a href="tel:+919876543210" className="hover:text-accent transition-colors">+91 98765 43210 (India)</a><br />
-                <a href="tel:+15551234567" className="hover:text-accent transition-colors">+1 (555) 123-4567 (US)</a>
-            </>
-        )
+        title: "Call Us",
+        content: "+1 314 548 9101",
+        badge: "Toll Free"
     },
     {
         icon: Clock,
-        title: "Support Hours",
-        content: (
-            <>
-                Mon-Fri: 9 AM - 9 PM IST<br />
-                <span className="text-accent text-sm">Replies within 2 hours guaranteed.</span>
-            </>
-        )
+        title: "Business Hours",
+        content: "Mon-Fri: 9AM - 6PM EST",
+        subcontent: "Sat-Sun: 10AM - 4PM EST",
+        badge: "Available"
     }
+]
+
+const FEATURES = [
+    { icon: Shield, title: "Secure & Private", description: "Your data is always protected" },
+    { icon: Star, title: "Expert Support", description: "Professional assistance guaranteed" },
+    { icon: MessageCircle, title: "Quick Response", description: "Get replies within hours" }
 ]
 
 export function ContactInfo() {
     return (
         <div className="space-y-8">
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-xl overflow-hidden relative group">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-accent/20 transition-colors duration-500" />
+            {/* Contact Cards */}
+            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-white/20">
+                <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-3xl font-bold text-white">Get in Touch</h2>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-full">
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                        <span className="text-sm text-emerald-300 font-medium">Online Now</span>
+                    </div>
+                </div>
 
-                <h2 className="text-2xl font-bold text-[#f7eed7] mb-8 relative z-10">Contact Information</h2>
-
-                <div className="grid gap-8 relative z-10">
+                <div className="grid gap-6">
                     {CONTACT_DETAILS.map((item, index) => {
                         const Icon = item.icon
                         return (
-                            <div key={index} className="flex items-start gap-5 group/item">
-                                <div className="p-3 rounded-xl bg-white/5 group-hover/item:bg-accent/20 transition-colors duration-300">
-                                    <Icon className="h-6 w-6 text-accent" />
+                            <motion.div 
+                                key={index} 
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all hover:bg-white/10"
+                            >
+                                <div className="absolute top-4 right-4">
+                                    <span className="px-3 py-1 bg-violet-500/20 text-violet-300 text-xs font-semibold rounded-full">
+                                        {item.badge}
+                                    </span>
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-white mb-2 text-lg">{item.title}</h3>
-                                    <div className="text-white/60 leading-relaxed">
-                                        {item.content}
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 rounded-xl bg-gradient-to-br from-violet-500/20 to-cyan-500/20 group-hover:from-violet-500/30 group-hover:to-cyan-500/30 transition-all duration-300">
+                                        <Icon className="h-6 w-6 text-violet-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="font-bold text-white text-lg mb-2">{item.title}</h3>
+                                        <p className="text-white/80 font-medium mb-1">{item.content}</p>
+                                        <p className="text-white/50 text-sm">{item.subcontent}</p>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         )
                     })}
                 </div>
             </div>
 
-            {/* Map Placeholder with modern styling */}
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl h-80 flex items-center justify-center relative overflow-hidden group">
-                <div className="absolute inset-0 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-700">
+            {/* Features Section */}
+            <div className="bg-gradient-to-br from-violet-500/10 to-cyan-500/10 backdrop-blur-xl p-8 rounded-3xl border border-white/20">
+                <h3 className="text-2xl font-bold text-white mb-6">Why Choose Us</h3>
+                <div className="grid gap-4">
+                    {FEATURES.map((feature, index) => {
+                        const Icon = feature.icon
+                        return (
+                            <motion.div 
+                                key={index}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 + 0.4 }}
+                                className="flex items-center gap-4 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
+                            >
+                                <div className="p-2 bg-white/10 rounded-lg">
+                                    <Icon className="h-5 w-5 text-cyan-400" />
+                                </div>
+                                <div>
+                                    <h4 className="font-semibold text-white">{feature.title}</h4>
+                                    <p className="text-sm text-white/60">{feature.description}</p>
+                                </div>
+                            </motion.div>
+                        )
+                    })}
+                </div>
+            </div>
+
+            {/* Enhanced Map Section */}
+            <div className="relative rounded-3xl overflow-hidden h-96 group">
+                <div className="absolute inset-0">
                     <img
                         src="https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=1748&auto=format&fit=crop"
                         alt="Map Background"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#00152d] via-[#00152d]/50 to-transparent" />
-
-                <div className="relative z-10 text-center p-6 bg-[#00152d]/80 backdrop-blur-md rounded-2xl border border-white/10 transform group-hover:scale-105 transition-transform duration-300">
-                    <MapPin className="h-8 w-8 mx-auto mb-3 text-accent animate-bounce" />
-                    <p className="text-white font-medium">Interactive Map Integration</p>
-                    <p className="text-sm text-white/50 mt-1">Coming Soon</p>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
+                
+                <div className="absolute inset-0 flex items-center justify-center p-8">
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        whileInView={{ scale: 1, opacity: 1 }}
+                        viewport={{ once: true }}
+                        className="bg-white/10 backdrop-blur-xl p-8 rounded-2xl border border-white/20 text-center max-w-md w-full hover:bg-white/15 transition-all"
+                    >
+                        <MapPin className="h-12 w-12 mx-auto mb-4 text-violet-400 animate-bounce" />
+                        <h3 className="text-2xl font-bold text-white mb-2">Visit Our Office</h3>
+                        <p className="text-white/70 mb-4">Experience our innovation hub firsthand</p>
+                        <button className="px-6 py-3 bg-gradient-to-r from-violet-500 to-cyan-500 text-white font-semibold rounded-xl hover:from-violet-600 hover:to-cyan-600 transition-all">
+                            Get Directions
+                        </button>
+                    </motion.div>
                 </div>
             </div>
         </div>

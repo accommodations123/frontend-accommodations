@@ -44,18 +44,18 @@ export function ProductCard({ product, onMessage, onClick }) {
           }}
           className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-400 hover:text-red-500 transition-colors"
         >
-          <Heart className="h-4 w-4" />
+          <Heart className="h-3 w-3 sm:h-4 sm:w-4" />
         </button>
 
         {/* Tags */}
         <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">
           {product?.tags?.includes("urgent") && (
-            <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full shadow-sm">
+            <span className="px-1.5 sm:px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full shadow-sm">
               Urgent
             </span>
           )}
           {product?.tags?.includes("moving") && (
-            <span className="px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shadow-sm">
+            <span className="px-1.5 sm:px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shadow-sm">
               Moving
             </span>
           )}
@@ -63,12 +63,12 @@ export function ProductCard({ product, onMessage, onClick }) {
       </div>
 
       {/* Content */}
-      <div className="p-3 flex flex-col flex-1">
+      <div className="p-2.5 sm:p-3 flex flex-col flex-1">
         <div className="flex justify-between items-start mb-1">
-          <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+          <h3 className="font-bold text-gray-900 text-xs sm:text-sm line-clamp-2 leading-tight group-hover:text-primary transition-colors">
             {product.title}
           </h3>
-          <span className="font-bold text-primary text-sm whitespace-nowrap ml-2">
+          <span className="font-bold text-primary text-xs sm:text-sm whitespace-nowrap ml-2">
             {formatPrice(product.price || 0)}
           </span>
         </div>
@@ -77,22 +77,22 @@ export function ProductCard({ product, onMessage, onClick }) {
           {product.condition && (
             <Badge
               variant="secondary"
-              className="text-[10px] px-1.5 py-0 h-5 bg-gray-100 text-gray-600 font-medium border-gray-200"
+              className="text-[10px] px-1.5 py-0 h-4 sm:h-5 bg-gray-100 text-gray-600 font-medium border-gray-200"
             >
               {product.condition}
             </Badge>
           )}
           <span className="text-[10px] text-gray-400">•</span>
           <span className="text-[10px] text-gray-500 flex items-center gap-0.5">
-            <Clock className="h-3 w-3" />
+            <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
             {postedDate}
           </span>
         </div>
 
         {/* Footer */}
-        <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
-          <div className="flex items-center gap-1 text-[11px] text-gray-500 truncate max-w-[55%]">
-            <MapPin className="h-3 w-3 flex-shrink-0" />
+        <div className="mt-auto pt-2.5 sm:pt-3 border-t border-gray-50 flex items-center justify-between">
+          <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-gray-500 truncate max-w-[55%]">
+            <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
             <span className="truncate">
               {product.location || "Location not specified"}
             </span>
@@ -105,10 +105,10 @@ export function ProductCard({ product, onMessage, onClick }) {
                 e.stopPropagation();
                 onMessage(product);
               }}
-              className="h-7 text-xs px-3 bg-white border border-primary text-primary hover:bg-primary hover:text-white transition-colors shadow-none"
+              className="h-6 sm:h-7 text-[10px] sm:text-xs px-2 sm:px-3 bg-white border border-primary text-primary hover:bg-primary hover:text-white transition-colors shadow-none"
             >
-              <MessageCircle className="h-3 w-3 mr-1" />
-              Chat
+              <MessageCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
+              <span className="hidden sm:inline">Chat</span>
             </Button>
           )}
         </div>

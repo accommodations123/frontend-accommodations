@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { Navbar } from "@/components/layout/Navbar"
+import { useCountry } from "@/context/CountryContext"
 import { Footer } from "@/components/layout/Footer"
 import {
     useGetCommunityByIdQuery,
@@ -16,6 +17,7 @@ import {
     useDeleteCommunityResourceMutation,
     useGetHostProfileQuery
 } from "@/store/api/hostApi"
+import { useGetMeQuery as useAuthMeQuery } from "@/store/api/authApi"
 import { toast } from "sonner"
 import {
     Heart, MessageCircle, Share2, X, Users, Star, Zap, Bell, Search, Filter, Home, UserCheck, CalendarDays, Image, FileText, Hash, MessageSquare, Clock, MapPin, Calendar, Camera, FolderOpen, Download, Play, Eye, Briefcase, BookOpen, Database, HelpCircle, UserPlus, UserMinus, Settings, ChevronRight, ArrowLeft, ThumbsUp, Bookmark, TrendingUp, Award, BarChart3, Target, Trophy, Gift, Sparkles, Info, Code, Globe, Link2, Mail, Phone, Shield, Pin, Upload, MoreVertical, Layers, Palette, Loader2, Trash2, Plus
@@ -66,6 +68,10 @@ export default function GroupDetailsPage() {
     const [activeTab, setActiveTab] = React.useState("feed")
     const [selectedMember, setSelectedMember] = React.useState(null)
     const [isJoining, setIsJoining] = React.useState(false)
+    // 'joined' | 'left' | null - overrides backend data
+    const [optimisticStatus, setOptimisticStatus] = React.useState(null);
+
+    const { activeCountry } = useCountry();
 
     // --- Feed State ---
     const [postContent, setPostContent] = React.useState("");
@@ -83,7 +89,7 @@ export default function GroupDetailsPage() {
     });
 
     // API hooks
-    const { data: communityData, isLoading, error } = useGetCommunityByIdQuery(id)
+    const { data: communityData, isLoading, error, refetch } = useGetCommunityByIdQuery(id)
     const [joinCommunity] = useJoinCommunityMutation()
     const [leaveCommunity] = useLeaveCommunityMutation()
 
@@ -97,25 +103,94 @@ export default function GroupDetailsPage() {
     const [deleteResource] = useDeleteCommunityResourceMutation();
 
     // Get current user profile for robust membership check
-    const { data: userProfile } = useGetHostProfileQuery();
+    const { data: userData } = useAuthMeQuery();
+    const { data: hostProfile } = useGetHostProfileQuery();
+
+    const resolvedUser = React.useMemo(() => {
+        const userDetails = userData?.user || userData || {};
+        // Prioritize Host Profile data for the name if available
+        const finalProfile = {
+            ...userDetails,
+            ...(hostProfile || {}), // Host profile overrides user details for shared fields if both exist, or we can be more selective
+        };
+
+        // Ensure profile image is handled gracefully
+        finalProfile.profile_image = hostProfile?.profile_image || userDetails?.profile_image || null;
+
+        return finalProfile;
+    }, [userData, hostProfile]);
+
+    const displayName = React.useMemo(() => {
+        // Strict priority: Host Name -> Full Name -> Name -> Email -> User
+        const hostName = resolvedUser?.host_name || resolvedUser?.name;
+        if (hostName && hostName.trim() !== "") return hostName;
+
+        const fullName = resolvedUser?.full_name || resolvedUser?.fullName;
+        if (fullName && fullName.trim() !== "") return fullName;
+
+        const emailName = resolvedUser?.email?.split("@")[0];
+        if (emailName) return emailName;
+
+        return "User";
+    }, [resolvedUser]);
+
+    const userInitials = React.useMemo(() => {
+        return (displayName || "U").slice(0, 2).toUpperCase();
+    }, [displayName]);
 
     // Key fix: Unwrap community data
     const community = React.useMemo(() => {
         if (!communityData) return null;
-        if (communityData.community) return communityData.community;
-        if (communityData.data) return communityData.data;
-        return communityData;
-    }, [communityData]);
+        const comm = communityData.community || communityData.data || communityData;
+        console.log("Community Data Debug:", {
+            member_role: comm?.member_role,
+            owner_id: comm?.owner_id,
+            userId: resolvedUser?.id,
+            isMember: comm?.isMember,
+            is_member: comm?.is_member
+        });
+        return comm;
+    }, [communityData, hostProfile, resolvedUser]);
 
     const isMember = React.useMemo(() => {
+        // Optimistic override
+        if (optimisticStatus === 'joined') return true;
+        if (optimisticStatus === 'left') return false;
+
         if (!community) return false;
-        // Check explicit flag first, then fallback to members list scan
+
+        // 1. Check explicit flags from backend (Priority 1)
+        if (typeof community.is_member === 'boolean') return community.is_member;
         if (typeof community.isJoined === 'boolean') return community.isJoined;
-        if (userProfile && community.members && Array.isArray(community.members)) {
-            return community.members.some(m => m.user_id === userProfile.id);
+        if (typeof community.isMember === 'boolean') return community.isMember;
+
+        // 2. Check localized members list if available
+        if (resolvedUser && community.members && Array.isArray(community.members)) {
+            const userId = String(resolvedUser.id || resolvedUser._id || resolvedUser.user_id);
+            return community.members.some(m => {
+                const memberId = m.user_id || m.id || m._id || m.UserId || (m.User && (m.User.id || m.User._id));
+                return String(memberId) === userId;
+            });
+        }
+
+        return false;
+    }, [community, resolvedUser, optimisticStatus]);
+
+    // Derived Owner State
+    const isOwner = React.useMemo(() => {
+        if (community?.member_role === 'owner') return true;
+        // Fallback checks
+        const userId = resolvedUser?.id;
+        const ownerId = community?.created_by || community?.owner_id;
+        if (userId && ownerId && String(userId) === String(ownerId)) return true;
+
+        // Check members array for owner role
+        if (userId && community?.members?.length) {
+            const memberRecord = community.members.find(m => String(m.user_id) === String(userId));
+            if (memberRecord?.role === 'owner') return true;
         }
         return false;
-    }, [community, userProfile]);
+    }, [community, resolvedUser]);
 
     const handleJoinLeave = async () => {
         if (!community) return;
@@ -123,13 +198,37 @@ export default function GroupDetailsPage() {
         try {
             if (isMember) {
                 await leaveCommunity(community.id).unwrap();
+                setOptimisticStatus('left');
                 toast.success("Successfully left the community!");
             } else {
                 await joinCommunity(community.id).unwrap();
+                setOptimisticStatus('joined');
                 toast.success("Successfully joined the community!");
             }
+            // Force refresh data to update button state
+            refetch();
         } catch (err) {
-            toast.error(err.data?.message || err.error || "An error occurred");
+            console.error("Join/Leave Error Full Object:", err);
+            console.log("Error data:", err.data);
+            console.log("Error status:", err.status);
+            const errorMsg = err.data?.message || err.error || "An error occurred";
+            const status = err.status;
+
+            // Auto-correct state if backend says strictly opposed state
+            // 400 often means "Already joined" when trying to join, or "Not a member" when trying to leave
+            if (status === 400 || String(errorMsg).toLowerCase().includes("already")) {
+                if (!isMember) {
+                    setOptimisticStatus('joined');
+                    toast.success("Syncing status: You are a member");
+                }
+            } else if (String(errorMsg).toLowerCase().includes("not a member")) {
+                setOptimisticStatus('left');
+                toast.info("You are not a member of this community");
+            } else if (String(errorMsg).toLowerCase().includes("owner cannot leave")) {
+                toast.error("Community owners cannot leave the community. You must transfer ownership first or delete the community.");
+            } else {
+                toast.error(errorMsg);
+            }
         } finally {
             setIsJoining(false);
         }
@@ -146,6 +245,8 @@ export default function GroupDetailsPage() {
         try {
             const formData = new FormData();
             formData.append("content", postContent);
+            // Attach real user name for backend to use if needed
+            formData.append("author_name", displayName);
 
             // Append files
             if (postMedia.length > 0) {
@@ -218,83 +319,89 @@ export default function GroupDetailsPage() {
                     <div className="flex h-full min-h-[600px] bg-gray-50 flex-col md:flex-row">
                         {/* Main Content */}
                         <div className="flex-1 flex flex-col h-full border-r border-gray-200">
-                            {/* Create Post */}
-                            <div className="p-4 bg-white border-b border-gray-200">
-                                <div className="bg-gray-50 rounded-lg p-3">
-                                    <div className="flex gap-3">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                                            ME
-                                        </div>
-                                        <div className="flex-1">
-                                            <textarea
-                                                value={postContent}
-                                                onChange={(e) => setPostContent(e.target.value)}
-                                                placeholder="Share your thoughts with the community..."
-                                                className="w-full bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200 resize-none"
-                                                rows={2}
-                                            />
+                            {/* Create Post - Only for Approved Hosts who are Members OR the Owner */}
+                            {isOwner || (isMember && hostProfile?.status === "approved") ? (
+                                <div className="p-4 bg-white border-b border-gray-200">
+                                    <div className="bg-gray-50 rounded-lg p-3">
+                                        <div className="flex gap-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm overflow-hidden border-2 border-white shadow-sm">
+                                                {resolvedUser?.profile_image ? (
+                                                    <img src={resolvedUser.profile_image} alt={displayName} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    userInitials
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <textarea
+                                                    value={postContent}
+                                                    onChange={(e) => setPostContent(e.target.value)}
+                                                    placeholder="Share your thoughts with the community..."
+                                                    className="w-full bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200 resize-none"
+                                                    rows={2}
+                                                />
 
-                                            {/* File Preview */}
-                                            {postMedia.length > 0 && (
-                                                <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
-                                                    {Array.from(postMedia).map((file, idx) => (
-                                                        <div key={idx} className="relative w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border">
-                                                            <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" alt="preview" />
-                                                            <button
-                                                                onClick={() => {
+                                                {/* File Preview */}
+                                                {postMedia.length > 0 && (
+                                                    <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
+                                                        {Array.from(postMedia).map((file, idx) => (
+                                                            <div key={idx} className="relative w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border">
+                                                                <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" alt="preview" />
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const dt = new DataTransfer();
+                                                                        Array.from(postMedia).forEach((f, i) => {
+                                                                            if (i !== idx) dt.items.add(f);
+                                                                        });
+                                                                        setPostMedia(dt.files);
+                                                                    }}
+                                                                    className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl"
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center justify-between mt-3">
+                                                    <div className="flex gap-2 relative">
+                                                        <input
+                                                            type="file"
+                                                            id="post-media"
+                                                            multiple
+                                                            accept="image/*,video/*"
+                                                            className="hidden"
+                                                            onChange={(e) => {
+                                                                if (e.target.files?.length) {
                                                                     const dt = new DataTransfer();
-                                                                    Array.from(postMedia).forEach((f, i) => {
-                                                                        if (i !== idx) dt.items.add(f);
-                                                                    });
+                                                                    Array.from(postMedia || []).forEach(f => dt.items.add(f));
+                                                                    Array.from(e.target.files).forEach(f => dt.items.add(f));
+
+                                                                    if (dt.files.length > 5) {
+                                                                        toast.error("You can only upload up to 5 media files");
+                                                                        return;
+                                                                    }
                                                                     setPostMedia(dt.files);
-                                                                }}
-                                                                className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl"
-                                                            >
-                                                                <X size={12} />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            <div className="flex items-center justify-between mt-3">
-                                                <div className="flex gap-2 relative">
-                                                    <input
-                                                        type="file"
-                                                        id="post-media"
-                                                        multiple
-                                                        accept="image/*,video/*"
-                                                        className="hidden"
-                                                        onChange={(e) => {
-                                                            if (e.target.files?.length) {
-                                                                const dt = new DataTransfer();
-                                                                Array.from(postMedia || []).forEach(f => dt.items.add(f));
-                                                                Array.from(e.target.files).forEach(f => dt.items.add(f));
-
-                                                                if (dt.files.length > 5) {
-                                                                    toast.error("You can only upload up to 5 media files");
-                                                                    return;
                                                                 }
-                                                                setPostMedia(dt.files);
-                                                            }
-                                                        }}
-                                                    />
-                                                    <label htmlFor="post-media" className="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 text-gray-600">
-                                                        <Image className="h-4 w-4 mr-1" /> Media
-                                                    </label>
+                                                            }}
+                                                        />
+                                                        <label htmlFor="post-media" className="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 text-gray-600">
+                                                            <Image className="h-4 w-4 mr-1" /> Media
+                                                        </label>
+                                                    </div>
+                                                    <Button
+                                                        onClick={handleCreatePost}
+                                                        disabled={isPosting}
+                                                        className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-4 text-sm"
+                                                    >
+                                                        {isPosting ? <Loader2 className="animate-spin h-4 w-4" /> : "Post"}
+                                                    </Button>
                                                 </div>
-                                                <Button
-                                                    onClick={handleCreatePost}
-                                                    disabled={isPosting}
-                                                    className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-4 text-sm"
-                                                >
-                                                    {isPosting ? <Loader2 className="animate-spin h-4 w-4" /> : "Post"}
-                                                </Button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : null}
 
                             {/* Posts Feed */}
                             <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
@@ -303,9 +410,17 @@ export default function GroupDetailsPage() {
                                 ) : feedPosts && feedPosts.length > 0 ? (
                                     <div className="space-y-4">
                                         {feedPosts.map((post) => {
-                                            // Debug log to inspect post structure
-                                            console.log("Rendering Post:", post.id, post.author);
-                                            const authorName = post.author?.name || post.author?.username || (post.author?.id ? `User ${post.author.id}` : "Unknown User");
+                                            // Robust author name detection
+                                            const author = post.author || {};
+                                            const authorName =
+                                                post.author?.Host?.full_name || // Prioritize Nested Host Name
+                                                post.author_name ||
+                                                author.host_name ||
+                                                author.name ||
+                                                author.fullName ||
+                                                author.full_name ||
+                                                author.username ||
+                                                (author.id ? `User ${author.id}` : "Unknown User");
 
                                             return (
                                                 <div key={post.id} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
@@ -553,13 +668,20 @@ export default function GroupDetailsPage() {
         )
     }
 
-    if (error || !community) {
+
+    if (activeCountry && community?.country && community.country !== activeCountry.name) {
         return (
             <main className="min-h-screen bg-background pt-20 flex flex-col">
                 <Navbar />
-                <div className="flex-1 flex flex-col justify-center items-center">
-                    <p className="text-red-500 mb-4">Error loading community details.</p>
-                    <Button onClick={() => navigate('/groups')}>Go Back to Groups</Button>
+                <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+                    <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-4">
+                        <X className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Group not available</h2>
+                    <p className="text-gray-500 mb-6 max-w-md">This community group is not listed in {activeCountry.name}.</p>
+                    <Button onClick={() => navigate('/groups')} className="bg-[#00142E] text-white rounded-full px-8">
+                        View All Groups
+                    </Button>
                 </div>
                 <Footer />
             </main>
@@ -607,9 +729,15 @@ export default function GroupDetailsPage() {
                                         <p className="text-white/90 text-lg max-w-2xl">{community?.description || 'Community description'}</p>
                                     </div>
                                     <div className="mb-2">
-                                        <Button onClick={handleJoinLeave} disabled={isJoining} className="font-semibold bg-white text-blue-600 hover:bg-gray-100 border-none shadow-md px-6 py-6 text-lg h-auto">
-                                            {isJoining ? <Loader2 className="h-5 w-5 animate-spin" /> : isMember ? 'Leave Group' : 'Join Group'}
-                                        </Button>
+                                        {isOwner ? (
+                                            <Button disabled className="font-semibold bg-gray-100 text-gray-400 border-none shadow-none px-6 py-6 text-lg h-auto cursor-not-allowed">
+                                                Owner
+                                            </Button>
+                                        ) : (
+                                            <Button onClick={handleJoinLeave} disabled={isJoining} className="font-semibold bg-white text-blue-600 hover:bg-gray-100 border-none shadow-md px-6 py-6 text-lg h-auto">
+                                                {isJoining ? <Loader2 className="h-5 w-5 animate-spin" /> : isMember ? 'Leave Group' : 'Join Group'}
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

@@ -1,10 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { useCountry } from '@/context/CountryContext';
 import { hostService } from '@/services/hostService';
 import { getTermsFor } from '@/lib/host-terms-data';
-import { useGetMeQuery } from '@/store/api/authApi';
-import { useGetHostProfileQuery } from '@/store/api/hostApi';
+import { useGetMeQuery, authApi } from '@/store/api/authApi';
+import {
+    useGetHostProfileQuery,
+    useSaveHostMutation,
+    useUploadFileMutation,
+    useCreatePropertyDraftMutation,
+    useUpdatePropertyBasicMutation,
+    useUpdatePropertyAddressMutation,
+    useUpdatePropertyPricingMutation,
+    useUpdatePropertyAmenitiesMutation,
+    useUpdatePropertyRulesMutation,
+    useUpdatePropertyMediaMutation,
+    useUpdatePropertyVideoMutation,
+    useUpdatePropertyLegalMutation,
+    useSubmitPropertyMutation,
+    hostApi
+} from '@/store/api/hostApi';
 
 export const STEPS = [
     { title: "Basics", description: "Title, type & capacity" },
@@ -145,6 +161,7 @@ const getFormDataStructure = (type = 'property') => {
 
 export function useHostCreation() {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const { activeCountry } = useCountry();
 
     // Auth State (Backend Verified)
@@ -153,7 +170,6 @@ export function useHostCreation() {
         skip: !userData || isAuthError
     });
 
-    const isEmailVerified = !!userData && !isAuthError;
     const isExistingHost = !!hostProfile && !isHostError;
 
     const [currentStep, setCurrentStep] = useState(1);
@@ -161,6 +177,21 @@ export function useHostCreation() {
     const [isLoading, setIsLoading] = useState(false);
     const [contributionType, setContributionType] = useState('property');
     const [showOtpModal, setShowOtpModal] = useState(false);
+    const [isEmailVerified, setIsEmailVerified] = useState(false);
+
+    // API Mutations
+    const [saveHost] = useSaveHostMutation();
+    const [uploadFile] = useUploadFileMutation();
+    const [createPropertyDraft] = useCreatePropertyDraftMutation();
+    const [updatePropertyBasic] = useUpdatePropertyBasicMutation();
+    const [updatePropertyAddress] = useUpdatePropertyAddressMutation();
+    const [updatePropertyPricing] = useUpdatePropertyPricingMutation();
+    const [updatePropertyAmenities] = useUpdatePropertyAmenitiesMutation();
+    const [updatePropertyRules] = useUpdatePropertyRulesMutation();
+    const [updatePropertyMedia] = useUpdatePropertyMediaMutation();
+    const [updatePropertyVideo] = useUpdatePropertyVideoMutation();
+    const [updatePropertyLegal] = useUpdatePropertyLegalMutation();
+    const [submitProperty] = useSubmitPropertyMutation();
 
     // Form State - Initialize with property type as default
     const [formData, setFormData] = useState(() => getFormDataStructure('property'));
@@ -254,11 +285,14 @@ export function useHostCreation() {
                 }
                 alert("Verification Successful! You are logged in.");
                 setIsEmailVerified(true);
+                // Invalidate getMe query to update global auth state
+                dispatch(authApi.util.invalidateTags(['User']));
                 setShowOtpModal(false);
             } else {
                 if (response.message === "Email verified successfully" || response.success) {
                     alert("Email verified.");
                     setIsEmailVerified(true);
+                    dispatch(authApi.util.invalidateTags(['User']));
                     setShowOtpModal(false);
                 } else {
                     alert(`Verification failed: ${response.message}`);
@@ -376,20 +410,22 @@ export function useHostCreation() {
     // Type-specific submission handlers
     const handleSubmitProperty = async (propertyId) => {
         // Your existing property submission logic
-        await hostService.updatePropertyPricing(propertyId, {
-            pricePerHour: Number(formData.pricePerHour) || 0,
-            pricePerNight: Number(formData.priceNight) || 0,
-            pricePerMonth: Number(formData.priceMonth) || 0,
-            currency: formData.currency || 'INR'
-        });
+        await updatePropertyPricing({
+            id: propertyId, data: {
+                pricePerHour: Number(formData.pricePerHour) || 0,
+                pricePerNight: Number(formData.priceNight) || 0,
+                pricePerMonth: Number(formData.priceMonth) || 0,
+                currency: formData.currency || 'INR'
+            }
+        }).unwrap();
 
         const combinedAmenities = [...formData.amenities, ...formData.customAmenities];
         if (combinedAmenities.length > 0) {
-            await hostService.updatePropertyAmenities(propertyId, combinedAmenities);
+            await updatePropertyAmenities({ id: propertyId, amenities: combinedAmenities }).unwrap();
         }
 
         if (formData.rules.length > 0) {
-            await hostService.updatePropertyRules(propertyId, formData.rules);
+            await updatePropertyRules({ id: propertyId, rules: formData.rules }).unwrap();
         }
 
         if (formData.images.length > 0) {
@@ -397,20 +433,20 @@ export function useHostCreation() {
             formData.images.forEach(img => {
                 if (img.file) photoFd.append('photo', img.file);
             });
-            await hostService.updatePropertyMedia(propertyId, photoFd);
+            await updatePropertyMedia({ id: propertyId, formData: photoFd }).unwrap();
         }
 
         if (formData.video) {
             const videoFd = new FormData();
             videoFd.append('video', formData.video);
-            await hostService.updatePropertyVideo(propertyId, videoFd);
+            await updatePropertyVideo({ id: propertyId, formData: videoFd }).unwrap();
         }
 
         if (formData.propertyProof) {
             try {
                 const docFd = new FormData();
                 docFd.append('legalDocs', formData.propertyProof);
-                await hostService.updatePropertyLegal(propertyId, docFd);
+                await updatePropertyLegal({ id: propertyId, formData: docFd }).unwrap();
             } catch (err) {
                 console.warn("Legal document upload failed (optional step):", err);
                 // Continue with submission even if legal doc fails
@@ -435,9 +471,10 @@ export function useHostCreation() {
             priceAmount: formData.priceAmount || 0,
             requirements: formData.requirements,
             images: formData.images.map(img => img.url),
-            hostId: userData?.id || userData?._id || null
+            hostId: userData?.id || userData?._id || userData?.user?.id || null
         };
 
+        // If hostApi doesn't have createEvent, we should implement it or stick to hostService with credentials
         await hostService.createEvent(eventPayload);
     };
 
@@ -454,7 +491,7 @@ export function useHostCreation() {
             membershipType: formData.membershipType,
             rules: formData.groupRules,
             topics: formData.topics,
-            adminId: userData?.id || userData?._id || null
+            adminId: userData?.id || userData?._id || userData?.user?.id || null
         };
 
         await hostService.createGroup(groupPayload);
@@ -492,13 +529,13 @@ export function useHostCreation() {
             if (formData.idProof) {
                 const fd = new FormData();
                 fd.append('images', formData.idProof);
-                const res = await hostService.uploadFile(fd);
+                const res = await uploadFile(fd).unwrap();
                 if (res.urls && res.urls.length > 0) idPhotoUrl = res.urls[0];
             }
             if (formData.profilePhoto) {
                 const fd = new FormData();
                 fd.append('images', formData.profilePhoto);
-                const res = await hostService.uploadFile(fd);
+                const res = await uploadFile(fd).unwrap();
                 if (res.urls && res.urls.length > 0) selfiePhotoUrl = res.urls[0];
             }
 
@@ -527,8 +564,8 @@ export function useHostCreation() {
             // 5. Save Host Profile if not existing
             if (!isExistingHost) {
                 console.log("📝 Registering new Host profile before property creation...");
-                await hostService.saveHost(hostPayload);
-                setIsExistingHost(true);
+                await saveHost(hostPayload).unwrap();
+                // RTK Query will update isExistingHost automatically via invalidateTags
             }
 
             // Handle different contribution types
@@ -539,26 +576,30 @@ export function useHostCreation() {
                         propertyType: (formData.type || '').toLowerCase(),
                         privacyType: formData.privacyType
                     };
-                    const draftRes = await hostService.createPropertyDraft(draftPayload);
-                    const propertyId = draftRes.propertyId || (draftRes.data && draftRes.data.id);
+                    const draftRes = await createPropertyDraft(draftPayload).unwrap();
+                    const propertyId = draftRes.propertyId || (draftRes.data && draftRes.data.id) || draftRes.id;
                     if (!propertyId) throw new Error("Failed to create property draft ID.");
 
-                    await hostService.updatePropertyBasic(propertyId, {
-                        guests: Number(formData.capacity) || 0,
-                        bedrooms: Number(formData.bedrooms) || 0,
-                        bathrooms: Number(formData.bathrooms) || 0,
-                        petsAllowed: Number(formData.petsAllowed) || 0,
-                        area: Number(formData.sqft) || 0
-                    });
+                    await updatePropertyBasic({
+                        id: propertyId, data: {
+                            guests: Number(formData.capacity) || 0,
+                            bedrooms: Number(formData.bedrooms) || 0,
+                            bathrooms: Number(formData.bathrooms) || 0,
+                            petsAllowed: Number(formData.petsAllowed) || 0,
+                            area: Number(formData.sqft) || 0
+                        }
+                    }).unwrap();
 
-                    await hostService.updatePropertyAddress(propertyId, {
-                        country: formData.country?.name || 'India',
-                        city: formData.city,
-                        address: formData.address
-                    });
+                    await updatePropertyAddress({
+                        id: propertyId, data: {
+                            country: formData.country?.name || 'India',
+                            city: formData.city,
+                            address: formData.address
+                        }
+                    }).unwrap();
 
                     await handleSubmitProperty(propertyId);
-                    await hostService.submitProperty(propertyId);
+                    await submitProperty(propertyId).unwrap();
                     break;
 
                 case 'event':

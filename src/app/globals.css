@@ -27,3 +27,14 @@ h5,
 h6 {
   font-family: var(--font-poppins), sans-serif;
 }
+
+/* Scrollbar Hide Utility */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

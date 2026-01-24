@@ -16,33 +16,6 @@ import { useGetMeQuery } from "@/store/api/authApi";
 import { useNavigate } from "react-router-dom";
 import HostGuard from "@/components/auth/HostGuard";
 
-/* ================= MOCK DATA ================= */
-
-const PRODUCTS = [
-  {
-    id: 1,
-    title: "IKEA Malm Bed Frame - Queen Size",
-    price: "150",
-    location: "San Jose, CA",
-    postedTime: "2 hours ago",
-    condition: "Like New",
-    image: "https://images.unsplash.com/photo-1505693416388-b0346efee539",
-    tags: ["moving", "furniture"],
-    country: "US",
-  },
-  {
-    id: 2,
-    title: "Apple MacBook Pro M1 2020",
-    price: "850",
-    location: "San Francisco, CA",
-    postedTime: "5 hours ago",
-    condition: "Good",
-    image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca4",
-    tags: ["electronics", "urgent"],
-    country: "US",
-  },
-];
-
 /* ================= COMPONENT ================= */
 
 export default function MarketplacePage() {
@@ -51,8 +24,10 @@ export default function MarketplacePage() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [viewProduct, setViewProduct] = useState(null);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
+
+  const { activeCountry, isSelected } = useCountry();
   // products state is now managed by RTK Query
-  const { data: productsData, isLoading: loading, error } = useGetBuySellListingsQuery();
+  const { data: productsData, isLoading: loading, error } = useGetBuySellListingsQuery(activeCountry?.name);
 
   const navigate = useNavigate();
   const { data: user } = useGetMeQuery();
@@ -71,9 +46,11 @@ export default function MarketplacePage() {
     priceMax: "",
     condition: "",
     category: "",
+    country: "",
+    state: "",
+    city: "",
   });
 
-  const { activeCountry, isSelected } = useCountry();
 
   const products = productsData || [];
 
@@ -93,6 +70,11 @@ export default function MarketplacePage() {
         !p.tags?.includes(filters.category)
       )
         return false;
+
+      // Location Filtering
+      if (filters.country && p.country && p.country.toLowerCase() !== filters.country.toLowerCase()) return false;
+      if (filters.state && p.state && p.state.toLowerCase() !== filters.state.toLowerCase()) return false;
+      if (filters.city && p.city && p.city.toLowerCase() !== filters.city.toLowerCase()) return false;
 
       return true;
     });
@@ -122,7 +104,7 @@ export default function MarketplacePage() {
         >
           {/* ================= BUY TAB ================= */}
           {activeTab === "buy" && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
 
               <FilterPanel
                 filters={filters}
@@ -142,7 +124,7 @@ export default function MarketplacePage() {
                       onMessage={handleMessage}
                     />
                   ) : filteredProducts.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                       {filteredProducts.map(product => (
                         <ProductCard
                           key={product._id || product.id}
@@ -166,7 +148,7 @@ export default function MarketplacePage() {
           {activeTab === "sell" && (
             <HostGuard>
               <div className="max-w-4xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
                   <Tip icon={<Zap />} title="Sell Faster" desc="Add clear photos" />
                   <Tip icon={<Tag />} title="Moving Sale" desc="Use tags" />
                   <Tip icon={<ShieldCheck />} title="Get Verified" desc="Build trust" />
@@ -201,8 +183,6 @@ export default function MarketplacePage() {
 
 /* ================= SINGLE PRODUCT ================= */
 
-/* ================= SINGLE PRODUCT ================= */
-
 const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
   const [imageError, setImageError] = useState(false);
   const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1000&auto=format&fit=crop";
@@ -223,19 +203,19 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-300">
-      <div className="max-w-6xl mx-auto bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100 relative">
+      <div className="max-w-6xl mx-auto bg-white rounded-2xl sm:rounded-[2rem] shadow-xl overflow-hidden border border-gray-100 relative">
 
         {/* Decorative Background Blob */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-blue-50/50 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-gradient-to-bl from-blue-50/50 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-        <div className="p-6 md:p-10 relative z-10">
+        <div className="p-4 sm:p-6 md:p-10 relative z-10">
 
           {/* Back Button */}
           <button
             onClick={onBack}
-            className="group flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#CB2A25] mb-8 transition-colors"
+            className="group flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#CB2A25] mb-6 sm:mb-8 transition-colors"
           >
-            <div className="p-2 rounded-full bg-gray-50 group-hover:bg-[#CB2A25]/10 transition-colors">
+            <div className="p-1.5 sm:p-2 rounded-full bg-gray-50 group-hover:bg-[#CB2A25]/10 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
@@ -243,11 +223,11 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
             Back to Marketplace
           </button>
 
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14">
+          <div className="grid lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-14">
 
             {/* Left Column: Image (Span 7) */}
             <div className="lg:col-span-7">
-              <div className="aspect-[4/3] bg-gray-50 rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group">
+              <div className="aspect-[4/3] bg-gray-50 rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group">
                 {isLoading && !product.image ? (
                   <div className="w-full h-full flex items-center justify-center bg-gray-100">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -260,8 +240,8 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
                       onError={() => setImageError(true)}
                       alt={product.title}
                     />
-                    <div className="absolute top-4 left-4">
-                      <span className="px-4 py-2 bg-white/90 backdrop-blur-md rounded-full text-xs font-bold text-gray-900 shadow-sm border border-white/20">
+                    <div className="absolute top-3 sm:top-4 left-3 sm:left-4">
+                      <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/90 backdrop-blur-md rounded-full text-xs font-bold text-gray-900 shadow-sm border border-white/20">
                         {product.condition || "Used"}
                       </span>
                     </div>
@@ -271,13 +251,13 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
             </div>
 
             {/* Right Column: Details (Span 5) */}
-            <div className="lg:col-span-5 flex flex-col justify-center space-y-8">
+            <div className="lg:col-span-5 flex flex-col justify-center space-y-6 sm:space-y-8">
 
               <div>
-                <h1 className="text-3xl md:text-4xl font-black text-[#00142E] mb-3 leading-tight">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#00142E] mb-3 leading-tight">
                   {product.title}
                 </h1>
-                <div className="flex items-center gap-3 text-gray-500 text-sm font-medium">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-gray-500 text-sm font-medium">
                   <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#CB2A25]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -295,7 +275,7 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
               </div>
 
               <div className="space-y-2">
-                <div className="text-5xl font-black text-[#CB2A25] tracking-tight">
+                <div className="text-4xl sm:text-5xl font-black text-[#CB2A25] tracking-tight">
                   ${Number(product.price).toLocaleString()}
                 </div>
                 {product.negotiable && (
@@ -306,17 +286,17 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
               </div>
 
               {/* Seller Card */}
-              <div className="bg-[#00142E] p-6 rounded-[2rem] text-white relative overflow-hidden group">
+              <div className="bg-[#00142E] p-4 sm:p-6 rounded-2xl text-white relative overflow-hidden group">
                 {/* Glow effect */}
-                <div className="absolute -right-10 -top-10 w-40 h-40 bg-[#CB2A25]/20 rounded-full blur-3xl group-hover:bg-[#CB2A25]/30 transition-colors duration-500" />
+                <div className="absolute -right-8 -top-8 w-32 h-32 sm:w-40 sm:h-40 bg-[#CB2A25]/20 rounded-full blur-3xl group-hover:bg-[#CB2A25]/30 transition-colors duration-500" />
 
                 <div className="relative z-10">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white border border-white/5 font-bold text-xl">
+                  <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center text-white border border-white/5 font-bold text-lg sm:text-xl">
                       {product.sellerName ? product.sellerName.charAt(0).toUpperCase() : "S"}
                     </div>
                     <div>
-                      <div className="font-bold text-lg">{product.sellerName || "Seller Name"}</div>
+                      <div className="font-bold text-base sm:text-lg">{product.sellerName || "Seller Name"}</div>
                       <div className="flex items-center gap-1.5 text-xs text-green-400 font-medium mt-1">
                         <ShieldCheck size={14} />
                         <span>Verified Seller</span>
@@ -324,7 +304,7 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-2 sm:gap-3">
                     {/* WhatsApp Button */}
                     {product.sellerPhone && (
                       <button
@@ -336,7 +316,7 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
                           const formattedNumber = cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
                           window.open(`https://wa.me/${formattedNumber}`, '_blank');
                         }}
-                        className="flex-1 h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#25D366]/20 active:scale-95"
+                        className="flex-1 h-10 sm:h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#25D366]/20 active:scale-95 text-sm sm:text-base"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />
@@ -350,15 +330,15 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
 
                     <button
                       onClick={() => onMessage(product)}
-                      className="h-12 w-12 bg-white/10 hover:bg-[#CB2A25] text-white rounded-xl flex items-center justify-center border border-white/10 transition-all active:scale-95"
+                      className="h-10 sm:h-12 w-10 sm:w-12 bg-white/10 hover:bg-[#CB2A25] text-white rounded-xl flex items-center justify-center border border-white/10 transition-all active:scale-95"
                       title="Internal Chat"
                     >
-                      <MessageCircle size={20} />
+                      <MessageCircle size={18} />
                     </button>
 
                     <button
                       onClick={() => window.open(`tel:${product.sellerPhone || ''}`)}
-                      className="h-12 w-12 bg-white/10 hover:bg-white/20 text-white rounded-xl flex items-center justify-center border border-white/10 transition-all active:scale-95"
+                      className="h-10 sm:h-12 w-10 sm:w-12 bg-white/10 hover:bg-white/20 text-white rounded-xl flex items-center justify-center border border-white/10 transition-all active:scale-95"
                       title="Call Seller"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -370,11 +350,11 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
               </div>
 
               {/* Safety Tips */}
-              <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-2xl border border-yellow-100/50">
+              <div className="flex items-start gap-3 p-3 sm:p-4 bg-yellow-50 rounded-xl sm:rounded-2xl border border-yellow-100/50">
                 <div className="min-w-5 mt-0.5 text-yellow-600">
-                  <ShieldCheck size={20} />
+                  <ShieldCheck size={18} />
                 </div>
-                <div className="text-xs text-yellow-800 leading-relaxed font-medium">
+                <div className="text-xs sm:text-sm text-yellow-800 leading-relaxed font-medium">
                   <span className="block font-bold mb-0.5 text-yellow-900">Safety First</span>
                   Meet in public places. Inspect item before payment. Never send money in advance.
                 </div>
@@ -391,7 +371,7 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
 /* ================= TIP ================= */
 
 const Tip = ({ icon, title, desc }) => (
-  <div className="bg-gray-50 border p-4 rounded-xl flex gap-3">
+  <div className="bg-gray-50 border p-3 sm:p-4 rounded-xl flex gap-3">
     <div className="p-2 bg-gray-100 rounded-lg">{icon}</div>
     <div>
       <h4 className="font-bold text-sm">{title}</h4>

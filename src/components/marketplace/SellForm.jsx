@@ -16,6 +16,8 @@ import { useCreateBuySellMutation } from "@/store/api/hostApi";
 import { cn } from "@/lib/utils";
 import { fetchAddressByPincode } from "@/lib/pincodeUtils";
 import { useEffect } from "react";
+import { Country, State, City } from 'country-state-city';
+import SearchableDropdown from "@/components/ui/SearchableDropdown";
 
 /* =========================================================
    BASIC UI COMPONENTS (MUST BE ABOVE SellForm)
@@ -36,7 +38,7 @@ const Input = ({
     placeholder={placeholder}
     type={type}
     className={cn(
-      "w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm",
+      "w-full h-9 sm:h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm",
       "text-black caret-black placeholder:text-gray-400",
       "focus:outline-none focus:ring-2 focus:ring-indigo-500",
       className
@@ -71,7 +73,7 @@ const Select = ({ id, value, onChange, children }) => (
     id={id}
     value={value}
     onChange={onChange}
-    className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    className="w-full h-9 sm:h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
   >
     {children}
   </select>
@@ -91,7 +93,7 @@ const Button = ({
   children,
 }) => {
   const base =
-    "px-6 py-3 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
+    "px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base";
   const style =
     variant === "secondary"
       ? "bg-gray-200 text-gray-800 hover:bg-gray-300"
@@ -141,6 +143,10 @@ export function SellForm({ onPost }) {
   const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [validationError, setValidationError] = useState("");
 
+  const [countriesList] = useState(Country.getAllCountries());
+  const [statesList, setStatesList] = useState([]);
+  const [citiesList, setCitiesList] = useState([]);
+
   const [category, setCategory] = useState("Furniture");
   const [subcategory, setSubcategory] = useState("");
 
@@ -166,9 +172,20 @@ export function SellForm({ onPost }) {
         setIsPincodeLoading(true);
         const addressData = await fetchAddressByPincode(zipCode);
         if (addressData) {
+          const matchedCountry = countriesList.find(c => c.name.toLowerCase() === (addressData.country || "India").toLowerCase());
+          const countryCode = matchedCountry?.isoCode || "IN";
+
+          const states = State.getStatesOfCountry(countryCode);
+          const matchedState = states.find(s => s.name.toLowerCase() === addressData.state?.toLowerCase());
+
           setCity(addressData.city || city);
-          setState(addressData.state || state);
-          setCountry(addressData.country || country);
+          setState(matchedState?.name || addressData.state || state);
+          setCountry(matchedCountry || country);
+
+          if (countryCode) setStatesList(states);
+          if (countryCode && matchedState?.isoCode) {
+            setCitiesList(City.getCitiesOfState(countryCode, matchedState.isoCode));
+          }
         }
         setIsPincodeLoading(false);
       }
@@ -217,7 +234,7 @@ export function SellForm({ onPost }) {
     appendIfExists(formData, "description", description);
 
     // Prefer ONE location strategy
-    appendIfExists(formData, "country", country);
+    appendIfExists(formData, "country", typeof country === 'string' ? country : country?.name);
     appendIfExists(formData, "state", state);
     appendIfExists(formData, "city", city);
     appendIfExists(formData, "zip_code", zipCode);
@@ -251,35 +268,35 @@ export function SellForm({ onPost }) {
   /* ================= RENDER ================= */
 
   return (
-    <div className="max-w-3xl mx-auto bg-gray-50 p-8 rounded-xl">
-      <h2 className="text-2xl font-bold text-gray-900 mb-1">
+    <div className="max-w-3xl mx-auto bg-gray-50 p-4 sm:p-6 lg:p-8 rounded-xl">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
         List an Item for Sale
       </h2>
-      <p className="text-gray-600 mb-6">Share your items with community</p>
+      <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">Share your items with community</p>
 
       {isError && (
-        <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
+        <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
           {error?.data?.message || "Failed to create listing"}
         </div>
       )}
 
       {validationError && (
-        <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
+        <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
           {validationError}
         </div>
       )}
 
       {isSuccess && (
-        <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
+        <div className="bg-green-100 text-green-700 p-3 rounded mb-4 text-sm">
           Listing created successfully
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {/* PHOTOS */}
         <div
           className={cn(
-            "border-2 border-dashed rounded-lg p-6 bg-white text-center",
+            "border-2 border-dashed rounded-lg p-4 sm:p-6 bg-white text-center",
             dragActive ? "border-indigo-500" : "border-gray-300"
           )}
           onDragOver={(e) => {
@@ -297,18 +314,18 @@ export function SellForm({ onPost }) {
             onChange={(e) => addFiles(e.target.files)}
           />
           <label htmlFor="images" className="cursor-pointer">
-            <Camera className="mx-auto text-indigo-600 mb-2" />
-            <p className="font-medium text-gray-900">
+            <Camera className="mx-auto text-indigo-600 mb-2 h-5 w-5 sm:h-6 sm:w-6" />
+            <p className="font-medium text-gray-900 text-sm sm:text-base">
               Click or drag images here
             </p>
           </label>
 
           {images.length > 0 && (
-            <div className="flex gap-3 mt-4 overflow-x-auto">
+            <div className="flex gap-2 sm:gap-3 mt-4 overflow-x-auto">
               {images.map((img, i) => (
                 <div
                   key={i}
-                  className="relative w-24 h-24 border rounded-lg overflow-hidden"
+                  className="relative w-20 h-20 sm:w-24 sm:h-24 border rounded-lg overflow-hidden"
                 >
                   <img
                     src={URL.createObjectURL(img)}
@@ -320,7 +337,7 @@ export function SellForm({ onPost }) {
                     onClick={() => removeImage(i)}
                     className="absolute top-1 right-1 bg-white rounded-full p-1"
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </button>
                 </div>
               ))}
@@ -329,7 +346,7 @@ export function SellForm({ onPost }) {
         </div>
 
         {/* ITEM DETAILS */}
-        <div className="bg-white p-6 rounded-lg space-y-4">
+        <div className="bg-white p-4 sm:p-6 rounded-lg space-y-3 sm:space-y-4">
           <Label>Title</Label>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} />
 
@@ -354,33 +371,50 @@ export function SellForm({ onPost }) {
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
-
-          {/* <Label>Condition</Label> */}
-          {/* <Select
-            value={condition}
-            onChange={(e) => setCondition(e.target.value)}
-          >
-            <option>Brand New</option>
-            <option>Like New</option>
-            <option>Good</option>
-            <option>Fair</option>
-          </Select> */}
         </div>
 
         {/* LOCATION & DESCRIPTION */}
-        <div className="bg-white p-6 rounded-lg space-y-4">
-          <Label>Country</Label>
-          <Input value={country} onChange={(e) => setCountry(e.target.value)} />
+        <div className="bg-white p-4 sm:p-6 rounded-lg space-y-3 sm:space-y-4">
+          <SearchableDropdown
+            label="Country"
+            placeholder="Select Country"
+            options={countriesList}
+            value={typeof country === 'string' ? country : country?.name}
+            onChange={(c) => {
+              setCountry(c);
+              setState("");
+              setCity("");
+              setStatesList(State.getStatesOfCountry(c.isoCode));
+              setCitiesList([]);
+            }}
+          />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>State</Label>
-              <Input value={state} onChange={(e) => setState(e.target.value)} />
-            </div>
-            <div>
-              <Label>City</Label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} />
-            </div>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <SearchableDropdown
+              label="State"
+              placeholder="Select State"
+              options={statesList}
+              value={state}
+              disabled={!country}
+              isLoading={!statesList.length && country}
+              onChange={(s) => {
+                setState(s.name);
+                setCity("");
+                const cCode = country?.isoCode || countriesList.find(c => c.name === country)?.isoCode;
+                if (cCode) {
+                  setCitiesList(City.getCitiesOfState(cCode, s.isoCode));
+                }
+              }}
+            />
+            <SearchableDropdown
+              label="City"
+              placeholder="Select City"
+              options={citiesList}
+              value={city}
+              disabled={!state}
+              isLoading={!citiesList.length && state}
+              onChange={(c) => setCity(c.name)}
+            />
           </div>
 
           <div className="flex justify-between items-center">
@@ -407,7 +441,7 @@ export function SellForm({ onPost }) {
         </div>
 
         {/* CONTACT */}
-        <div className="bg-white p-6 rounded-lg space-y-4">
+        <div className="bg-white p-4 sm:p-6 rounded-lg space-y-3 sm:space-y-4">
           <Label>Name</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
 
@@ -426,22 +460,12 @@ export function SellForm({ onPost }) {
           />
         </div>
 
-        {/* URGENT */}
-        {/* <div className="bg-white p-4 rounded-lg flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={isUrgent}
-            onChange={(e) => setIsUrgent(e.target.checked)}
-          />
-          <span className="text-sm text-gray-900">Mark as urgent sale</span>
-        </div> */}
-
         {/* ACTIONS */}
-        <div className="flex gap-4">
-          <Button variant="secondary" disabled={isLoading}>
+        <div className="flex gap-3 sm:gap-4 flex-col sm:flex-row">
+          <Button variant="secondary" disabled={isLoading} className="w-full sm:w-auto">
             Save as Draft
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
             {isLoading ? "Posting..." : "Post Listing"}
           </Button>
         </div>

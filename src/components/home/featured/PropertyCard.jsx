@@ -5,7 +5,6 @@ import {
     Thermometer, Bed, CheckCircle, ShieldCheck, Dumbbell, ArrowRight, ExternalLink, Bath, MessageCircle
 } from 'lucide-react';
 import { VerificationBadge } from '@/components/ui/VerificationBadge';
-import { FaWhatsapp, FaInstagram, FaFacebook } from "react-icons/fa";
 import { MdEmail } from "react-icons/md";
 import { useCountry } from '@/context/CountryContext';
 import { toast } from 'sonner';
@@ -35,7 +34,7 @@ export const PropertyCard = ({ property }) => {
     // Safely get property data
     const propertyData = {
         id: property.id || property._id || 'unknown',
-        title: property.title || property.name || (property.property_type ? `${property.property_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}${property.city ? ` in ${property.city}` : ''}` : "Premium Stay"),
+        title: property.title || property.name || (property.property_type ? `${property.property_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}` : "Premium Stay"),
         location: property.city || property.location?.city || property.address || "Location Info",
         hostPreference: property.host_preference || "",
         image: getValidImageUrl((Array.isArray(property.photos) && property.photos.length > 0)
@@ -65,40 +64,7 @@ export const PropertyCard = ({ property }) => {
         instagram: property.instagram || property.host?.instagram || property.Host?.instagram,
     };
 
-    const handleAction = (e, actionType, actionData) => {
-        e.preventDefault(); // Prevent Navigation
-        e.stopPropagation();
 
-        if (!actionData) {
-            toast.error(`Host has not provided ${actionType} details.`);
-            return;
-        }
-
-        switch (actionType) {
-            case 'WhatsApp':
-                window.open(`https://wa.me/${actionData.replace(/\D/g, '')}`, '_blank');
-                break;
-            case 'Phone':
-                window.open(`tel:${actionData}`, '_self');
-                break;
-            case 'Message':
-                window.open(`sms:${actionData}`, '_self');
-                break;
-            case 'Email':
-                window.open(`mailto:${actionData}`, '_self');
-                break;
-            case 'Facebook':
-                const fbUrl = actionData.startsWith('http') ? actionData : `https://facebook.com/${actionData}`;
-                window.open(fbUrl, '_blank');
-                break;
-            case 'Instagram':
-                const instUrl = actionData.startsWith('http') ? actionData : `https://instagram.com/${actionData.replace('@', '')}`;
-                window.open(instUrl, '_blank');
-                break;
-            default:
-                break;
-        }
-    };
 
     return (
         <CardContainer key={propertyData.id} linkTo={`/rooms/${propertyData.id}`}>
@@ -129,12 +95,7 @@ export const PropertyCard = ({ property }) => {
                             <span className="text-xs font-bold text-white">Unverified</span>
                         </div>
                     )}
-                    {propertyData.rating > 0 && (
-                        <div className="bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm border border-white/50">
-                            <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                            <span className="text-xs font-bold text-[#00142E]">{propertyData.rating}</span>
-                        </div>
-                    )}
+
                 </div>
 
                 {/* Favorite Button */}
@@ -212,34 +173,7 @@ export const PropertyCard = ({ property }) => {
                         </div>
                     </div>
 
-                    <div className="flex gap-2">
-                        {/* WhatsApp */}
-                        <button
-                            className="group/btn relative w-9 h-9 rounded-full bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-sm hover:shadow-lg hover:shadow-[#25D366]/30"
-                            onClick={(e) => handleAction(e, 'WhatsApp', propertyData.whatsapp)}
-                            title="WhatsApp"
-                        >
-                            <FaWhatsapp className="w-4.5 h-4.5" />
-                        </button>
 
-                        {/* Instagram */}
-                        <button
-                            className="group/btn relative w-9 h-9 rounded-full bg-pink-50 text-pink-500 hover:bg-pink-500 hover:text-white flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-sm hover:shadow-lg hover:shadow-pink-500/30"
-                            onClick={(e) => handleAction(e, 'Instagram', propertyData.instagram)}
-                            title="Instagram"
-                        >
-                            <FaInstagram className="w-4.5 h-4.5" />
-                        </button>
-
-                        {/* Facebook */}
-                        <button
-                            className="group/btn relative w-9 h-9 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-sm hover:shadow-lg hover:shadow-indigo-600/30"
-                            onClick={(e) => handleAction(e, 'Facebook', propertyData.facebook)}
-                            title="Facebook"
-                        >
-                            <FaFacebook className="w-4.5 h-4.5" />
-                        </button>
-                    </div>
                 </div>
             </div>
         </CardContainer>

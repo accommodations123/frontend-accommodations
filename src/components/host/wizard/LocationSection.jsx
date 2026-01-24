@@ -1,9 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, Globe, Loader2 } from 'lucide-react';
 import { fetchAddressByPincode } from '@/lib/pincodeUtils';
+import { Country, State, City } from 'country-state-city';
+import SearchableDropdown from "@/components/ui/SearchableDropdown";
 
 const LocationSection = ({ formData, setFormData }) => {
   const [isPincodeLoading, setIsPincodeLoading] = useState(false);
+  const [countriesList] = useState(Country.getAllCountries());
+  const [statesList, setStatesList] = useState([]);
+  const [citiesList, setCitiesList] = useState([]);
+
+  // Initialize lists if data exists
+  useEffect(() => {
+    if (formData.country) {
+      const countryName = typeof formData.country === 'string' ? formData.country : formData.country?.name;
+      const countryObj = countriesList.find(c => c.name === countryName);
+      if (countryObj) {
+        const states = State.getStatesOfCountry(countryObj.isoCode);
+        setStatesList(states);
+        if (formData.state) {
+          const stateObj = states.find(s => s.name === formData.state);
+          if (stateObj) {
+            setCitiesList(City.getCitiesOfState(countryObj.isoCode, stateObj.isoCode));
+          }
+        }
+      }
+    }
+  }, []);
 
   // Auto-fill address based on Pincode
   useEffect(() => {
@@ -13,11 +36,23 @@ const LocationSection = ({ formData, setFormData }) => {
         setIsPincodeLoading(true);
         const addressData = await fetchAddressByPincode(pincode);
         if (addressData) {
+          const matchedCountry = countriesList.find(c => c.name.toLowerCase() === (addressData.country || "India").toLowerCase());
+          const countryCode = matchedCountry?.isoCode || "IN";
+
+          const states = State.getStatesOfCountry(countryCode);
+          const matchedState = states.find(s => s.name.toLowerCase() === addressData.state?.toLowerCase());
+
           setFormData({
             ...formData,
             city: addressData.city || formData.city,
-            state: addressData.state || formData.state,
+            state: matchedState?.name || addressData.state || formData.state,
+            country: matchedCountry || { name: "India", code: "IN" }
           });
+
+          if (countryCode) setStatesList(states);
+          if (countryCode && matchedState?.isoCode) {
+            setCitiesList(City.getCitiesOfState(countryCode, matchedState.isoCode));
+          }
         }
         setIsPincodeLoading(false);
       }
@@ -60,17 +95,59 @@ const LocationSection = ({ formData, setFormData }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">City</label>
-            <input
-              type="text"
-              placeholder="City"
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:border-accent outline-none"
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SearchableDropdown
+            label="Country"
+            placeholder="Select Country"
+            options={countriesList}
+            value={formData.country?.name || formData.country}
+            onChange={(country) => {
+              setFormData({
+                ...formData,
+                country: country,
+                state: "",
+                city: ""
+              });
+              setStatesList(State.getStatesOfCountry(country.isoCode));
+              setCitiesList([]);
+            }}
+          />
+
+          <SearchableDropdown
+            label="State / Province"
+            placeholder="Select State"
+            options={statesList}
+            value={formData.state}
+            disabled={!formData.country}
+            isLoading={!statesList.length && formData.country}
+            onChange={(state) => {
+              setFormData({
+                ...formData,
+                state: state.name,
+                city: ""
+              });
+              const cCode = formData.country?.isoCode || countriesList.find(c => c.name === formData.country)?.isoCode;
+              if (cCode) {
+                setCitiesList(City.getCitiesOfState(cCode, state.isoCode));
+              }
+            }}
+          />
+
+          <SearchableDropdown
+            label="City"
+            placeholder="Select City"
+            options={citiesList}
+            value={formData.city}
+            disabled={!formData.state}
+            isLoading={!citiesList.length && formData.state}
+            onChange={(city) => {
+              setFormData({
+                ...formData,
+                city: city.name
+              });
+            }}
+          />
+
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-300 flex justify-between">
               Pincode
@@ -82,19 +159,6 @@ const LocationSection = ({ formData, setFormData }) => {
               className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:border-accent outline-none"
               value={formData.pincode}
               onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300">Country</label>
-          <div className="relative">
-            <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              value={formData.country?.name || "Loading..."}
-              disabled
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-gray-400 cursor-not-allowed"
             />
           </div>
         </div>

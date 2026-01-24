@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from "@/components/layout/Navbar";
+import { useCountry } from "@/context/CountryContext";
 import { Footer } from "@/components/layout/Footer";
 import { useParams, useNavigate } from "react-router-dom";
 import { ContactModal } from "@/components/contact/ContactModal";
@@ -12,7 +13,8 @@ import {
     Camera, Maximize2, Award, Crown, Thermometer, Wine,
     TreePine, Cloud, Waves as Pool, Sun, Moon,
     Sparkle, Gem, Flower, Trees, Mountain,
-    Calendar, Clock, User, X, Copy, CopyCheck
+    Calendar, Clock, User, X, Copy, CopyCheck,
+    Instagram, Facebook, Linkedin, Twitter, Youtube, Globe, Monitor, ExternalLink
 } from "lucide-react";
 import { useGetPropertyByIdQuery } from '@/store/api/hostApi';
 import { Button } from "@/components/ui/button";
@@ -20,10 +22,12 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { FaWhatsapp } from "react-icons/fa";
 
 export default function RoomPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { formatPrice } = useCountry();
     const [isContactOpen, setIsContactOpen] = useState(false);
     const [contactType, setContactType] = useState('inquiry');
     const [isFavorite, setIsFavorite] = useState(false);
@@ -42,44 +46,22 @@ export default function RoomPage() {
         }
     }, [id, refetch]);
 
-    // Format currency beautifully
-    const formatCurrency = (value, currency) => {
-        if (!value || isNaN(value)) return "Price on request";
-        const symbol = currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency === 'EUR' ? '€' : '$';
-        const formatted = Number(value).toLocaleString();
-        return `${symbol}${formatted}`;
-    };
-
-    // Copy to clipboard function
+    // Copy to clipboard
     const copyToClipboard = (text, type) => {
         navigator.clipboard.writeText(text).then(() => {
             if (type === 'email') {
                 setCopiedEmail(true);
-                toast.success("Email copied to clipboard!");
+                toast.success("Email copied");
                 setTimeout(() => setCopiedEmail(false), 2000);
             } else if (type === 'phone') {
                 setCopiedPhone(true);
-                toast.success("Phone number copied to clipboard!");
+                toast.success("Phone copied");
                 setTimeout(() => setCopiedPhone(false), 2000);
             }
         }).catch(err => {
-            console.error('Failed to copy: ', err);
-            toast.error("Failed to copy to clipboard");
+            console.error('Failed to copy', err);
+            toast.error("Failed to copy");
         });
-    };
-
-    // Share property
-    const shareProperty = () => {
-        if (navigator.share) {
-            navigator.share({
-                title: listing?.title || 'Property Listing',
-                text: `Check out this property: ${listing?.title}`,
-                url: window.location.href,
-            }).catch(console.error);
-        } else {
-            navigator.clipboard.writeText(window.location.href);
-            toast.success("Link copied to clipboard!");
-        }
     };
 
     // Process API data
@@ -87,183 +69,80 @@ export default function RoomPage() {
         if (!data || !data.property) return null;
 
         const p = data.property;
-        const hostObj = p.Host || {};
+        const hostObj = p.Host || p.host || p.creator || {};
         const userObj = hostObj.User || {};
 
-        // Generate contact information
         const hostPhone = hostObj.phone_number || userObj.phone || "";
         const hostEmail = userObj.email || "";
 
-        // Default placeholder images if photos is null
+        // Social Media Extraction (Strictly from Host Data)
+        const socialLinks = {
+            whatsapp: hostObj.whatsapp || "",
+            instagram: hostObj.instagram || "",
+            facebook: hostObj.facebook || "",
+            linkedin: hostObj.linkedin || "",
+            twitter: hostObj.twitter || "",
+            youtube: hostObj.youtube || "",
+            website: hostObj.website || ""
+        };
+
         const photos = Array.isArray(p.photos) && p.photos.length > 0
             ? p.photos
             : [
                 "https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4?q=80&w=2070&auto=format&fit=crop",
                 "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=2070&auto=format&fit=crop",
                 "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=2070&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1616594039630-3ffc3bd78c47?q=80&w=2070&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1613545325278-f24b0cae1224?q=80&w=2070&auto=format&fit=crop",
             ];
 
-        // Map amenities to icons
         const amenityIcons = {
-            'Wifi': Wifi,
-            'Parking': Car,
-            'Air Conditioning': Wind,
-            'TV': Tv,
-            'Kitchen': Utensils,
-            'Pool': Pool,
-            'Gym': Dumbbell,
-            'Pet Friendly': Heart,
-            'Security': Shield,
-            'Elevator': Building,
-            'Laundry': Droplets,
-            'Balcony': Sun,
-            'Garden': Flower,
+            'Wifi': Wifi, 'Parking': Car, 'Air Conditioning': Wind, 'TV': Tv,
+            'Kitchen': Utensils, 'Pool': Pool, 'Gym': Dumbbell, 'Pet Friendly': Heart,
+            'Security': Shield, 'Elevator': Building, 'Laundry': Droplets,
+            'Balcony': Sun, 'Garden': Flower
         };
 
-        // Process amenities into categories
         const amenities = Array.isArray(p.amenities) ? p.amenities : [];
         const processedAmenities = [];
-
-        // Group amenities by category
-        const essentials = [];
-        const comfort = [];
-        const luxury = [];
-        const safety = [];
+        const essentials = [], comfort = [], luxury = [], safety = [];
 
         amenities.forEach(amenity => {
-            const amenityName = typeof amenity === 'string' ? amenity : amenity.name || '';
-            const icon = amenityIcons[amenityName] || CheckCircle;
+            const name = typeof amenity === 'string' ? amenity : amenity.name || '';
+            const icon = amenityIcons[name] || CheckCircle;
+            const item = { name, icon };
 
-            const item = {
-                name: amenityName,
-                icon: icon,
-                premium: false
-            };
-
-            // Categorize amenities
-            if (['Wifi', 'TV', 'Air Conditioning', 'Kitchen', 'Laundry'].includes(amenityName)) {
-                essentials.push(item);
-            } else if (['Pool', 'Gym', 'Parking', 'Balcony', 'Garden'].includes(amenityName)) {
-                comfort.push(item);
-            } else if (['Pet Friendly', 'Elevator'].includes(amenityName)) {
-                luxury.push(item);
-            } else if (['Security'].includes(amenityName)) {
-                safety.push(item);
-            } else {
-                luxury.push(item);
-            }
+            if (['Wifi', 'TV', 'Air Conditioning', 'Kitchen', 'Laundry', 'Heating', 'Internet'].includes(name)) essentials.push(item);
+            else if (['Pool', 'Gym', 'Parking', 'Balcony', 'Garden'].includes(name)) comfort.push(item);
+            else if (['Security', 'Fire Extinguisher'].includes(name)) safety.push(item);
+            else luxury.push(item);
         });
 
-        if (essentials.length > 0) {
-            processedAmenities.push({ category: 'Essentials', items: essentials });
-        }
-        if (comfort.length > 0) {
-            processedAmenities.push({ category: 'Comfort', items: comfort });
-        }
-        if (safety.length > 0) {
-            processedAmenities.push({ category: 'Safety & Security', items: safety });
-        }
-        if (luxury.length > 0) {
-            processedAmenities.push({ category: 'Additional Features', items: luxury });
-        }
+        if (essentials.length) processedAmenities.push({ category: 'Essentials', items: essentials });
+        if (comfort.length) processedAmenities.push({ category: 'Comfort', items: comfort });
+        if (safety.length) processedAmenities.push({ category: 'Safety', items: safety });
+        if (luxury.length) processedAmenities.push({ category: 'Features', items: luxury });
 
-        // If no amenities, add some default ones
         if (processedAmenities.length === 0) {
-            processedAmenities.push(
-                {
-                    category: 'Essentials',
-                    items: [
-                        { name: 'WiFi', icon: Wifi },
-                        { name: 'Air Conditioning', icon: Wind },
-                        { name: 'TV', icon: Tv },
-                    ]
-                }
-            );
+            processedAmenities.push({
+                category: 'Essentials',
+                items: [{ name: 'WiFi', icon: Wifi }, { name: 'AC', icon: Wind }, { name: 'TV', icon: Tv }]
+            });
         }
 
-        // Create property highlights based on available data
         const highlights = [];
-        if (p.area) {
-            highlights.push({ icon: Square, text: `${p.area} sq.ft.`, color: 'text-blue-500' });
-        }
-        if (p.guests) {
-            highlights.push({ icon: Users, text: `Accommodates ${p.guests} guests`, color: 'text-green-500' });
-        }
-        if (p.bedrooms) {
-            highlights.push({ icon: Bed, text: `${p.bedrooms} bedroom${p.bedrooms > 1 ? 's' : ''}`, color: 'text-purple-500' });
-        }
-        if (p.bathrooms) {
-            highlights.push({ icon: Bath, text: `${p.bathrooms} bathroom${p.bathrooms > 1 ? 's' : ''}`, color: 'text-yellow-500' });
-        }
-        // Default highlights if none
-        if (highlights.length === 0) {
-            highlights.push(
-                { icon: Sparkle, text: 'Well-maintained Property', color: 'text-yellow-500' },
-                { icon: Shield, text: 'Safe Neighborhood', color: 'text-green-500' },
-                { icon: CheckCircle, text: 'Fully Furnished', color: 'text-blue-500' }
-            );
-        }
-
-        // Create tags based on property data
-        const tags = [];
-        if (p.status === 'approved') {
-            tags.push('Verified');
-        }
-        if (p.privacy_type) {
-            tags.push(p.privacy_type.charAt(0).toUpperCase() + p.privacy_type.slice(1));
-        }
-        if (p.property_type) {
-            tags.push(p.property_type.charAt(0).toUpperCase() + p.property_type.slice(1));
-        }
-        if (p.is_featured) {
-            tags.push('Featured');
-        }
-
-        // Create included services based on rules and amenities
-        const included = [];
-        if (amenities.includes('Wifi')) {
-            included.push('High-speed WiFi');
-        }
-        if (amenities.includes('Parking')) {
-            included.push('Free Parking');
-        }
-        if (p.rules && p.rules.length > 0) {
-            included.push('House rules provided');
-        }
-        if (p.security_deposit) {
-            included.push('Security deposit protection');
-        }
-
-        // Default included services
-        if (included.length === 0) {
-            included.push('Basic amenities', 'Clean environment', '24/7 Support');
-        }
-
-        // Generate awards for host based on verification status
-        const hostAwards = [];
-        if (hostObj.status === 'approved') {
-            hostAwards.push('Verified Host');
-        }
-        if (hostObj.rating && hostObj.rating >= 4.5) {
-            hostAwards.push('Top Rated');
-        }
-        if (hostObj.experience_years && hostObj.experience_years > 2) {
-            hostAwards.push('Experienced Host');
-        }
+        if (p.guests) highlights.push({ icon: Users, text: `${p.guests} Guests`, label: 'Capacity' });
+        if (p.bedrooms) highlights.push({ icon: Bed, text: `${p.bedrooms} Bedrooms`, label: 'Sleeping' });
+        if (p.bathrooms) highlights.push({ icon: Bath, text: `${p.bathrooms} Baths`, label: 'Bathroom' });
+        if (p.area) highlights.push({ icon: Square, text: `${p.area} sq.ft`, label: 'Area' });
 
         return {
             id: p.id,
-            title: p.title || `${p.property_type ? p.property_type.charAt(0).toUpperCase() + p.property_type.slice(1) : 'Property'} in ${p.city || 'Location'}`,
-            subtitle: p.privacy_type ? p.privacy_type.charAt(0).toUpperCase() + p.privacy_type.slice(1) : 'Entire Place',
-            description: p.description || "A comfortable and well-maintained property perfect for your stay. This property offers all the essential amenities for a pleasant experience.",
+            title: (p.title && p.title.toLowerCase() !== 'untitled property') ? p.title : `${p.property_type || 'Property'} in ${p.city || 'Location'}`,
+            subtitle: p.privacy_type ? p.privacy_type : 'Entire Place',
+            description: p.description || "A comfortable and well-maintained property perfect for your stay.",
             location: {
                 city: p.city || "",
                 country: p.country || "",
                 address: p.address || "",
-                latitude: p.latitude,
-                longitude: p.longitude,
             },
             price: {
                 hourly: parseFloat(p.price_per_hour) || 0,
@@ -275,376 +154,215 @@ export default function RoomPage() {
             stats: {
                 bedrooms: p.bedrooms || 0,
                 bathrooms: p.bathrooms || 0,
-                area: p.area || 0,
                 guests: p.guests || 0,
-                propertyType: p.property_type || '',
-                privacyType: p.privacy_type || '',
+                propertyType: p.property_type || 'Apartment',
             },
             ratings: {
-                overall: hostObj.rating || 4.5,
-                reviews: hostObj.review_count || 0,
+                overall: hostObj.rating || 4.8,
+                reviews: hostObj.review_count || 12,
             },
             host: {
                 id: hostObj.id,
                 name: hostObj.full_name || "Property Host",
-                title: hostObj.occupation || "Property Host",
-                avatar: hostObj.selfie_photo || "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=400&auto=format&fit=crop",
+                initials: (hostObj.full_name || "Host").slice(0, 2).toUpperCase(),
+                title: hostObj.occupation || "Superhost",
+                avatar: hostObj.selfie_photo || null,
                 email: hostEmail,
                 phone: hostPhone,
+                socials: socialLinks,
                 isVerified: hostObj.status === 'approved',
-                isSuperhost: hostObj.is_superhost || false,
-                responseTime: hostObj.response_time || "Within a few hours",
-                responseRate: hostObj.response_rate || "High",
+                responseTime: hostObj.response_time || "1 hour",
                 languages: hostObj.languages || ["English"],
-                description: hostObj.description || "Dedicated to providing a comfortable and enjoyable stay for all guests.",
-                awards: hostAwards,
-                joinedDate: hostObj.created_at || "2023",
-                experience: hostObj.experience_years || 2,
+                joinedDate: new Date(hostObj.created_at || Date.now()).getFullYear(),
+                description: hostObj.description || "Dedicated to providing a comfortable stay.",
             },
             photos,
             amenities: processedAmenities,
             highlights,
             isVerified: p.status === 'approved',
-            tags,
             availability: {
-                status: p.status === 'approved' ? "Available" : "Not Available",
-                nextAvailable: p.status === 'approved' ? "Immediate" : "Contact Host",
-                minimumStay: p.minimum_stay || 1,
-                maximumStay: p.maximum_stay || 365,
+                status: p.status === 'approved' ? "Available" : "Booked",
+                minStay: p.minimum_stay || 1,
             },
-            included,
             rules: Array.isArray(p.rules) ? p.rules : [],
-            video: p.video,
-            createdAt: p.created_at,
-            updatedAt: p.updated_at,
         };
     }, [data]);
 
-    // Loading State
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-[#01172d]">
-                <Navbar />
-                <div className="pt-24">
-                    <div className="container mx-auto px-4">
-                        <div className="h-[500px] bg-gradient-to-r from-gray-800 to-gray-700 animate-pulse rounded-3xl mb-8"></div>
-                        <div className="flex justify-center">
-                            <div className="w-24 h-2 bg-gradient-to-r from-gray-700 to-gray-600 rounded-full animate-pulse"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    const handleContact = (type) => { setContactType(type); setIsContactOpen(true); };
+    const handleFavorite = () => { setIsFavorite(!isFavorite); toast.success(isFavorite ? "Removed" : "Saved"); };
+    const nextImage = () => setCurrentImageIndex((p) => (p + 1) % listing.photos.length);
+    const prevImage = () => setCurrentImageIndex((p) => (p - 1 + listing.photos.length) % listing.photos.length);
 
-    // Error State
-    if (isError || !listing) {
-        return (
-            <div className="min-h-screen bg-[#01172d]">
-                <Navbar />
-                <div className="pt-32 pb-20 text-center">
-                    <div className="container mx-auto px-4">
-                        <div className="max-w-md mx-auto">
-                            <div className="w-32 h-32 bg-gradient-to-br from-red-900/30 to-red-800/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-red-800/30">
-                                <div className="text-6xl">🏠</div>
-                            </div>
-                            <h1 className="text-4xl font-bold text-white mb-6">Property Unavailable</h1>
-                            <p className="text-gray-400 text-lg mb-10">
-                                This property is currently unavailable or has been removed.
-                            </p>
-                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                <Button
-                                    onClick={() => navigate('/properties')}
-                                    className="bg-accent hover:bg-accent/90 text-white px-8 py-3 text-lg"
-                                >
-                                    Explore Properties
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    const handleContact = (type) => {
-        setContactType(type);
-        setIsContactOpen(true);
-    };
-
-    const handleFavorite = () => {
-        setIsFavorite(!isFavorite);
-        toast.success(isFavorite ? "Removed from favorites" : "Added to favorites");
-    };
-
-    const nextImage = () => {
-        setCurrentImageIndex((prev) => (prev + 1) % listing.photos.length);
-    };
-
-    const prevImage = () => {
-        setCurrentImageIndex((prev) => (prev - 1 + listing.photos.length) % listing.photos.length);
-    };
-
-    const handleCallHost = () => {
-        if (listing.host.phone) {
-            window.location.href = `tel:${listing.host.phone}`;
-        } else {
-            toast.error("Phone number not available");
-        }
-    };
-
-    const handleEmailHost = () => {
-        if (listing.host.email) {
-            window.location.href = `mailto:${listing.host.email}?subject=Inquiry about ${listing.title}&body=Hello ${listing.host.name},%0D%0A%0D%0AI am interested in your property: ${listing.title}%0D%0ALocation: ${listing.location.city}, ${listing.location.country}%0D%0A%0D%0A`;
-        } else {
-            toast.error("Email not available");
-        }
-    };
-
+    const handleCallHost = () => listing.host.phone ? window.location.href = `tel:${listing.host.phone}` : toast.error("No phone");
+    const handleEmailHost = () => listing.host.email ? window.location.href = `mailto:${listing.host.email}` : toast.error("No email");
     const handleWhatsAppHost = () => {
         if (listing.host.phone) {
-            const message = `Hello ${listing.host.name}, I'm interested in your property: ${listing.title} (${window.location.href})`;
-            const whatsappUrl = `https://wa.me/${listing.host.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-        } else {
-            toast.error("Phone number not available for WhatsApp");
-        }
+            window.open(`https://wa.me/${listing.host.phone.replace(/\D/g, '')}?text=Hi, I'm interested in ${listing.title}`, '_blank');
+        } else toast.error("No phone");
     };
 
-    // Determine which price to display based on availability
+    const handleSocialClick = (platform, handle) => {
+        if (!handle) return;
+        let url = handle;
+        if (!url.startsWith('http')) {
+            if (platform === 'whatsapp') url = `https://wa.me/${handle.replace(/\D/g, '')}`;
+            else if (platform === 'instagram') url = `https://instagram.com/${handle.replace('@', '')}`;
+            else if (platform === 'facebook') url = `https://facebook.com/${handle}`;
+            else if (platform === 'twitter') url = `https://twitter.com/${handle}`;
+            else if (platform === 'linkedin') url = `https://linkedin.com/in/${handle}`;
+            else if (platform === 'youtube') url = `https://youtube.com/@${handle}`;
+            else if (platform === 'website') url = `https://${handle}`;
+        }
+        window.open(url, '_blank');
+    };
+
+    const { activeCountry } = useCountry();
+
+    if (isLoading) return <div className="min-h-screen bg-white flex items-center justify-center"><div className="w-10 h-10 border-4 border-[#CB2A25] border-t-transparent rounded-full animate-spin" /></div>;
+    if (isError || !listing) return <div className="min-h-screen flex items-center justify-center">Property not found</div>;
+
+    // Strict Country Check
+    if (activeCountry && listing.location.country !== activeCountry.name) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFDFD] text-[#00142E]">
+                <Navbar />
+                <div className="flex-1 flex flex-col items-center justify-center">
+                    <h2 className="text-2xl font-bold mb-2">No data found</h2>
+                    <p className="text-gray-500">This property is not listed in {activeCountry.name}.</p>
+                    <Button onClick={() => navigate('/search')} className="mt-6 bg-[#00142E] text-white rounded-full px-8">
+                        View All Accommodations
+                    </Button>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
     const displayPrice = listing.price.monthly > 0
-        ? `${formatCurrency(listing.price.monthly, listing.price.currency)}/month`
+        ? { amount: listing.price.monthly, period: 'month' }
         : listing.price.nightly > 0
-            ? `${formatCurrency(listing.price.nightly, listing.price.currency)}/night`
-            : listing.price.hourly > 0
-                ? `${formatCurrency(listing.price.hourly, listing.price.currency)}/hour`
-                : "Price on request";
+            ? { amount: listing.price.nightly, period: 'night' }
+            : { amount: listing.price.hourly, period: 'hour' };
+
     return (
-        <div className="min-h-screen bg-white text-gray-900">
+        <div className="min-h-screen bg-[#FDFDFD] font-sans text-[#00142E]">
             <Navbar />
 
-
-            {/* Hero Section with Glass Effect */}
-            <div className="relative pt-20">
-                {/* Background Image with Overlay */}
-                <div className="absolute inset-0">
-                    <img
-                        src={listing.photos[0]}
-                        alt="Hero background"
-                        className="w-full h-full object-cover"
+            {/* Premium Hero Section */}
+            <div className="relative h-[55vh] md:h-[65vh] w-full overflow-hidden group">
+                <AnimatePresence mode='wait'>
+                    <motion.img
+                        key={currentImageIndex}
+                        src={listing.photos[currentImageIndex]}
+                        initial={{ opacity: 0, scale: 1.05 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute inset-0 w-full h-full object-cover object-center"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-black/90 via-black/40 to-transparent"></div>
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white"></div>
-                </div>
+                </AnimatePresence>
+
+                {/* Cinema Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#00142E]/90 via-[#00142E]/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#00142E]/20 to-transparent" />
 
                 {/* Hero Content */}
-                <div className="relative container mx-auto px-4 py-24 md:py-32 min-h-[60vh] flex items-center">
-                    <div className="max-w-4xl">
-                        {/* Action Buttons removed from here to unify with rating pill */}
-
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-2 mb-6">
-                            {listing.tags.map((tag, index) => (
-                                <Badge key={index} className="bg-white/10 backdrop-blur-sm border-white/20 text-white">
-                                    {tag}
+                <div className="absolute inset-0 container mx-auto px-4 flex flex-col justify-end pb-10 md:pb-16">
+                    <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-10 duration-700">
+                        <div className="flex gap-3 mb-4">
+                            {listing.isVerified && (
+                                <Badge className="bg-[#CB2A25] text-white hover:bg-[#a0221e] border-none px-3 py-1.5 text-sm font-bold shadow-lg shadow-[#CB2A25]/20 backdrop-blur-md">
+                                    <ShieldCheck className="w-4 h-4 mr-1.5" /> Verified Residence
                                 </Badge>
+                            )}
+                        </div>
+
+                        <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white mb-3 leading-tight tracking-tight drop-shadow-2xl">
+                            {listing.title}
+                        </h1>
+                        <p className="text-xl md:text-2xl text-white/90 font-medium max-w-2xl mb-8 flex items-center gap-2 drop-shadow-lg">
+                            <MapPin className="w-5 h-5 text-[#CB2A25]" />
+                            {listing.location.city}, {listing.location.country}
+                        </p>
+
+                        <div className="flex flex-wrap gap-4">
+                            <Button
+                                onClick={() => setIsFullscreen(true)}
+                                size="lg"
+                                className="bg-white text-[#00142E] hover:bg-white/90 font-bold rounded-full h-14 px-8 shadow-2xl transition-transform hover:scale-105"
+                            >
+                                <Camera className="w-5 h-5 mr-2" />
+                                View Gallery
+                            </Button>
+                            <Button
+                                onClick={handleFavorite}
+                                size="lg"
+                                variant="outline"
+                                className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20 rounded-full h-14 px-8 font-bold transition-transform hover:scale-105"
+                            >
+                                <Heart className={`w-5 h-5 mr-2 ${isFavorite ? 'fill-[#CB2A25] text-[#CB2A25]' : ''}`} />
+                                {isFavorite ? 'Saved' : 'Save'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Hero Navigation */}
+                <div className="absolute bottom-12 right-12 hidden md:flex gap-4">
+                    <button onClick={prevImage} className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white hover:text-[#00142E] transition-all">
+                        <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button onClick={nextImage} className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white hover:text-[#00142E] transition-all">
+                        <ChevronRight className="w-6 h-6" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Main Layout */}
+            <div className="container mx-auto px-4 py-16">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+                    {/* Left Content Column */}
+                    <div className="lg:col-span-8 space-y-16">
+
+                        {/* Highlights Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {listing.highlights.map((item, idx) => (
+                                <div key={idx} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center gap-2 transition-all hover:shadow-md hover:-translate-y-1">
+                                    <div className="w-10 h-10 rounded-full bg-[#CB2A25]/5 flex items-center justify-center text-[#CB2A25]">
+                                        <item.icon className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-[#00142E] text-base">{item.text}</div>
+                                        <div className="text-xs text-gray-400 font-medium uppercase tracking-wider mt-0.5">{item.label}</div>
+                                    </div>
+                                </div>
                             ))}
                         </div>
 
-                        {/* Title */}
-                        <h1 className="text-5xl md:text-8xl font-black mb-6 leading-tight text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
-                            {listing.title}
-                        </h1>
-
-                        {/* Subtitle */}
-                        <p className="text-2xl text-white/95 mb-10 font-bold drop-shadow-lg max-w-2xl">
-                            {listing.subtitle}
-                        </p>
-
-                        {/* Location & Rating */}
-                        <div className="flex flex-wrap items-center gap-6 mb-8">
-                            <div className="flex items-center gap-2 drop-shadow-lg text-white">
-                                <MapPin className="w-5 h-5 text-accent" />
-                                <span className="text-lg font-bold">{listing.location.city}, {listing.location.country}</span>
-                            </div>
-                            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30 shadow-xl overflow-hidden">
-                                <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                                <span className="font-bold text-white">{listing.ratings.overall}</span>
-                                <span className="text-white/60">•</span>
-                                <span className="text-white/90 font-medium">{listing.ratings.reviews} reviews</span>
-                                <div className="ml-4 flex items-center gap-3 pl-4 border-l border-white/20">
-                                    <button onClick={handleFavorite} className="hover:scale-110 transition-transform">
-                                        <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-white'}`} />
-                                    </button>
-                                    <button className="hover:scale-110 transition-transform">
-                                        <Share2 className="w-5 h-5 text-white" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-4 mt-4">
-                            <Button
-                                onClick={() => handleContact('inquiry')}
-                                size="lg"
-                                className="bg-accent hover:bg-accent/90 text-[#FF0000] min-w-[220px] h-16 text-xl font-black shadow-[0_20px_50px_rgba(255,107,0,0.3)] hover:scale-105 active:scale-95 transition-all"
-                            >
-                                <Mail className="w-6 h-6 mr-3 text-[#FF0000]" />
-                                Contact Host
-                            </Button>
-                            <Button
-                                onClick={() => handleContact('tour')}
-                                variant="outline"
-                                size="lg"
-                                className="bg-white/10 border-white/40 text-[#FF0000] hover:bg-white/20 min-w-[220px] h-16 text-xl font-black shadow-2xl backdrop-blur-md hover:scale-105 active:scale-95 transition-all"
-                            >
-                                <Camera className="w-6 h-6 mr-3 text-[#FF0000]" />
-                                Schedule Tour
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="container mx-auto px-4 py-12">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Column - Gallery & Details */}
-                    <div className="lg:col-span-2">
-                        {/* Gallery */}
-                        <div className="mb-12">
-                            <div
-                                className="relative h-[500px] rounded-3xl overflow-hidden mb-4 cursor-pointer group/main"
-                                onClick={() => setIsFullscreen(true)}
-                            >
-                                <img
-                                    src={listing.photos[currentImageIndex]}
-                                    alt={`${listing.title} - Image ${currentImageIndex + 1}`}
-                                    className="w-full h-full object-cover transition-all duration-700 group-hover/main:scale-105"
-                                />
-
-                                {/* Gradient Overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-
-                                {/* Navigation */}
-                                {listing.photos.length > 1 && (
-                                    <>
-                                        <button
-                                            onClick={prevImage}
-                                            className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/30 transition-all"
-                                        >
-                                            <ChevronLeft className="w-6 h-6 text-white" />
-                                        </button>
-                                        <button
-                                            onClick={nextImage}
-                                            className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/30 transition-all"
-                                        >
-                                            <ChevronRight className="w-6 h-6 text-white" />
-                                        </button>
-                                    </>
-                                )}
-
-                                {/* Image Counter */}
-                                <div className="absolute bottom-6 left-6 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full">
-                                    <span className="font-medium">{currentImageIndex + 1} / {listing.photos.length}</span>
-                                </div>
-
-                                {/* Fullscreen Button */}
-                                <button
-                                    onClick={() => setIsFullscreen(true)}
-                                    className="absolute bottom-6 right-6 bg-black/50 backdrop-blur-sm text-white p-3 rounded-full hover:bg-black/70 transition-colors"
-                                >
-                                    <Maximize2 className="w-5 h-5" />
-                                </button>
-                            </div>
-
-                            {/* Thumbnail Strip */}
-                            <div className="flex gap-3 overflow-x-auto py-2">
-                                {listing.photos.map((photo, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setCurrentImageIndex(index)}
-                                        className={`flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 transition-all ${currentImageIndex === index
-                                            ? 'border-accent scale-105 shadow-lg'
-                                            : 'border-transparent hover:border-white/30'
-                                            }`}
-                                    >
-                                        <img
-                                            src={photo}
-                                            alt={`Thumbnail ${index + 1}`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
                         {/* Description */}
-                        <div className="mb-12">
-                            <h2 className="text-3xl font-bold mb-6 text-gray-900">Description</h2>
-                            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100">
-                                <p className="text-lg text-gray-600 leading-relaxed whitespace-pre-line">
-                                    {listing.description}
-                                </p>
-                            </div>
-                        </div>
-                        {/* Property Highlights */}
-                        <div className="mb-10">
-                            <h2 className="text-2xl font-bold mb-5 text-gray-900">Property Highlights</h2>
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                                {listing.highlights.map((highlight, index) => {
-                                    const Icon = highlight.icon;
-                                    return (
-                                        <div key={index} className="bg-gray-50 rounded-xl p-3 border border-gray-100 flex items-center gap-3 transition-all hover:bg-white hover:shadow-md">
-                                            <div className={`p-2 rounded-lg bg-white shadow-sm ring-1 ring-gray-100`}>
-                                                <Icon className={`w-4 h-4 ${highlight.color}`} />
-                                            </div>
-                                            <span className="text-sm font-bold text-gray-700">{highlight.text}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Property Stats */}
-                        <div className="mb-10">
-                            <h2 className="text-2xl font-bold mb-5 text-gray-900">Property Details</h2>
-                            <div className="grid grid-cols-4 gap-3">
-                                <div className="text-center bg-gray-50 rounded-xl p-4 border border-gray-100">
-                                    <div className="text-2xl font-bold text-accent">{listing.stats.bedrooms}</div>
-                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Bed</div>
-                                </div>
-                                <div className="text-center bg-gray-50 rounded-xl p-4 border border-gray-100">
-                                    <div className="text-2xl font-bold text-accent">{listing.stats.bathrooms}</div>
-                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Bath</div>
-                                </div>
-                                <div className="text-center bg-gray-50 rounded-xl p-4 border border-gray-100">
-                                    <div className="text-2xl font-bold text-accent">{listing.stats.area}</div>
-                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">SqFt</div>
-                                </div>
-                                <div className="text-center bg-gray-50 rounded-xl p-4 border border-gray-100">
-                                    <div className="text-2xl font-bold text-accent">{listing.stats.guests}</div>
-                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Guests</div>
-                                </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-[#00142E] mb-6">About this place</h2>
+                            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm leading-relaxed text-gray-600 text-lg whitespace-pre-wrap">
+                                {listing.description}
                             </div>
                         </div>
 
                         {/* Amenities */}
-                        <div className="mb-10">
-                            <h2 className="text-2xl font-bold mb-5 text-gray-900">Amenities</h2>
-                            <div className="space-y-4">
-                                {listing.amenities.map((category, catIndex) => (
-                                    <div key={catIndex} className="bg-white rounded-xl p-5 ring-1 ring-gray-100 sm:shadow-sm">
-                                        <h3 className="text-base font-black mb-4 flex items-center gap-2 text-gray-800 uppercase tracking-wider">
-                                            <span className="w-1 h-5 bg-accent rounded-full inline-block mr-1"></span>
+                        <div>
+                            <h2 className="text-2xl font-bold text-[#00142E] mb-6">What this place offers</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {listing.amenities.map((category, idx) => (
+                                    <div key={idx} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                                        <h3 className="font-bold text-[#00142E] mb-4 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-[#CB2A25]" />
                                             {category.category}
                                         </h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {category.items.map((item, itemIndex) => (
-                                                <div key={itemIndex} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg group hover:bg-accent/5 transition-all outline outline-1 outline-transparent hover:outline-accent/20">
-                                                    <item.icon className="w-4 h-4 text-gray-400 group-hover:text-accent transition-colors" />
-                                                    <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900">{item.name}</span>
-                                                    <CheckCircle className="w-3 h-3 text-green-500 ml-1 opacity-40 group-hover:opacity-100" />
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {category.items.map((am, i) => (
+                                                <div key={i} className="flex items-center gap-3 text-gray-600 p-2 rounded-xl hover:bg-gray-50 transition-colors">
+                                                    <am.icon className="w-5 h-5 text-gray-400" />
+                                                    <span className="font-medium text-sm">{am.name}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -653,483 +371,252 @@ export default function RoomPage() {
                             </div>
                         </div>
 
-                        {/* Rules */}
-                        {listing.rules.length > 0 && (
-                            <div className="mb-12">
-                                <h2 className="text-3xl font-bold mb-8 text-gray-900 flex items-center gap-3">
-                                    <Shield className="w-8 h-8 text-accent" />
-                                    House Rules
-                                </h2>
-                                <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100">
-                                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {listing.rules.map((rule, index) => (
-                                            <li key={index} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                                                <div className="p-1 rounded-full bg-accent/10 mt-0.5">
-                                                    <CheckCircle className="w-4 h-4 text-accent" />
-                                                </div>
-                                                <span className="text-gray-700 font-medium">{rule}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        )}
-
                         {/* Host Section */}
-                        <div className="bg-white rounded-3xl p-8 ring-1 ring-gray-100 shadow-sm">
-                            <h2 className="text-3xl font-bold mb-8 text-gray-900">About the Host</h2>
-                            <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-                                <div className="relative group">
-                                    <img
-                                        src={listing.host.avatar || "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=400&auto=format&fit=crop"}
-                                        alt={listing.host.name}
-                                        className="w-32 h-32 rounded-2xl object-cover ring-4 ring-gray-50 shadow-md group-hover:scale-105 transition-transform"
-                                    />
-                                    {listing.host.isSuperhost && (
-                                        <div className="absolute -top-3 -right-3 bg-accent text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-lg uppercase tracking-wider">
-                                            Superhost
+                        <div className="bg-[#00142E] rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-[#CB2A25]/20 rounded-full blur-[80px]" />
+
+                            <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
+                                <div className="relative">
+                                    {listing.host.avatar ? (
+                                        <img src={listing.host.avatar} className="w-32 h-32 rounded-full border-4 border-white/10 object-cover" alt="Host" />
+                                    ) : (
+                                        <div className="w-32 h-32 rounded-full border-4 border-white/10 bg-blue-600 flex items-center justify-center text-4xl font-bold text-white tracking-widest shadow-inner">
+                                            {listing.host.initials}
+                                        </div>
+                                    )}
+                                    {listing.host.isVerified && (
+                                        <div className="absolute bottom-0 right-0 bg-[#CB2A25] text-white p-2 rounded-full border-4 border-[#00142E]">
+                                            <ShieldCheck className="w-5 h-5" />
                                         </div>
                                     )}
                                 </div>
+                                <div className="flex-1">
+                                    <h3 className="text-3xl font-bold mb-2">Hosted by {listing.host.name}</h3>
+                                    <p className="text-white/60 text-lg mb-6 max-w-xl">{listing.host.description}</p>
 
-                                <div className="flex-1 text-center md:text-left">
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-gray-900">{listing.host.name}</h3>
-                                            <p className="text-accent font-semibold text-sm">{listing.host.title}</p>
+                                    <div className="flex flex-wrap justify-center md:justify-start gap-4 mb-8">
+                                        <div className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                                            <div className="text-xl font-bold">{listing.host.responseTime}</div>
+                                            <div className="text-xs text-white/40 uppercase tracking-wider">Response Time</div>
                                         </div>
-                                        <div className="flex gap-2 justify-center md:justify-end mt-4 md:mt-0">
-                                            <Badge variant="outline" className="text-gray-500 border-gray-200">
-                                                Host for {listing.host.experience}+ years
-                                            </Badge>
-                                            <Badge variant="outline" className="text-gray-500 border-gray-200">
-                                                Joined {listing.host.joinedDate}
-                                            </Badge>
+                                        <div className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                                            <div className="text-xl font-bold">{listing.host.joinedDate}</div>
+                                            <div className="text-xs text-white/40 uppercase tracking-wider">Joined In</div>
                                         </div>
                                     </div>
 
-                                    <p className="text-gray-600 mb-8 leading-relaxed max-w-2xl">{listing.host.description}</p>
 
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                                        <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                            <div className="text-xl font-bold text-gray-900">{listing.host.responseRate}</div>
-                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Response Rate</div>
-                                        </div>
-                                        <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                            <div className="text-xl font-bold text-gray-900">{listing.host.responseTime}</div>
-                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Response Time</div>
-                                        </div>
-                                        <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                            <div className="text-xl font-bold text-gray-900">{listing.ratings.overall}</div>
-                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Rating</div>
-                                        </div>
-                                        <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                            <div className="text-xl font-bold text-gray-900">{listing.host.languages.length}+</div>
-                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Languages</div>
-                                        </div>
-                                    </div>
 
-                                    <div className="flex flex-wrap gap-4">
-                                        <Button
-                                            onClick={() => handleContact('inquiry')}
-                                            className="bg-accent hover:bg-accent/90 text-white flex-1 min-w-[160px] h-12 shadow-md hover:shadow-lg transition-all"
-                                        >
-                                            <MessageCircle className="w-4 h-4 mr-2" />
-                                            Send Message
-                                        </Button>
-                                        {listing.host.phone && (
-                                            <>
-                                                <Button
-                                                    variant="outline"
-                                                    className="border-gray-200 hover:bg-gray-50 flex-1 min-w-[160px] h-12 text-gray-700"
-                                                    onClick={handleCallHost}
-                                                >
-                                                    <Phone className="w-4 h-4 mr-2" />
-                                                    Call Host
-                                                </Button>
-                                                <Button
-                                                    className="bg-[#25D366] hover:bg-[#22c35e] text-white flex-1 min-w-[160px] h-12 shadow-sm"
-                                                    onClick={handleWhatsAppHost}
-                                                >
-                                                    <MessageCircle className="w-4 h-4 mr-2" />
-                                                    WhatsApp
-                                                </Button>
-                                            </>
+                                    <div className="flex gap-2">
+                                        {listing.host.socials.whatsapp && (
+                                            <button onClick={() => handleSocialClick('whatsapp', listing.host.socials.whatsapp)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-[#25D366] flex items-center justify-center transition-colors">
+                                                <FaWhatsapp className="w-6 h-6 text-white" />
+                                            </button>
+                                        )}
+                                        {listing.host.socials.instagram && (
+                                            <button onClick={() => handleSocialClick('instagram', listing.host.socials.instagram)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-pink-600 flex items-center justify-center transition-colors">
+                                                <Instagram className="w-5 h-5 text-white" />
+                                            </button>
+                                        )}
+                                        {listing.host.socials.facebook && (
+                                            <button onClick={() => handleSocialClick('facebook', listing.host.socials.facebook)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-blue-600 flex items-center justify-center transition-colors">
+                                                <Facebook className="w-5 h-5 text-white" />
+                                            </button>
+                                        )}
+                                        {listing.host.socials.twitter && (
+                                            <button onClick={() => handleSocialClick('twitter', listing.host.socials.twitter)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-blue-400 flex items-center justify-center transition-colors">
+                                                <Twitter className="w-5 h-5 text-white" />
+                                            </button>
+                                        )}
+                                        {listing.host.socials.linkedin && (
+                                            <button onClick={() => handleSocialClick('linkedin', listing.host.socials.linkedin)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-blue-700 flex items-center justify-center transition-colors">
+                                                <Linkedin className="w-5 h-5 text-white" />
+                                            </button>
+                                        )}
+                                        {listing.host.socials.youtube && (
+                                            <button onClick={() => handleSocialClick('youtube', listing.host.socials.youtube)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-red-600 flex items-center justify-center transition-colors">
+                                                <Youtube className="w-5 h-5 text-white" />
+                                            </button>
+                                        )}
+                                        {listing.host.socials.website && (
+                                            <button onClick={() => handleSocialClick('website', listing.host.socials.website)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-gray-500 flex items-center justify-center transition-colors">
+                                                <Globe className="w-5 h-5 text-white" />
+                                            </button>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Map Section */}
+                        <div>
+                            <h2 className="text-2xl font-bold text-[#00142E] mb-6">Where you'll be</h2>
+                            <div className="relative h-96 w-full rounded-[2rem] overflow-hidden group shadow-lg border border-gray-100">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    src={`https://maps.google.com/maps?q=${encodeURIComponent(`${listing.location.city}, ${listing.location.country}`)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                                    frameBorder="0"
+                                    scrolling="no"
+                                    marginHeight="0"
+                                    marginWidth="0"
+                                    className="filter grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700 w-full h-full"
+                                    title="Property Location"
+                                />
+                                <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${listing.location.city}, ${listing.location.country}`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="absolute inset-0 bg-black/0 hover:bg-black/5 transition-colors flex items-center justify-center group cursor-pointer"
+                                >
+                                    <div className="bg-white/90 backdrop-blur-md text-[#00142E] px-8 py-4 rounded-full font-bold shadow-2xl transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 flex items-center gap-3 border border-white/50">
+                                        <div className="w-8 h-8 rounded-full bg-[#CB2A25]/10 flex items-center justify-center text-[#CB2A25]">
+                                            <MapPin className="w-4 h-4" />
+                                        </div>
+                                        <span>Open in Google Maps</span>
+                                        <ExternalLink className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                </a>
+                            </div>
+                            <div className="mt-4 flex items-start gap-2 text-gray-500 text-sm">
+                                <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
+                                <p>{listing.location.city}, {listing.location.country}. Exact location provided after booking.</p>
+                            </div>
+                        </div>
+
                     </div>
 
-                    {/* Right Column - Price & Contact Info */}
-                    <div>
+                    {/* Right Sticky Sidebar */}
+                    <div className="lg:col-span-4">
                         <div className="sticky top-28 space-y-6">
-                            {/* Price & Contact Card */}
-                            <div className="bg-white rounded-3xl p-8 ring-1 ring-gray-100 shadow-xl">
-                                <div className="mb-6">
-                                    <div className="flex items-baseline gap-2 mb-2">
-                                        <span className="text-4xl font-bold text-gray-900">{displayPrice}</span>
-                                        {listing.price.securityDeposit > 0 && (
-                                            <span className="text-xs font-semibold text-gray-400">
-                                                + {formatCurrency(listing.price.securityDeposit, listing.price.currency)} deposit
+
+                            {/* Booking Card */}
+                            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-[#00142E]/5 border border-gray-100">
+                                <div className="flex justify-between items-start mb-6 pb-6 border-b border-gray-50">
+                                    <div>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-3xl font-black text-[#00142E]">
+                                                {formatPrice(displayPrice.amount)}
                                             </span>
+                                            <span className="text-gray-500 font-medium text-lg">
+                                                / {displayPrice.period}
+                                            </span>
+                                        </div>
+                                        {listing.price.securityDeposit > 0 && (
+                                            <div className="text-xs text-green-600 font-bold mt-1 inline-flex items-center bg-green-50 px-2 py-0.5 rounded-full">
+                                                + {formatPrice(listing.price.securityDeposit)} deposit
+                                            </div>
                                         )}
                                     </div>
-                                    <div className="text-sm text-gray-500 font-medium">
-                                        Direct host contact. No hidden platform fees.
-                                    </div>
                                 </div>
 
-                                <div className="space-y-3 mb-8">
-                                    <div className="flex items-center justify-between text-xs p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        <span className="text-gray-500 font-bold uppercase tracking-wider">Status</span>
-                                        <span className={`font-bold ${listing.availability.status === 'Available' ? 'text-green-600' : 'text-red-600'}`}>
-                                            {listing.availability.status}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        <span className="text-gray-500 font-bold uppercase tracking-wider">Property</span>
-                                        <span className="font-bold text-gray-800">{listing.stats.propertyType}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        <span className="text-gray-500 font-bold uppercase tracking-wider">Min Stay</span>
-                                        <span className="font-bold text-gray-800">{listing.availability.minimumStay} nights</span>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <Button
-                                        onClick={() => handleContact('inquiry')}
-                                        className="w-full bg-accent hover:bg-accent/90 text-white h-12 text-base font-bold shadow-md"
-                                    >
-                                        <Mail className="w-5 h-5 mr-2" />
-                                        Inquiry Form
-                                    </Button>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <Button
-                                            onClick={handleCallHost}
-                                            variant="outline"
-                                            className="border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold h-12"
-                                        >
-                                            <Phone className="w-4 h-4 mr-2" />
-                                            Call
-                                        </Button>
-                                        <Button
-                                            onClick={handleWhatsAppHost}
-                                            className="bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold h-12 shadow-sm"
-                                        >
-                                            <MessageCircle className="w-4 h-4 mr-2" />
-                                            WA
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                <div className="mt-6 pt-6 border-t border-gray-100">
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex items-center justify-center gap-2 text-xs font-bold text-gray-500">
-                                            <ShieldCheck className="w-4 h-4 text-green-500" />
-                                            VERIFIED LISTING
+                                <div className="space-y-4 mb-8">
+                                    <div className="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <div className="flex-1">
+                                            <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Check-in</div>
+                                            <div className="font-bold text-[#00142E]">After 2:00 PM</div>
                                         </div>
-                                        <div className="flex items-center justify-center gap-2 text-[10px] text-gray-400 uppercase tracking-widest">
-                                            No hidden charges • Direct deal
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <MessageCircle className="w-6 h-6 text-accent" />
-                                    <h4 className="text-xl font-bold text-gray-900">Quick Actions</h4>
-                                </div>
-                                <div className="space-y-4">
-                                    {listing.host.email && (
-                                        <div className="p-3 bg-white/5 rounded-lg">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-gray-400 text-sm">Email:</span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => copyToClipboard(listing.host.email, 'email')}
-                                                    className="h-6 w-6 hover:bg-white/20"
-                                                >
-                                                    {copiedEmail ? (
-                                                        <CopyCheck className="w-3 h-3 text-green-400" />
-                                                    ) : (
-                                                        <Copy className="w-3 h-3" />
-                                                    )}
-                                                </Button>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="font-medium truncate">{listing.host.email}</span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={handleEmailHost}
-                                                    className="text-xs h-7 hover:bg-white/20"
-                                                >
-                                                    Email
-                                                </Button>
+                                        <div className="w-px bg-gray-200" />
+                                        <div className="flex-1">
+                                            <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Status</div>
+                                            <div className={`font-bold ${listing.availability.status === 'Available' ? 'text-green-600' : 'text-red-500'}`}>
+                                                {listing.availability.status}
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
 
-                                    {listing.host.phone && (
-                                        <div className="p-3 bg-white/5 rounded-lg">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-gray-400 text-sm">Phone:</span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => copyToClipboard(listing.host.phone, 'phone')}
-                                                    className="h-6 w-6 hover:bg-white/20"
-                                                >
-                                                    {copiedPhone ? (
-                                                        <CopyCheck className="w-3 h-3 text-green-400" />
-                                                    ) : (
-                                                        <Copy className="w-3 h-3" />
-                                                    )}
-                                                </Button>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                {showPhoneNumber ? (
-                                                    <span className="font-medium">{listing.host.phone}</span>
-                                                ) : (
-                                                    <span className="font-medium">•••• ••• •••</span>
-                                                )}
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => setShowPhoneNumber(!showPhoneNumber)}
-                                                        className="text-xs h-7 hover:bg-white/20"
-                                                    >
-                                                        {showPhoneNumber ? 'Hide' : 'Show'}
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={handleCallHost}
-                                                        className="text-xs h-7 hover:bg-white/20"
-                                                    >
-                                                        Call
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="pt-4">
-                                        <div className="text-center text-sm text-gray-400 mb-3">
-                                            Contact host directly for fastest response
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={() => handleContact('inquiry')}
-                                                className="flex-1 bg-accent hover:bg-accent/90"
-                                            >
-                                                <Mail className="w-4 h-4 mr-2" />
-                                                Message
-                                            </Button>
-                                            {listing.host.phone && (
-                                                <Button
-                                                    onClick={handleCallHost}
-                                                    variant="outline"
-                                                    className="flex-1 border-white/30 hover:bg-white/10"
-                                                >
-                                                    <Phone className="w-4 h-4 mr-2" />
-                                                    Call
-                                                </Button>
-                                            )}
-                                        </div>
+                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
+                                        <span className="text-sm font-bold text-gray-600">Guests</span>
+                                        <span className="font-bold text-[#00142E]">{listing.stats.guests} Max</span>
                                     </div>
                                 </div>
-                            </div>
-                            {/* Included Services */}
-                            <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <Sparkles className="w-6 h-6 text-blue-500" />
-                                    <h4 className="text-xl font-bold text-gray-900">Included Services</h4>
-                                </div>
-                                <ul className="space-y-3">
-                                    {listing.included.map((service, index) => (
-                                        <li key={index} className="flex items-center gap-3 p-2 group transition-colors">
-                                            <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                                            <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors uppercase tracking-wide">{service}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
 
-                            {/* Safety & Trust */}
-                            <div className="bg-white rounded-3xl p-8 ring-1 ring-gray-100 shadow-sm border-l-4 border-l-emerald-500">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <ShieldCheck className="w-6 h-6 text-emerald-500" />
-                                    <h4 className="text-xl font-bold text-gray-900 font-accent">Trust & Safety</h4>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100">
-                                            <Shield className="w-5 h-5 text-emerald-600" />
-                                        </div>
-                                        <div>
-                                            <div className="text-sm font-bold text-gray-800">Verified Property</div>
-                                            <div className="text-xs text-gray-500 font-medium">Inspected & Documented</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100">
-                                            <User className="w-5 h-5 text-blue-600" />
-                                        </div>
-                                        <div>
-                                            <div className="text-sm font-bold text-gray-800">Identity Verified</div>
-                                            <div className="text-xs text-gray-500 font-medium">Host documentation verified</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                <div className="flex flex-col gap-3">
 
-                            {/* Quick Actions */}
-                            <div className="bg-gradient-to-br from-accent/20 to-purple-500/20 backdrop-blur-sm rounded-3xl p-8 border border-white/10">
-                                <h4 className="text-xl font-bold mb-6 text-center">Quick Actions</h4>
-                                <div className="space-y-3">
                                     <Button
                                         onClick={handleWhatsAppHost}
-                                        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold"
+                                        className="w-full h-14 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-lg font-bold shadow-lg shadow-[#25D366]/20"
                                     >
-                                        <MessageCircle className="w-4 h-4 mr-2" />
-                                        WhatsApp Host
+                                        <MessageCircle className="w-5 h-5 mr-2" />
+                                        WhatsApp
                                     </Button>
-                                    <Button
-                                        onClick={() => handleContact('tour')}
-                                        variant="outline"
-                                        className="w-full border-gray-200 hover:bg-gray-50 text-[#FF0000] font-bold"
-                                    >
-                                        <Calendar className="w-4 h-4 mr-2" />
-                                        Book Viewing
-                                    </Button>
-                                    <Button
-                                        onClick={handleFavorite}
-                                        variant="outline"
-                                        className="w-full border-gray-200 hover:bg-gray-50 text-[#FF0000] font-bold"
-                                    >
-                                        <Heart className={`w-4 h-4 mr-2 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
-                                        {isFavorite ? 'Remove Favorite' : 'Save Property'}
-                                    </Button>
+
+
+                                    {/* Social Quick Links */}
+                                    <div className="flex gap-2 justify-center pt-2">
+                                        {listing.host.socials.instagram && (
+                                            <button onClick={() => handleSocialClick('instagram', listing.host.socials.instagram)} className="w-10 h-10 rounded-full bg-gray-50 hover:bg-pink-100 text-pink-600 flex items-center justify-center transition-colors">
+                                                <Instagram className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {listing.host.socials.website && (
+                                            <button onClick={() => handleSocialClick('website', listing.host.socials.website)} className="w-10 h-10 rounded-full bg-gray-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors">
+                                                <Globe className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {listing.host.socials.linkedin && (
+                                            <button onClick={() => handleSocialClick('linkedin', listing.host.socials.linkedin)} className="w-10 h-10 rounded-full bg-gray-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center transition-colors">
+                                                <Linkedin className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 text-center text-xs text-gray-400 font-medium">
+                                    You won't be charged yet
                                 </div>
                             </div>
+
+                            {/* Trust Badge */}
+                            <div className="bg-white rounded-3xl p-6 border border-gray-100 flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600 shrink-0">
+                                    <ShieldCheck className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-[#00142E]">Verified Listing</h4>
+                                    <p className="text-xs text-gray-500">Inspected for quality & safety</p>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Bottom CTA */}
-            <div className="bg-gray-50 border-t border-gray-100 py-20">
-                <div className="container mx-auto px-4 text-center">
-                    <h3 className="text-4xl font-black mb-6 text-gray-900 tracking-tight">Ready to book this space?</h3>
-                    <p className="text-lg text-gray-600 mb-12 max-w-xl mx-auto font-medium">
-                        Contact Bhargav directly to finalize the details. Secure your stay without any commission or booking fees.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <Button
-                            onClick={() => handleContact('inquiry')}
-                            size="lg"
-                            className="bg-accent hover:bg-accent/90 text-white min-w-[220px] h-14 text-lg font-bold shadow-lg"
-                        >
-                            <Mail className="w-5 h-5 mr-3" />
-                            Inquiry Form
-                        </Button>
-                        <Button
-                            onClick={handleWhatsAppHost}
-                            size="lg"
-                            className="bg-[#25D366] hover:bg-[#22c35e] text-white min-w-[220px] h-14 text-lg font-bold shadow-lg"
-                        >
-                            <MessageCircle className="w-5 h-5 mr-3" />
-                            WhatsApp Now
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Fullscreen Gallery Modal (Lightbox) */}
+            {/* Gallery Overlay Modal */}
             <AnimatePresence>
                 {isFullscreen && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/95 z-[9999] flex flex-col items-center justify-center backdrop-blur-md"
-                        onClick={() => setIsFullscreen(false)}
+                        className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col"
                     >
-                        {/* Top Controls */}
-                        <div className="absolute top-0 inset-x-0 flex justify-between items-center p-6 bg-gradient-to-b from-black/50 to-transparent">
-                            <button
-                                onClick={() => setIsFullscreen(false)}
-                                className="text-white/80 hover:text-white flex items-center gap-2 font-semibold transition-colors"
-                            >
-                                <X className="w-6 h-6" />
-                                <span>Close</span>
-                            </button>
-                            <div className="bg-white/10 px-4 py-1.5 rounded-full text-white text-sm font-bold backdrop-blur-md ring-1 ring-white/20">
-                                {currentImageIndex + 1} / {listing.photos.length}
-                            </div>
+                        <div className="p-6 flex justify-between items-center text-white">
+                            <h3 className="font-bold text-lg">Gallery ({currentImageIndex + 1}/{listing.photos.length})</h3>
+                            <button onClick={() => setIsFullscreen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X className="w-8 h-8" /></button>
                         </div>
-
-                        {/* Image Container */}
-                        <div className="relative w-full h-full flex items-center justify-center p-4 md:p-12">
+                        <div className="flex-1 flex items-center justify-center relative p-4">
                             <motion.img
                                 key={currentImageIndex}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                 src={listing.photos[currentImageIndex]}
-                                alt="Gallery detail"
-                                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
                             />
-
-                            {/* Navigation Buttons */}
-                            {listing.photos.length > 1 && (
-                                <>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); prevImage(); }}
-                                        className="absolute left-6 md:left-12 w-16 h-16 bg-white hover:bg-gray-100 text-black rounded-full flex items-center justify-center transition-all shadow-2xl z-[10000] group"
-                                        aria-label="Previous image"
-                                    >
-                                        <ChevronLeft className="w-12 h-12 group-active:scale-90 transition-transform" />
-                                    </button>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); nextImage(); }}
-                                        className="absolute right-6 md:right-12 w-16 h-16 bg-white hover:bg-gray-100 text-black rounded-full flex items-center justify-center transition-all shadow-2xl z-[10000] group"
-                                        aria-label="Next image"
-                                    >
-                                        <ChevronRight className="w-12 h-12 group-active:scale-90 transition-transform" />
-                                    </button>
-                                </>
-                            )}
+                            <button onClick={prevImage} className="absolute left-4 p-4 hover:bg-white/10 rounded-full text-white"><ChevronLeft className="w-10 h-10" /></button>
+                            <button onClick={nextImage} className="absolute right-4 p-4 hover:bg-white/10 rounded-full text-white"><ChevronRight className="w-10 h-10" /></button>
                         </div>
-
-                        {/* Thumbnail Strip (Bottom) */}
-                        <div className="absolute bottom-8 flex gap-2 overflow-x-auto px-4 max-w-full">
-                            {listing.photos.map((photo, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => setCurrentImageIndex(index)}
-                                    className={cn(
-                                        "w-16 h-16 rounded-lg overflow-hidden border-2 transition-all",
-                                        currentImageIndex === index ? "border-accent scale-110 shadow-lg" : "border-transparent opacity-50 hover:opacity-100"
-                                    )}
-                                >
-                                    <img src={photo} className="w-full h-full object-cover" />
+                        <div className="p-6 flex gap-2 overflow-x-auto justify-center">
+                            {listing.photos.map((p, i) => (
+                                <button key={i} onClick={() => setCurrentImageIndex(i)} className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${i === currentImageIndex ? 'border-[#CB2A25] scale-110' : 'border-transparent opacity-50'}`}>
+                                    <img src={p} className="w-full h-full object-cover" />
                                 </button>
                             ))}
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            <Footer />
 
             <ContactModal
                 isOpen={isContactOpen}
@@ -1141,6 +628,7 @@ export default function RoomPage() {
                     setIsContactOpen(false);
                 }}
             />
+            <Footer />
         </div>
     );
 }
