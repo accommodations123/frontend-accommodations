@@ -70,15 +70,7 @@ export default defineConfig({
           });
         }
       },
-      '/nominatim': {
-        target: 'https://nominatim.openstreetmap.org',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/nominatim/, ''),
-        headers: {
-          'User-Agent': 'NextKinLife-Dev-Env/1.0' // Required by Nominatim
-        }
-      }
+
     }
   },
   build: {

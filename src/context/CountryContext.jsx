@@ -35,46 +35,8 @@ export const CountryProvider = ({ children }) => {
   }, []);
 
   const initializeWithGeolocation = async () => {
-    if (!navigator.geolocation) return;
-
-    setIsGeolocationLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const baseUrl = import.meta.env.PROD
-            ? "https://nominatim.openstreetmap.org"
-            : "/nominatim";
-          const nominatimUrl = `${baseUrl}/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`;
-          const response = await fetch(nominatimUrl);
-
-          if (!response.ok) throw new Error("Geolocation failed");
-
-          const data = await response.json();
-          const countryName = data.address?.country;
-
-          if (countryName) {
-            const matchedCountry = COUNTRIES.find(c =>
-              c.name.toLowerCase() === countryName.toLowerCase() ||
-              (data.address?.country_code && c.code.toLowerCase() === data.address.country_code.toLowerCase())
-            );
-
-            if (matchedCountry) {
-              setCountry(matchedCountry);
-            }
-          }
-        } catch (error) {
-          console.error("Geolocation error:", error);
-        } finally {
-          setIsGeolocationLoading(false);
-        }
-      },
-      (error) => {
-        console.error("Geolocation denied or failed:", error);
-        setIsGeolocationLoading(false);
-      },
-      { timeout: 10000 }
-    );
+    // Geolocation logic removed as per request to fix production errors.
+    console.log("Geolocation disabled.");
   };
 
   const setCountry = useCallback((country) => {
