@@ -30,7 +30,7 @@ export const getSocket = () => {
                     : null
             },
             // 🔒 polling fails on Prod due to missing sticky sessions. Force websocket.
-            transports: ["websocket"],
+            transports: ["websocket", "polling"],
 
             // Allow auto-connect for singleton pattern
             reconnection: true,
