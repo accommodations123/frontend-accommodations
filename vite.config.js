@@ -14,10 +14,14 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api/host': {
-        target: 'http://localhost:5000',
+        target: 'http://3.147.226.49:5000',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),
+        headers: {
+          'Host': 'accomodation.api.test.nextkinlife.live',
+          'Origin': 'https://accomodation.test.nextkinlife.live'
+        },
       },
       '/api': {
         target: 'http://3.147.226.49:5000',

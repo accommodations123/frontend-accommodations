@@ -16,9 +16,11 @@ let socket = null;
 
 export const getSocket = () => {
     if (!socket) {
-        const socketUrl = import.meta.env.VITE_SOCKET_URL || (import.meta.env.PROD
-            ? "https://accomodation.api.test.nextkinlife.live"
-            : "/");
+        // In Development, force use of '/' so Vite proxy handles headers (Host/Origin)
+        // In Production, use the full URL from env or fallback
+        const socketUrl = import.meta.env.DEV
+            ? "/"
+            : (import.meta.env.VITE_SOCKET_URL || "https://accomodation.api.test.nextkinlife.live");
         socket = io(socketUrl, {
             withCredentials: true,
             auth: {
