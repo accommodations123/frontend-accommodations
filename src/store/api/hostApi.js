@@ -285,14 +285,7 @@ export const hostApi = createApi({
             }),
         }),
 
-        updatePropertyLegal: builder.mutation({
-            query: ({ id, formData }) => ({
-                url: `property/legal/${id}`,
-                method: "PUT",
-                body: formData,
-                credentials: "include"
-            }),
-        }),
+
 
         submitProperty: builder.mutation({
             query: (id) => ({
@@ -648,7 +641,6 @@ export const {
     useUpdatePropertyRulesMutation,
     useUpdatePropertyMediaMutation,
     useUpdatePropertyVideoMutation,
-    useUpdatePropertyLegalMutation,
     useSubmitPropertyMutation,
     useDeletePropertyMutation,
     useCreateBuySellMutation,

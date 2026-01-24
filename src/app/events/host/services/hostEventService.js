@@ -66,6 +66,9 @@ export const compressImage = (file, maxWidth = 1024, maxHeight = 1024, quality =
 };
 
 export const hostEventService = {
+    getEventById: async (id) => {
+        return apiCall(`/events/${id}`, "GET")
+    },
     createDraft: async (data) => {
         return apiCall("/events/create-draft", "POST", data)
     },

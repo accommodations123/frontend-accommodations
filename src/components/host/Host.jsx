@@ -193,6 +193,7 @@ export default function HostOnboardingForm() {
         email: formData.email,
         phone: formData.phone,
         country: formData.country,
+        state: formData.state,
         city: formData.city,
         address: formData.street_address,
         whatsapp: formData.whatsapp,

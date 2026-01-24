@@ -12,7 +12,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from "@/lib/utils";
 
 import { useGetApprovedHostDetailsQuery, useGetApprovedPropertiesQuery } from '@/store/api/hostApi';
-import { UserCheck } from 'lucide-react';
+import { UserCheck, User } from 'lucide-react';
 
 export default function SearchPage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -183,25 +183,31 @@ export default function SearchPage() {
                             <div className="mb-8">
                                 <h3 className="font-bold text-gray-900 text-lg mb-4">Verified Hosts in your area</h3>
                                 <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-                                    {approvedHosts.map((host, idx) => (
-                                        <div key={idx} className="min-w-[200px] bg-white border border-gray-100 p-3 rounded-xl flex items-center gap-3 shadow-sm hover:shadow-md transition-all cursor-pointer">
-                                            <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-gray-100">
-                                                <img
-                                                    src={host.host_id_photo || host.host_selfie_photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(host.host_full_name || "User")}`}
-                                                    alt={host.host_full_name}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(host.host_full_name || "User")}`}
-                                                />
+                                    {approvedHosts.map((host, idx) => {
+                                        const hostImage = host.host_id_photo || host.host_selfie_photo;
+                                        return (
+                                            <div key={idx} className="min-w-[200px] bg-white border border-gray-100 p-3 rounded-xl flex items-center gap-3 shadow-sm hover:shadow-md transition-all cursor-pointer">
+                                                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-gray-200 flex items-center justify-center">
+                                                    {hostImage ? (
+                                                        <img
+                                                            src={hostImage}
+                                                            alt={host.host_full_name}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <User className="w-6 h-6 text-gray-400" />
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h4 className="font-bold text-gray-900 text-sm truncate flex items-center gap-1">
+                                                        {host.host_full_name}
+                                                        <UserCheck className="w-3 h-3 text-primary" />
+                                                    </h4>
+                                                    <p className="text-xs text-gray-500 truncate">{host.host_city || "Superhost"}</p>
+                                                </div>
                                             </div>
-                                            <div className="min-w-0">
-                                                <h4 className="font-bold text-gray-900 text-sm truncate flex items-center gap-1">
-                                                    {host.host_full_name}
-                                                    <UserCheck className="w-3 h-3 text-primary" />
-                                                </h4>
-                                                <p className="text-xs text-gray-500 truncate">{host.host_city || "Superhost"}</p>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

@@ -2,10 +2,12 @@ import React from 'react';
 import { Home, Users, Bed, Bath, Sparkles, Building2, Quote, Layout } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export function StepBasics({ formData, setFormData, categories }) {
+export function StepBasics({ formData, setFormData, categories, isEdit }) {
     return (
         <div className="space-y-6 max-w-2xl mx-auto w-full">
-            <h2 className="text-2xl font-bold text-white mb-4">Tell us about your place</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">
+                {isEdit ? "Edit your listing" : "Tell us about your place"}
+            </h2>
 
             {/* Title & Description */}
             <div className="space-y-4">

@@ -7,7 +7,8 @@ export function StepReview({
     setTermsAccepted,
     displayedTerms,
     handleSubmit,
-    isLoading
+    isLoading,
+    isReadOnly
 }) {
     return (
         <div className="space-y-6 max-w-2xl mx-auto w-full h-full flex flex-col">
@@ -54,8 +55,8 @@ export function StepReview({
 
             <button
                 onClick={handleSubmit}
-                disabled={!termsAccepted || isLoading}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${termsAccepted
+                disabled={!termsAccepted || isLoading || isReadOnly}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${termsAccepted && !isReadOnly
                     ? 'bg-gradient-to-r from-accent to-purple-600 shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98]'
                     : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                     }`}
@@ -65,7 +66,7 @@ export function StepReview({
                         <div className="h-5 w-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                         Publishing...
                     </span>
-                ) : "Publish Listing"}
+                ) : isReadOnly ? "View Only (Approved)" : "Publish Listing"}
             </button>
         </div>
     );

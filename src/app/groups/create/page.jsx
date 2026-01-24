@@ -2,7 +2,8 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useCreateCommunityMutation } from "@/store/api/hostApi";
+import { useCreateCommunityMutation, useGetHostProfileQuery } from "@/store/api/hostApi";
+import { useGetMeQuery } from "@/store/api/authApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +15,13 @@ import { Footer } from "@/components/layout/Footer";
 export default function CreateGroupPage() {
     const navigate = useNavigate();
     const [createCommunity, { isLoading }] = useCreateCommunityMutation();
+
+    const { data: userData } = useGetMeQuery();
+    const { data: hostProfile, isLoading: isProfileLoading } = useGetHostProfileQuery(undefined, {
+        skip: !userData
+    });
+
+    const isVerifiedHost = hostProfile?.status === 'approved';
 
     const [formData, setFormData] = React.useState({
         name: "",
@@ -53,8 +61,6 @@ export default function CreateGroupPage() {
 
             if (result.success) {
                 toast.success("Community created successfully!");
-                // Redirect to the new community page. 
-                // The controller returns { success: true, community: { id, ... } }
                 if (result.community?.id) {
                     navigate(`/groups/${result.community.id}`);
                 } else {
@@ -66,6 +72,41 @@ export default function CreateGroupPage() {
             toast.error(err.data?.message || "Failed to create community");
         }
     };
+
+    if (isProfileLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
+    }
+
+    if (!isVerifiedHost) {
+        const isPending = hostProfile?.status === 'pending';
+        return (
+            <div className="flex flex-col min-h-screen bg-gray-50">
+                <Navbar />
+                <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
+                    <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8 text-center">
+                        <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-2xl">🔒</span>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                            {isPending ? "Account Verification Pending" : "Host Access Required"}
+                        </h2>
+                        <p className="text-gray-600 mb-6">
+                            {isPending
+                                ? "Your host application is currently under review. You can create communities once your account is approved."
+                                : "You need to be an approved host to create a new community."
+                            }
+                        </p>
+
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">

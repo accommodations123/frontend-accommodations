@@ -46,32 +46,7 @@ export const RulesSection = ({ country, handleFileChange }) => {
                 </div>
             </div>
 
-            <div className="rounded-xl p-6 border bg-[#f8f9fa] border-[#00162d]">
-                <h3 className="text-lg font-semibold mb-4 flex items-center text-[#00162d]">
-                    <Upload className="mr-2 h-5 w-5 text-[#00162d]" />
-                    Required Documents
-                </h3>
 
-                <div className="space-y-4">
-                    <div className="border border-dashed rounded-lg p-4 bg-white border-[#00162d]">
-                        <Label className="font-medium text-sm text-[#00162d]">Event Permit</Label>
-                        <Input
-                            type="file"
-                            onChange={e => handleFileChange("permit", e.target.files[0])}
-                            className="mt-2 text-gray-900 border-[#00162d]"
-                        />
-                    </div>
-
-                    <div className="border border-dashed rounded-lg p-4 bg-white border-[#00162d]">
-                        <Label className="font-medium text-sm text-[#00162d]">Insurance Document</Label>
-                        <Input
-                            type="file"
-                            onChange={e => handleFileChange("insurance", e.target.files[0])}
-                            className="mt-2 text-gray-900 border-[#00162d]"
-                        />
-                    </div>
-                </div>
-            </div>
         </div>
     )
 }

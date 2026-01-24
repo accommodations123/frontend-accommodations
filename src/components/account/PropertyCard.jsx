@@ -1,12 +1,14 @@
 import React, { useState } from "react"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Edit, Trash2, Eye, FileText, Video, AlertCircle, Wifi, Car, Utensils, Tv, Thermometer, Dumbbell, Bed } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { Edit, Trash2, Eye, FileText, Video, AlertCircle, Wifi, Car, Utensils, Tv, Thermometer, Dumbbell, Bed, Clock, Lock, ImageOff } from "lucide-react"
+
 
 export function PropertyCard({ property, onDelete }) {
     const [isDeleting, setIsDeleting] = useState(false)
+    const [timeLeft, setTimeLeft] = useState("")
 
     if (!property) return null
 
@@ -14,7 +16,7 @@ export function PropertyCard({ property, onDelete }) {
     const status = (property.status || "").toLowerCase()
     const isDeleted = property.is_deleted === true || property.is_deleted === "true"
     const photos = Array.isArray(property.photos) ? property.photos : []
-    const photoUrl = photos[0] || (property.image) || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=2070&auto=format&fit=crop"
+    const photoUrl = photos[0] || (property.image) || null
 
     const propertyType = property.property_type || ""
     const city = property.city || ""
@@ -87,6 +89,43 @@ export function PropertyCard({ property, onDelete }) {
             ? `${formatPriceDisplay(property.price_per_night)} / night`
             : "Price on request";
 
+    // Calculate time remaining
+    React.useEffect(() => {
+        if (!property.listing_expires_at || status !== 'approved') {
+            setTimeLeft("");
+            return;
+        }
+
+        const calculateTimeLeft = () => {
+            const expires = new Date(property.listing_expires_at).getTime();
+            const now = new Date().getTime();
+            const distance = expires - now;
+
+            if (distance < 0) {
+                setTimeLeft("Expired");
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+            if (days > 0) {
+                setTimeLeft(`${days}d ${hours}h`);
+            } else {
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                setTimeLeft(`${hours}h ${minutes}m`);
+            }
+        };
+
+        calculateTimeLeft();
+        const timer = setInterval(calculateTimeLeft, 60000); // Update every minute
+
+        return () => clearInterval(timer);
+    }, [property.listing_expires_at, status]);
+
+    // ... statusBadge logic
+
+    // ... return statement start
     return (
         <div className={cn(
             "group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-accent/30 transition-all duration-300 overflow-hidden flex flex-col h-full",
@@ -94,11 +133,17 @@ export function PropertyCard({ property, onDelete }) {
         )}>
             {/* Image Section */}
             <div className="relative h-48 overflow-hidden bg-gray-100">
-                <img
-                    src={photoUrl}
-                    alt={property.title || "Property"}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
+                {photoUrl ? (
+                    <img
+                        src={photoUrl}
+                        alt={property.title || "Property"}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                        <ImageOff className="w-12 h-12 text-gray-400" />
+                    </div>
+                )}
 
                 {/* Status Badge */}
                 <div className={cn(
@@ -108,7 +153,20 @@ export function PropertyCard({ property, onDelete }) {
                     {statusBadge.text}
                 </div>
 
-                {/* Docs/Video Indicators */}
+                {/* Expiration Countdown Badge */}
+                {timeLeft && !isDeleted && (
+                    <div className={cn(
+                        "absolute top-3 right-24 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm z-10 flex items-center gap-1 backdrop-blur-md",
+                        timeLeft === "Expired"
+                            ? "bg-red-500/90 text-white"
+                            : "bg-black/60 text-white"
+                    )}>
+                        <Clock className="w-3 h-3" />
+                        {timeLeft === "Expired" ? "Expired" : `${timeLeft} left`}
+                    </div>
+                )}
+
+                {/* ... rest of the component */}
                 <div className="absolute top-3 left-3 flex items-center gap-2">
                     {legalDocs.length > 0 && (
                         <div className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm" title="Documents verified">
@@ -134,6 +192,7 @@ export function PropertyCard({ property, onDelete }) {
 
             {/* Content Section */}
             <div className="p-4 flex flex-col flex-grow">
+                {/* ... rest of content section */}
                 <div className="mb-3">
                     <h3 className="text-base font-bold text-gray-900 line-clamp-1 group-hover:text-accent transition-colors mb-1">
                         {property.title || "Untitled Listing"}
@@ -187,6 +246,15 @@ export function PropertyCard({ property, onDelete }) {
                     </div>
                 )}
 
+                {status === 'approved' && (
+                    <div className="mb-4 bg-green-50 border border-green-100 rounded-lg p-2.5 flex items-center gap-2">
+                        <Lock className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                        <p className="text-xs text-green-800 leading-tight">
+                            Approved listings cannot be edited.
+                        </p>
+                    </div>
+                )}
+
                 {/* Actions Footer */}
                 <div className="pt-3 border-t border-gray-100 flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-semibold hover:border-accent hover:text-accent" asChild>
@@ -195,12 +263,14 @@ export function PropertyCard({ property, onDelete }) {
                             View
                         </Link>
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-semibold hover:border-primary hover:text-primary" disabled={isPending || isDeleted} asChild>
-                        <Link to={`/host/create?edit=${id}`}>
-                            <Edit className="w-3.5 h-3.5 mr-1.5" />
-                            Edit
-                        </Link>
-                    </Button>
+                    {status !== 'approved' && (
+                        <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-semibold hover:border-primary hover:text-primary" disabled={isDeleted} asChild>
+                            <Link to={`/host/create?edit=${id}`}>
+                                <Edit className="w-3.5 h-3.5 mr-1.5" />
+                                Edit
+                            </Link>
+                        </Button>
+                    )}
                     <Button
                         variant="ghost"
                         size="sm"

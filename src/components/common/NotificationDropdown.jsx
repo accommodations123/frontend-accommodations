@@ -29,10 +29,10 @@ export function NotificationDropdown({ minimal = false }) {
                 setUnreadCount((prev) => prev + 1);
             };
 
-            socket.on("notification:new", handleNotification);
+            socket.on("notification", handleNotification);
 
             return () => {
-                socket.off("notification:new", handleNotification);
+                socket.off("notification", handleNotification);
             };
         } catch (err) {
             console.error("Socket not ready for notifications:", err);

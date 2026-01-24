@@ -100,7 +100,7 @@ export default function TravelPage() {
           country: trip.host.country,
           state: trip.host.city,
           city: trip.host.city,
-          image: trip.host.profile_image || "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=200&q=80",
+          image: trip.host.profile_image || null,
           verified: trip.host.verified || false
         }
       };
@@ -113,7 +113,7 @@ export default function TravelPage() {
         host_id: trip.host_id || (trip.host ? trip.host.id : undefined),
         user: {
           ...trip.user,
-          image: trip.user.image || trip.user.profile_image || "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=200&q=80"
+          image: trip.user.image || trip.user.profile_image || null
         }
       };
     }

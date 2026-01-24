@@ -17,8 +17,17 @@ import { SuccessState } from "./components/SuccessState"
 
 // Hooks
 import { useHostEvent } from "./hooks/useHostEvent"
+import { useGetHostProfileQuery } from "@/store/api/hostApi"
+import { useGetMeQuery } from "@/store/api/authApi"
 
 export default function HostEventPage() {
+  const { data: userData } = useGetMeQuery()
+  const { data: hostProfile, isLoading: isProfileLoading } = useGetHostProfileQuery(undefined, {
+    skip: !userData
+  })
+
+  const isVerifiedHost = hostProfile?.status === 'approved';
+
   const {
     step,
     setStep,
@@ -34,8 +43,41 @@ export default function HostEventPage() {
     handleGalleryImagesChange,
     removeGalleryImage,
     handleNextStep,
-    handleSubmit
+    handleSubmit,
+    isEdit, // From hook
+    isReadOnly
   } = useHostEvent()
+
+  if (isProfileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!isVerifiedHost) {
+    return (
+      <main className="min-h-screen bg-gray-50 font-sans">
+        <Navbar />
+        <div className="pt-28 pb-12 px-4 flex items-center justify-center">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center border border-gray-100">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-8 w-8 text-yellow-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Verification Pending</h2>
+            <p className="text-gray-600 mb-6">
+              {hostProfile?.status === 'pending'
+                ? "Your host application is currently under review. You can create events once your account is approved."
+                : "You need to be an approved host to create events."}
+            </p>
+
+          </div>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans">
@@ -45,8 +87,12 @@ export default function HostEventPage() {
         <div className="container mx-auto max-w-4xl">
           {/* Header with Brand Text */}
           <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Host an Event</h1>
-            <p className="text-gray-600 text-lg">Create memorable experiences for the NextKinLife community.</p>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              {isEdit ? "Edit Event" : "Host an Event"}
+            </h1>
+            <p className="text-gray-600 text-lg">
+              {isEdit ? "Update your event details below." : "Create memorable experiences for the NextKinLife community."}
+            </p>
           </div>
 
           {isSuccess ? (
@@ -117,7 +163,7 @@ export default function HostEventPage() {
                       <Button
                         type="button"
                         onClick={handleNextStep}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting} // Removing disabled={isReadOnly} to allow viewing
                         className="w-full text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg h-12"
                         style={{ backgroundColor: "#00162d" }}
                       >
@@ -158,15 +204,17 @@ export default function HostEventPage() {
 
                         <Button
                           type="submit"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || isReadOnly}
                           className="flex-1 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg h-12"
-                          style={{ backgroundColor: "#c92a26" }}
+                          style={{ backgroundColor: isReadOnly ? "#9ca3af" : "#c92a26" }}
                         >
                           {isSubmitting ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Submitting...
                             </>
+                          ) : isReadOnly ? (
+                            "View Only (Approved)"
                           ) : (
                             "Submit Event"
                           )}

@@ -1,11 +1,16 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
+import { useSearchParams } from "react-router-dom"
 import { hostEventService, compressImage } from "../services/hostEventService"
 
 export const useHostEvent = () => {
+    const [searchParams] = useSearchParams()
+    const editId = searchParams.get('edit')
+
     const [step, setStep] = useState(1)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
-    const [eventId, setEventId] = useState(null)
+    const [eventId, setEventId] = useState(editId || null)
+    const [isReadOnly, setIsReadOnly] = useState(false)
     const [error, setError] = useState(null)
     const [uploadProgress, setUploadProgress] = useState(0)
     const [previewImages, setPreviewImages] = useState({ banner: null, gallery: [] })
@@ -39,6 +44,81 @@ export const useHostEvent = () => {
         what_is_included: "",
         what_is_not_included: ""
     })
+
+    // Fetch event data for editing
+    useEffect(() => {
+        const fetchEvent = async () => {
+            if (!editId) return;
+            try {
+                const response = await hostEventService.getEventById(editId);
+                const event = response.event || response.data || response;
+
+                if (event) {
+                    console.log("📝 Editing Event:", event);
+                    setEventId(editId); // Ensure ID is set
+
+                    // Check status for read-only mode
+                    if (event.status === 'approved') {
+                        setIsReadOnly(true);
+                        setError("This event is approved and cannot be modified.");
+                    }
+
+                    // Populate form
+                    setFormData(prev => ({
+                        ...prev,
+                        title: event.title || "",
+                        description: event.description || "",
+                        event_type: event.event_type || "meetup",
+                        event_mode: event.event_mode || "offline",
+
+                        // Date/Time (handling potential ISO strings)
+                        date: event.start_date ? new Date(event.start_date).toISOString().split('T')[0] : "",
+                        end_date: event.end_date ? new Date(event.end_date).toISOString().split('T')[0] : "",
+                        time: event.start_time || "",
+                        end_time: event.end_time || "",
+
+                        // Location
+                        country: event.country || "US",
+                        state: event.state || "",
+                        city: event.city || "",
+                        zip_code: event.zip_code || "",
+                        location: event.street_address || event.location || "",
+                        landmark: event.landmark || "",
+
+                        // Venue
+                        venue_name: event.venue_name || "",
+                        venue_description: event.venue_description || "",
+                        parking_info: event.parking_info || "",
+                        accessibility_info: event.accessibility_info || "",
+
+                        // Online
+                        event_url: event.event_url || "",
+                        online_instructions: event.online_instructions || "",
+
+                        // Extras
+                        price: event.price || "",
+                        what_is_included: event.what_is_included || "",
+                        what_is_not_included: event.what_is_not_included || "",
+
+                        // Images (Store URLs for reference, although upload usually requires File objects)
+                        // existingBannerUrl: event.banner_image,
+                        // existingGalleryUrls: event.gallery_images || []
+                    }));
+
+                    // Set Previews
+                    setPreviewImages({
+                        banner: event.banner_image || null,
+                        gallery: event.gallery_images || []
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch event for editing:", err);
+                setError("Failed to load event details");
+            }
+        };
+
+        fetchEvent();
+    }, [editId]);
 
     const handleInputChange = useCallback((field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }))
@@ -199,6 +279,11 @@ export const useHostEvent = () => {
             return
         }
 
+
+        if (isReadOnly) {
+            setStep(2); // Allow viewing next step but operation will be blocked on submit
+            return;
+        }
         try {
             await createOrUpdateEvent()
             setStep(2)
@@ -209,6 +294,12 @@ export const useHostEvent = () => {
 
     const handleSubmit = async (e) => {
         if (e) e.preventDefault()
+
+        if (isReadOnly) {
+            setError("Approved events cannot be modified. Please contact support to request changes.");
+            return;
+        }
+
         setIsSubmitting(true)
         setError(null)
 
@@ -252,6 +343,8 @@ export const useHostEvent = () => {
         handleGalleryImagesChange,
         removeGalleryImage,
         handleNextStep,
-        handleSubmit
+        handleSubmit,
+        isEdit: !!eventId,
+        isReadOnly
     }
 }

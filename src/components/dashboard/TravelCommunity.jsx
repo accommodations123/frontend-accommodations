@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useGetPublicTripsQuery } from "@/store/api/authApi";
 import { useCountry } from "@/context/CountryContext";
-import { Loader2, ExternalLink, MapPin, Calendar, MessageCircle, ShieldCheck } from 'lucide-react';
+import { Loader2, ExternalLink, MapPin, Calendar, MessageCircle, ShieldCheck, User } from 'lucide-react';
 import { SectionHeader } from '../home/featured/SectionHeader';
 
 const CommunityCard = ({ match, onConnect }) => {
@@ -13,17 +13,19 @@ const CommunityCard = ({ match, onConnect }) => {
             <div className="bg-white rounded-[1.5rem] border border-[#E5E7EB] hover:border-[#CB2A25]/20 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col overflow-hidden relative">
                 {/* Image Section */}
                 <div className="relative h-64 overflow-hidden bg-gray-100">
-                    <img
-                        src={match.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.name}`}
-                        alt={match.name}
-                        className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                        onLoad={() => setIsImageLoaded(true)}
-                        onError={(e) => {
-                            e.target.src = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&h=400&fit=crop";
-                            e.target.classList.remove('opacity-0');
-                        }}
-                        loading="lazy"
-                    />
+                    {match.image ? (
+                        <img
+                            src={match.image}
+                            alt={match.name}
+                            className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                            onLoad={() => setIsImageLoaded(true)}
+                            loading="lazy"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                            <User className="w-16 h-16 text-gray-400" />
+                        </div>
+                    )}
 
                     {/* Top Badges */}
                     <div className="absolute top-4 left-4 z-20 flex gap-2">
@@ -35,12 +37,16 @@ const CommunityCard = ({ match, onConnect }) => {
 
                     {/* Host/Traveler Profile Image overlay style from PropertyCard */}
                     <div className="absolute bottom-3 right-3 z-20">
-                        <div className="w-10 h-10 rounded-full p-0.5 bg-white shadow-lg">
-                            <img
-                                src={match.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.name}`}
-                                alt="Traveler"
-                                className="w-full h-full rounded-full object-cover"
-                            />
+                        <div className="w-10 h-10 rounded-full p-0.5 bg-white shadow-lg flex items-center justify-center">
+                            {match.image ? (
+                                <img
+                                    src={match.image}
+                                    alt="Traveler"
+                                    className="w-full h-full rounded-full object-cover"
+                                />
+                            ) : (
+                                <User className="w-5 h-5 text-gray-400" />
+                            )}
                         </div>
                     </div>
                 </div>

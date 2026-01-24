@@ -12,7 +12,8 @@ import {
   Phone,
   Loader2,
 } from "lucide-react";
-import { useCreateBuySellMutation } from "@/store/api/hostApi";
+import { useCreateBuySellMutation, useGetHostProfileQuery } from "@/store/api/hostApi";
+import { useGetMeQuery } from "@/store/api/authApi";
 import { cn } from "@/lib/utils";
 import { fetchAddressByPincode } from "@/lib/pincodeUtils";
 import { useEffect } from "react";
@@ -128,6 +129,13 @@ const appendIfExists = (formData, key, value) => {
 export function SellForm({ onPost }) {
   const [images, setImages] = useState([]);
   const [dragActive, setDragActive] = useState(false);
+
+  const { data: userData } = useGetMeQuery();
+  const { data: hostProfile, isLoading: isProfileLoading } = useGetHostProfileQuery(undefined, {
+    skip: !userData
+  });
+
+  const isVerifiedHost = hostProfile?.status === 'approved';
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -266,6 +274,34 @@ export function SellForm({ onPost }) {
 
 
   /* ================= RENDER ================= */
+  if (isProfileLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    )
+  }
+
+  if (!isVerifiedHost) {
+    const isPending = hostProfile?.status === 'pending';
+    return (
+      <div className="max-w-3xl mx-auto bg-gray-50 p-8 rounded-xl text-center border border-gray-200">
+        <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">🔒</span>
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          {isPending ? "Account Verification Pending" : "Host Access Required"}
+        </h2>
+        <p className="text-gray-600 mb-6">
+          {isPending
+            ? "Your host application is currently under review. You can list items once your account is approved."
+            : "You need to be an approved host to list items for sale."
+          }
+        </p>
+
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto bg-gray-50 p-4 sm:p-6 lg:p-8 rounded-xl">

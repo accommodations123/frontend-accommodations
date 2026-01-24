@@ -38,12 +38,41 @@ export const MyListings = () => {
         const id = p._id || p.id
         if (deletingIds.has(id)) return false
         const isDeleted = p.is_deleted === true || (p.status || "").toLowerCase() === "deleted"
-        return !isDeleted
+        const isExpired = p.listing_expires_at && new Date(p.listing_expires_at) < new Date()
+        return !isDeleted && !isExpired
     })
 
     const visibleEvents = (eventListings || []).filter(e => {
         const id = e._id || e.id
         if (deletingIds.has(id)) return false
+
+        // Filter out expired events
+        try {
+            // Use end_date if available, otherwise start_date
+            const dateStr = e.end_date || e.start_date
+            if (!dateStr) return true // Keep if no date (draft?)
+
+            const date = new Date(dateStr)
+
+            // Parse time
+            const timeStr = e.end_time || e.start_time || "23:59"
+            const [hours, minutes] = timeStr.split(':').map(Number)
+
+            if (!isNaN(hours) && !isNaN(minutes)) {
+                date.setHours(hours, minutes, 0)
+            } else {
+                // Default to end of day if time is invalid/missing
+                date.setHours(23, 59, 59)
+            }
+
+            // Exclude if now is after the event end time
+            if (new Date() > date) return false
+
+        } catch (err) {
+            console.warn("Date parsing error for event:", e)
+            return true // Keep on error to be safe
+        }
+
         return true
     })
 

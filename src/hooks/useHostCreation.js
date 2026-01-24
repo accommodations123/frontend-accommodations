@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useCountry } from '@/context/CountryContext';
 import { hostService } from '@/services/hostService';
@@ -17,8 +17,8 @@ import {
     useUpdatePropertyRulesMutation,
     useUpdatePropertyMediaMutation,
     useUpdatePropertyVideoMutation,
-    useUpdatePropertyLegalMutation,
     useSubmitPropertyMutation,
+    useGetPropertyByIdQuery,
     hostApi
 } from '@/store/api/hostApi';
 
@@ -190,7 +190,6 @@ export function useHostCreation() {
     const [updatePropertyRules] = useUpdatePropertyRulesMutation();
     const [updatePropertyMedia] = useUpdatePropertyMediaMutation();
     const [updatePropertyVideo] = useUpdatePropertyVideoMutation();
-    const [updatePropertyLegal] = useUpdatePropertyLegalMutation();
     const [submitProperty] = useSubmitPropertyMutation();
 
     // Form State - Initialize with property type as default
@@ -202,6 +201,7 @@ export function useHostCreation() {
     // Terms State
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [displayedTerms, setDisplayedTerms] = useState([]);
+    const [isReadOnly, setIsReadOnly] = useState(false);
 
     // Update form structure when contribution type changes
     useEffect(() => {
@@ -228,7 +228,7 @@ export function useHostCreation() {
         setTermsAccepted(false);
     }, [formData.country, formData.category, contributionType]);
 
-    // AUTO-LOGIN CHECK (Populate form from backend verified session)
+    // Auto-login check (Populate form from backend verified session)
     useEffect(() => {
         if (userData) {
             setFormData(prev => ({
@@ -250,6 +250,68 @@ export function useHostCreation() {
             }));
         }
     }, [userData, hostProfile]);
+
+    // === EDIT MODE LOGIC ===
+    const [searchParams] = useSearchParams();
+    const editId = searchParams.get('edit');
+    const { data: existingPropertyData, isFetching: isPropertyFetching } = useGetPropertyByIdQuery(editId, {
+        skip: !editId || contributionType !== 'property'
+    });
+
+    useEffect(() => {
+        if (editId && existingPropertyData) {
+            // Robustly find the property object
+            const rawProp = existingPropertyData;
+            const prop = rawProp.property || rawProp.data || rawProp;
+
+            if (prop) {
+                // Check if property is approved (read-only)
+                if (prop.status === 'approved') {
+                    setIsReadOnly(true);
+                }
+
+                setTermsAccepted(true); // Auto-accept to avoid blocking view
+
+                setFormData(prev => ({
+                    ...prev,
+                    // Basics
+                    title: prop.title || prop.name || prev.title,
+                    category: prop.category || prop.category_slug || prev.category,
+                    type: prop.property_type || prop.type || prev.type,
+                    privacyType: prop.privacy_type || prev.privacyType,
+                    petsAllowed: prop.pets_allowed ? "1" : "0",
+                    sqft: prop.specs?.area || prop.area || prev.sqft,
+                    capacity: prop.specs?.guests || prop.guests || prev.capacity,
+                    bedrooms: prop.specs?.bedrooms || prop.bedrooms || prev.bedrooms,
+                    bathrooms: prop.specs?.bathrooms || prop.bathrooms || prev.bathrooms,
+                    description: prop.description || prev.description,
+
+                    // Location - handle flattened or nested
+                    address: prop.location?.address || prop.address || prev.address,
+                    city: prop.location?.city || prop.city || prev.city,
+                    country: prop.location?.country || prop.country || prev.country,
+
+                    // Pricing
+                    currency: prop.pricing?.currency || prop.currency || "INR",
+                    pricePerHour: prop.pricing?.price_per_hour || prop.price_per_hour || prev.pricePerHour,
+                    priceNight: prop.pricing?.price_per_night || prop.price_per_night || prev.priceNight,
+                    priceMonth: prop.pricing?.price_per_month || prop.price_per_month || prev.priceMonth,
+
+                    // Media
+                    // Map URL strings to objects { url, file: null }
+                    images: (prop.photos || prop.images || []).map(url =>
+                        typeof url === 'string' ? { url, file: null } : url
+                    ),
+                    video: prop.video ? { url: prop.video } : null,
+                    propertyProof: (prop.legal_docs || [])[0] ? { url: prop.legal_docs[0] } : null,
+
+                    // Amenities & Rules
+                    amenities: prop.amenities || [],
+                    rules: prop.rules || []
+                }));
+            }
+        }
+    }, [existingPropertyData, editId]);
 
     // Handlers
     const handleSendOtp = async (e) => {
@@ -442,16 +504,7 @@ export function useHostCreation() {
             await updatePropertyVideo({ id: propertyId, formData: videoFd }).unwrap();
         }
 
-        if (formData.propertyProof) {
-            try {
-                const docFd = new FormData();
-                docFd.append('legalDocs', formData.propertyProof);
-                await updatePropertyLegal({ id: propertyId, formData: docFd }).unwrap();
-            } catch (err) {
-                console.warn("Legal document upload failed (optional step):", err);
-                // Continue with submission even if legal doc fails
-            }
-        }
+
     };
 
     const handleSubmitEvent = async () => {
@@ -499,6 +552,11 @@ export function useHostCreation() {
 
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
+        if (isReadOnly) {
+            alert("This property is approved and cannot be modified.");
+            return;
+        }
+
         if (!termsAccepted) {
             alert("Please accept the terms to continue.");
             return;
@@ -571,24 +629,40 @@ export function useHostCreation() {
             // Handle different contribution types
             switch (contributionType) {
                 case 'property':
-                    const draftPayload = {
-                        categoryId: formData.category,
-                        propertyType: (formData.type || '').toLowerCase(),
-                        privacyType: formData.privacyType
-                    };
-                    const draftRes = await createPropertyDraft(draftPayload).unwrap();
-                    const propertyId = draftRes.propertyId || (draftRes.data && draftRes.data.id) || draftRes.id;
-                    if (!propertyId) throw new Error("Failed to create property draft ID.");
+                    // If we are editing, use the existing ID. If creating, create a draft.
+                    let propertyId = editId;
 
-                    await updatePropertyBasic({
-                        id: propertyId, data: {
-                            guests: Number(formData.capacity) || 0,
-                            bedrooms: Number(formData.bedrooms) || 0,
-                            bathrooms: Number(formData.bathrooms) || 0,
-                            petsAllowed: Number(formData.petsAllowed) || 0,
-                            area: Number(formData.sqft) || 0
-                        }
-                    }).unwrap();
+                    if (!propertyId) {
+                        const draftPayload = {
+                            categoryId: formData.category,
+                            propertyType: (formData.type || '').toLowerCase(),
+                            privacyType: formData.privacyType
+                        };
+                        const draftRes = await createPropertyDraft(draftPayload).unwrap();
+                        propertyId = draftRes.propertyId || (draftRes.data && draftRes.data.id) || draftRes.id;
+                        if (!propertyId) throw new Error("Failed to create property draft ID.");
+
+                        await updatePropertyBasic({
+                            id: propertyId, data: {
+                                guests: Number(formData.capacity) || 0,
+                                bedrooms: Number(formData.bedrooms) || 0,
+                                bathrooms: Number(formData.bathrooms) || 0,
+                                petsAllowed: Number(formData.petsAllowed) || 0,
+                                area: Number(formData.sqft) || 0
+                            }
+                        }).unwrap();
+                    } else {
+                        // On update, also update basic info
+                        await updatePropertyBasic({
+                            id: propertyId, data: {
+                                guests: Number(formData.capacity) || 0,
+                                bedrooms: Number(formData.bedrooms) || 0,
+                                bathrooms: Number(formData.bathrooms) || 0,
+                                petsAllowed: Number(formData.petsAllowed) || 0,
+                                area: Number(formData.sqft) || 0
+                            }
+                        }).unwrap();
+                    }
 
                     await updatePropertyAddress({
                         id: propertyId, data: {
@@ -599,6 +673,9 @@ export function useHostCreation() {
                     }).unwrap();
 
                     await handleSubmitProperty(propertyId);
+
+                    // Only submit for review if it's a new draft or user explicitly wants to re-submit
+                    // For now, we always submit to ensure status is updated if needed
                     await submitProperty(propertyId).unwrap();
                     break;
 
@@ -629,7 +706,9 @@ export function useHostCreation() {
                     throw new Error("Invalid contribution type");
             }
 
-            alert(`${getContributionTypeLabel(contributionType)} Submitted Successfully!`);
+            // Differentiate success message
+            const actionText = editId ? "Updated" : "Submitted";
+            alert(`${getContributionTypeLabel(contributionType)} ${actionText} Successfully!`);
             navigate("/");
 
         } catch (error) {
@@ -653,6 +732,8 @@ export function useHostCreation() {
         return labels[type] || 'Contribution';
     };
 
+    const isEdit = !!editId;
+
     return {
         // State
         activeCountry,
@@ -673,6 +754,8 @@ export function useHostCreation() {
         displayedTerms,
         contributionType,
         setContributionType,
+        isEdit,
+        isReadOnly,
 
         // Actions
         handleSendOtp,

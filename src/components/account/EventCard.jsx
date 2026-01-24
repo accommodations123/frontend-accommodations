@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Edit, Trash2, Eye, Calendar, MapPin, Clock } from "lucide-react"
+import { Edit, Trash2, Eye, Calendar, MapPin, Clock, Lock, ImageOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -12,7 +12,7 @@ export function EventCard({ event, onDelete }) {
 
     const id = event._id || event.id
     const status = (event.status || "").toLowerCase()
-    const bannerUrl = event.banner_image || "https://images.unsplash.com/photo-1540575861501-7ce058a877c3?q=80&w=2070&auto=format&fit=crop"
+    const bannerUrl = event.banner_image || null
 
     const startDate = event.start_date ? new Date(event.start_date).toLocaleDateString(undefined, {
         weekday: 'short',
@@ -45,11 +45,17 @@ export function EventCard({ event, onDelete }) {
         <div className="bg-white rounded-2xl border overflow-hidden shadow-sm hover:shadow-md transition-all">
             {/* Image with Status Badge */}
             <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-100">
-                <img
-                    src={bannerUrl}
-                    alt={event.title || "Event"}
-                    className="w-full h-full object-cover"
-                />
+                {bannerUrl ? (
+                    <img
+                        src={bannerUrl}
+                        alt={event.title || "Event"}
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                        <ImageOff className="w-12 h-12 text-gray-400" />
+                    </div>
+                )}
 
                 {/* Status Badge - Top Right */}
                 <div className={cn(
@@ -103,6 +109,15 @@ export function EventCard({ event, onDelete }) {
                     </div>
                 )}
 
+                {status === 'approved' && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-2 flex items-center gap-2">
+                        <Lock className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                        <p className="text-xs text-green-800">
+                            Approved events cannot be edited.
+                        </p>
+                    </div>
+                )}
+
                 {/* Footer Actions */}
                 <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
                     <Button
@@ -117,18 +132,19 @@ export function EventCard({ event, onDelete }) {
                         </Link>
                     </Button>
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        disabled={isPending}
-                        asChild
-                    >
-                        <Link to={`/events/host?edit=${id}`}>
-                            <Edit className="w-4 h-4 mr-1" />
-                            Edit
-                        </Link>
-                    </Button>
+                    {status !== 'approved' && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            asChild
+                        >
+                            <Link to={`/events/host?edit=${id}`}>
+                                <Edit className="w-4 h-4 mr-1" />
+                                Edit
+                            </Link>
+                        </Button>
+                    )}
 
                     <Button
                         variant="destructive"

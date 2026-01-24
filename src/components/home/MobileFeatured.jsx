@@ -11,7 +11,7 @@ export function MobileFeatured() {
         title: host.host_full_name,
         location: host.host_city || "Unknown",
         price: 5000,
-        image: host.host_id_photo || host.host_selfie_photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(host.host_full_name || "User")}`,
+        image: host.host_id_photo || host.host_selfie_photo || null,
         type: "Verified Host"
     })) || [];
 

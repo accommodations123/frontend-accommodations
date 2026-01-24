@@ -42,7 +42,9 @@ export default function HostCreatePage() {
         addRule,
         nextStep,
         prevStep,
-        handleSubmit
+        handleSubmit,
+        isEdit, // From hook
+        isReadOnly
     } = useHostCreation();
 
     const variants = {
@@ -75,6 +77,7 @@ export default function HostCreatePage() {
                                     formData={formData}
                                     setFormData={setFormData}
                                     categories={CATEGORIES}
+                                    isEdit={isEdit}
                                 />
                             )}
                             {currentStep === 2 && (
@@ -119,6 +122,7 @@ export default function HostCreatePage() {
                                     handleSubmit={handleSubmit}
                                     isLoading={isLoading}
                                     STEPS={STEPS}
+                                    isReadOnly={isReadOnly}
                                 />
                             )}
                         </motion.div>

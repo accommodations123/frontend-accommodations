@@ -1,11 +1,10 @@
 import React from "react";
-import { MapPin, Clock, MessageCircle, Heart } from "lucide-react";
+import { MapPin, Clock, MessageCircle, Heart, ImageOff } from "lucide-react";
 import { useCountry } from "@/context/CountryContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1585386959984-a41552231693?w=600&q=80";
+const FALLBACK_IMAGE = null;
 
 export function ProductCard({ product, onMessage, onClick }) {
   const { formatPrice } = useCountry();
@@ -29,12 +28,18 @@ export function ProductCard({ product, onMessage, onClick }) {
     >
       {/* Image */}
       <div className="relative aspect-[4/3] bg-gray-100 text-stone-950 overflow-hidden">
-        <img
-          src={imageUrl}
-          alt={product?.title || "Marketplace product"}
-          loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={product?.title || "Marketplace product"}
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-200">
+            <ImageOff className="w-12 h-12 text-gray-400" />
+          </div>
+        )}
 
         {/* Wishlist */}
         <button
