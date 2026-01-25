@@ -63,6 +63,7 @@ const getFormDataStructure = (type = 'property') => {
         city: "",
         pincode: "",
         country: "",
+        state: "",
 
         // Step 5: Media & Proofs
         images: [],
@@ -289,6 +290,7 @@ export function useHostCreation() {
                     // Location - handle flattened or nested
                     address: prop.location?.address || prop.address || prev.address,
                     city: prop.location?.city || prop.city || prev.city,
+                    state: prop.location?.state || prop.state || prev.state,
                     country: prop.location?.country || prop.country || prev.country,
 
                     // Pricing
@@ -486,8 +488,14 @@ export function useHostCreation() {
             await updatePropertyAmenities({ id: propertyId, amenities: combinedAmenities }).unwrap();
         }
 
-        if (formData.rules.length > 0) {
-            await updatePropertyRules({ id: propertyId, rules: formData.rules }).unwrap();
+        // Auto-add pending rule if exists
+        const finalRules = [...formData.rules];
+        if (customRuleInput.trim()) {
+            finalRules.push(customRuleInput.trim());
+        }
+
+        if (finalRules.length > 0) {
+            await updatePropertyRules({ id: propertyId, rules: finalRules }).unwrap();
         }
 
         if (formData.images.length > 0) {
@@ -572,13 +580,18 @@ export function useHostCreation() {
 
             if (!effectiveUser) throw new Error("User not authenticated. Session verification failed.");
 
-            let userId = effectiveUser.id || effectiveUser._id || effectiveUser.user_id;
+            console.log("📝 Submit Context - User:", effectiveUser);
+
+            let userId = effectiveUser.id || effectiveUser._id || effectiveUser.user_id || effectiveUser.user?.id || effectiveUser.user?._id;
 
             if (!userId && localUser) {
-                userId = localUser.id || localUser._id || localUser.user_id;
+                userId = localUser.id || localUser._id || localUser.user_id || localUser.user?.id;
             }
 
-            if (!userId) throw new Error("User ID missing. Authentication failed.");
+            if (!userId) {
+                console.error("❌ User ID Extraction Failed. Object keys:", Object.keys(effectiveUser || {}));
+                throw new Error("User ID missing. Authentication failed.");
+            }
             userId = String(userId);
 
             let idPhotoUrl = "";
@@ -644,6 +657,8 @@ export function useHostCreation() {
 
                         await updatePropertyBasic({
                             id: propertyId, data: {
+                                title: formData.title || '',
+                                description: formData.description || '',
                                 guests: Number(formData.capacity) || 0,
                                 bedrooms: Number(formData.bedrooms) || 0,
                                 bathrooms: Number(formData.bathrooms) || 0,
@@ -655,6 +670,8 @@ export function useHostCreation() {
                         // On update, also update basic info
                         await updatePropertyBasic({
                             id: propertyId, data: {
+                                title: formData.title || '',
+                                description: formData.description || '',
                                 guests: Number(formData.capacity) || 0,
                                 bedrooms: Number(formData.bedrooms) || 0,
                                 bathrooms: Number(formData.bathrooms) || 0,
@@ -667,8 +684,10 @@ export function useHostCreation() {
                     await updatePropertyAddress({
                         id: propertyId, data: {
                             country: formData.country?.name || 'India',
-                            city: formData.city,
-                            address: formData.address
+                            state: formData.state || '',
+                            city: formData.city || '',
+                            zip_code: formData.pincode || '',
+                            street_address: formData.address || ''
                         }
                     }).unwrap();
 

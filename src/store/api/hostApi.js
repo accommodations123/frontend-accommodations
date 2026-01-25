@@ -49,6 +49,9 @@ const baseQueryWithLogger = async (args, api, extraOptions) => {
             } else if (status === 400 && (String(url).includes('/join') || String(url).includes('/leave'))) {
                 // Suppress 400 for join/leave as these are often "Already member" / "Not member" handled by UI
                 console.warn(`⚠️ API: Handled 400 on ${url} - ${result.error.data?.message || 'Bad Request'}`);
+            } else if (status === 404 && String(url).includes('host/get')) {
+                // Suppress 404 for host/get as it doesn't exist on backend yet
+                console.warn(`⚠️ API: Ignored 404 on ${url} (Endpoint missing)`);
             } else {
                 console.error(`⬅️ RTK Request Error [${status}] on ${url}:`, result.error);
             }
@@ -128,6 +131,19 @@ export const hostApi = createApi({
             providesTags: ["Property"],
             transformResponse: (response) => {
                 const items = response?.properties || response?.data?.properties || response?.data || response || [];
+                return Array.isArray(items) ? items : [];
+            },
+        }),
+
+        getAllProperties: builder.query({
+            query: (params) => ({
+                url: "property/all",
+                params
+            }),
+            providesTags: ["Property"],
+            transformResponse: (response) => {
+                // Handle paginated response structure from getAllPropertiesWithHosts
+                const items = response?.data || response?.properties || response || [];
                 return Array.isArray(items) ? items : [];
             },
         }),
@@ -721,6 +737,7 @@ export const {
     useGetHostProfileQuery,
     useGetApprovedHostDetailsQuery,
     useGetApprovedPropertiesQuery,
+    useGetAllPropertiesQuery,
     useGetMyListingsQuery,
     useGetPropertyByIdQuery,
     useGetApprovedEventsQuery,

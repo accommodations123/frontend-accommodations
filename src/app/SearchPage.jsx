@@ -11,7 +11,7 @@ import { COUNTRIES } from "@/lib/mock-data";
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from "@/lib/utils";
 
-import { useGetApprovedHostDetailsQuery, useGetApprovedPropertiesQuery } from '@/store/api/hostApi';
+import { useGetApprovedHostDetailsQuery, useGetAllPropertiesQuery } from '@/store/api/hostApi';
 import { UserCheck, User } from 'lucide-react';
 
 export default function SearchPage() {
@@ -27,7 +27,8 @@ export default function SearchPage() {
     const { activeCountry, setCountry } = useCountry();
 
     const { data: approvedHosts } = useGetApprovedHostDetailsQuery(activeCountry?.name);
-    const { data: approvedProperties } = useGetApprovedPropertiesQuery(activeCountry?.name);
+    // Use getAllProperties to show pending/unverified listings too
+    const { data: allProperties } = useGetAllPropertiesQuery({ country: activeCountry?.name });
 
 
 
@@ -63,8 +64,8 @@ export default function SearchPage() {
         const fetchListings = async () => {
             setLoading(true);
             try {
-                if (approvedProperties) {
-                    let mapped = approvedProperties.map((property) => ({
+                if (allProperties) {
+                    let mapped = allProperties.map((property) => ({
                         ...property, // Preserve original fields for PropertyCard
                         _id: property.id || property._id,
                         title: property.title || "Untitled Property",
@@ -79,7 +80,10 @@ export default function SearchPage() {
                         category: property.category_id || "Apartment", // Should probably match type
                         rating: 4.8, // Mock
                         reviews: 12, // Mock
+                        rating: 4.8, // Mock
+                        reviews: 12, // Mock
                         isVerified: property.status === 'approved',
+                        status: property.status, // Pass status for UI badge
                         furnishing: property.furnishing || "Unfurnished", // Backend field
                         stayType: property.stay_type || "Flexible", // Backend field
                         tags: property.amenities || []
@@ -140,7 +144,7 @@ export default function SearchPage() {
         // Scroll only on initial load or severe changes, not every filter tweak to keep context? 
         // User likely wants to see results at top if list refreshes.
         window.scrollTo(0, 0);
-    }, [searchParams, approvedProperties]); // Dependencies correct as searchParams change on filter change
+    }, [searchParams, allProperties]); // Dependencies correct as searchParams change on filter change
 
     return (
         <div className="min-h-screen bg-transparent pb-20 md:pb-0">

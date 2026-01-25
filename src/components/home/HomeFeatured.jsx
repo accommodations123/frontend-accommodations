@@ -12,6 +12,7 @@ import { useCountry } from '@/context/CountryContext';
 // API Hooks
 import {
   useGetApprovedPropertiesQuery,
+  useGetAllPropertiesQuery,
   useGetApprovedEventsQuery,
   useGetCommunitiesQuery,
   useGetBuySellListingsQuery
@@ -40,7 +41,7 @@ const Skeleton = ({ className = "" }) => (
 const HomeFeatured = () => {
   const navigate = useNavigate();
   const { activeCountry } = useCountry();
-  const { data: approvedProperties, isLoading: propertiesLoading } = useGetApprovedPropertiesQuery(activeCountry?.name);
+  const { data: allProperties, isLoading: propertiesLoading } = useGetAllPropertiesQuery({ country: activeCountry?.name });
   const { data: approvedEvents, isLoading: eventsLoading } = useGetApprovedEventsQuery(activeCountry?.code);
   const { data: communities, isLoading: communitiesLoading } = useGetCommunitiesQuery(activeCountry?.name);
   const { data: marketplaceItems, isLoading: marketplaceLoading } = useGetBuySellListingsQuery(activeCountry?.name);
@@ -73,8 +74,8 @@ const HomeFeatured = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             {propertiesLoading ? (
               [1, 2, 3, 4].map((n) => <Skeleton key={n} className="h-[300px] sm:h-[380px] lg:h-[420px]" />)
-            ) : approvedProperties?.length > 0 ? (
-              approvedProperties.slice(0, 4).filter(Boolean).map((property, idx) => (
+            ) : allProperties?.length > 0 ? (
+              allProperties.slice(0, 4).filter(Boolean).map((property, idx) => (
                 <motion.div
                   key={property.id || property._id}
                   {...fadeInUp}

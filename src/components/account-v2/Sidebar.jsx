@@ -1,8 +1,9 @@
 import React from 'react';
-import { User, Home, MapPin, Heart, Bell, LifeBuoy, Settings, HelpCircle, Briefcase } from 'lucide-react';
+import { User, Home, MapPin, Heart, Bell, LifeBuoy, Settings, HelpCircle, Briefcase, LayoutDashboard } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, onTabChange }) => {
     const menuItems = [
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
         { id: 'personal', label: 'Profile', icon: User },
         // { id: 'listings', label: 'My Listings', icon: Home }, // Optional: User might want these hidden from sidebar if they are in Profile? But request said "integrate... when i click profile". Keeping separate tabs might be redundant if they are in profile.
         // Let's keep them accessible via sidebar too as shortcuts, but Profile is the main one.

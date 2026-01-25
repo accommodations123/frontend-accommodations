@@ -64,6 +64,11 @@ export function ProductCard({ product, onMessage, onClick }) {
               Moving
             </span>
           )}
+          {product?.status === "pending" && (
+            <span className="px-1.5 sm:px-2 py-0.5 bg-yellow-500 text-white text-[10px] font-bold rounded-full shadow-sm">
+              Unverified
+            </span>
+          )}
         </div>
       </div>
 
