@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Menu, Globe, User, ChevronDown, X, Search, Users, Briefcase, Home, Calendar, Building, Plane, BookOpen, ShoppingBag, HomeIcon, Check, Sparkles, Settings as SettingsIcon, Grid3X3 } from "lucide-react"
+import { Menu, Globe, User, ChevronDown, X, Search, Users, Briefcase, Home, Calendar, Building, Plane, BookOpen, ShoppingBag, HomeIcon, Check, Sparkles, Settings as SettingsIcon, Grid3X3, LogOut } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -63,6 +63,20 @@ export function Navbar({ minimal = false, onMenuClick }) {
         return "User";
     }, [resolvedUser]);
 
+    // Handle logout function
+    const handleLogout = async () => {
+        try {
+            await logout().unwrap();
+        } catch (e) {
+            console.warn("Backend logout failed, proceeding with local cleanup", e);
+        }
+        disconnectSocket();
+        dispatch(authApi.util.resetApiState());
+        dispatch(hostApi.util.resetApiState());
+        localStorage.removeItem("user");
+        setIsMobileMenuOpen(false);
+        navigate("/signin");
+    };
 
     // Auto-scroll listener
     React.useEffect(() => {
@@ -81,7 +95,7 @@ export function Navbar({ minimal = false, onMenuClick }) {
         socketRef.current = socket;
 
         const onConnect = () => {
-            console.log("✅ Socket Connected Successfully!");
+            // Socket connected successfully
         };
 
         const onConnectError = (err) => {
@@ -111,19 +125,13 @@ export function Navbar({ minimal = false, onMenuClick }) {
     const explorePaths = ["/", "/events", "/search"]
     const isExploreActive = explorePaths.includes(location.pathname) || location.pathname.startsWith("/rooms")
 
-    React.useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 10)
-        }
-        window.addEventListener("scroll", handleScroll)
-        return () => window.removeEventListener("scroll", handleScroll)
-    }, [])
-
-    // Close mobile menus on route change
+    // Close dropdowns on route change but keep the main menu open
     React.useEffect(() => {
         setIsMobileCountryOpen(false)
         setIsHostDropdownOpen(false)
-        setIsMobileMenuOpen(false)
+        setIsCountryOpen(false)
+        setIsProfileOpen(false)
+        // Note: We're NOT closing setIsMobileMenuOpen here
     }, [location.pathname])
 
     // Click Outside Refs
@@ -132,7 +140,6 @@ export function Navbar({ minimal = false, onMenuClick }) {
     const mobileCountryRef = useClickOutside(() => setIsMobileCountryOpen(false))
     const hostDropdownRef = useClickOutside(() => setIsHostDropdownOpen(false))
     const mobileMenuRef = useClickOutside(() => setIsMobileMenuOpen(false))
-
 
     // Host options for dropdown
     const hostOptions = [
@@ -159,7 +166,7 @@ export function Navbar({ minimal = false, onMenuClick }) {
         },
     ]
 
-    // Navigation items
+    // Navigation items - ensuring consistent paths for desktop and mobile
     const navItems = [
         { name: "Home", path: "/" },
         { name: "Accommodations", path: "/search" },
@@ -468,31 +475,11 @@ export function Navbar({ minimal = false, onMenuClick }) {
                                                     <Plane className="h-4 w-4 opacity-70" />
                                                     My Trips
                                                 </Link>
-                                                {/* <Link
-                                                    to="/account-v2?tab=settings"
-                                                    className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-xl transition-all"
-                                                    onClick={() => setIsProfileOpen(false)}
-                                                >
-                                                    <SettingsIcon className="h-4 w-4 opacity-70" />
-                                                    Settings
-                                                </Link> */}
                                             </div>
 
                                             <div className="mt-2 pt-2 border-t border-white/5 px-2">
                                                 <button
-                                                    onClick={async () => {
-                                                        try {
-                                                            await logout().unwrap();
-                                                        } catch (e) {
-                                                            console.warn("Backend logout failed, proceeding with local cleanup", e);
-                                                        }
-                                                        disconnectSocket();
-                                                        dispatch(authApi.util.resetApiState());
-                                                        dispatch(hostApi.util.resetApiState());
-                                                        localStorage.removeItem("user");
-                                                        setIsProfileOpen(false);
-                                                        navigate("/signin");
-                                                    }}
+                                                    onClick={handleLogout}
                                                     className="w-full text-left px-4 py-3 text-sm text-[#FF6B6B] hover:bg-[#FF6B6B]/10 font-bold cursor-pointer transition-colors rounded-xl flex items-center gap-3"
                                                 >
                                                     <X className="w-4 h-4" />
@@ -540,7 +527,7 @@ export function Navbar({ minimal = false, onMenuClick }) {
                             </div>
                         </Link>
 
-                        {/* Right: Country Selector */}
+                        {/* Right: Country Selector and Sign Out */}
                         <div className="flex items-center gap-2">
                             {/* Country Selector */}
                             <div className="relative" ref={mobileCountryRef}>
@@ -603,6 +590,17 @@ export function Navbar({ minimal = false, onMenuClick }) {
                                     )}
                                 </AnimatePresence>
                             </div>
+
+                            {/* Sign Out Button - Only show when authenticated */}
+                            {isAuthenticated && (
+                                <button
+                                    onClick={handleLogout}
+                                    className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                    title="Sign Out"
+                                >
+                                    <LogOut className="w-5 h-5" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -718,18 +716,43 @@ export function Navbar({ minimal = false, onMenuClick }) {
                                         </motion.button>
                                     </div>
 
+                                    {/* Additional Account Options */}
+                                    {isAuthenticated && (
+                                        <div className="mb-8">
+                                            <p className="px-4 text-xs font-bold text-white/40 uppercase tracking-widest mb-3">Account</p>
+                                            <div className="space-y-2">
+                                                <Link
+                                                    to="/account-v2?tab=overview"
+                                                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white/70 hover:text-white"
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                >
+                                                    <Home className="w-5 h-5" />
+                                                    <span>Overview</span>
+                                                </Link>
+                                                <Link
+                                                    to="/account-v2?tab=personal"
+                                                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white/70 hover:text-white"
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                >
+                                                    <User className="w-5 h-5" />
+                                                    <span>Personal Info</span>
+                                                </Link>
+                                                <Link
+                                                    to="/account-v2?tab=trips"
+                                                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white/70 hover:text-white"
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                >
+                                                    <Plane className="w-5 h-5" />
+                                                    <span>My Trips</span>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Logout if authenticated */}
                                     {isAuthenticated && (
                                         <button
-                                            onClick={async () => {
-                                                try { await logout().unwrap(); } catch (e) { }
-                                                disconnectSocket();
-                                                dispatch(authApi.util.resetApiState());
-                                                dispatch(hostApi.util.resetApiState());
-                                                localStorage.removeItem("user");
-                                                setIsMobileMenuOpen(false);
-                                                navigate("/signin");
-                                            }}
+                                            onClick={handleLogout}
                                             className="mt-auto w-full py-4 text-[#FF6B6B] font-bold hover:bg-[#FF6B6B]/10 rounded-xl transition-colors flex items-center justify-center gap-2"
                                         >
                                             <X className="w-5 h-5" /> Sign Out

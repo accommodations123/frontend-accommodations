@@ -62,8 +62,6 @@ const Signup = () => {
                 otp: formData.otp
             }).unwrap();
 
-            console.log("Verification Response:", response);
-
             if (response) {
                 const userData = response.user || response.data?.user;
                 if (userData) {

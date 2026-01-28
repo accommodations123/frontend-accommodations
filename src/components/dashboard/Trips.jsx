@@ -143,27 +143,19 @@ export const Trips = () => {
 
     tripList.forEach(trip => {
         (trip.matches || []).forEach(match => {
-            console.log('Processing match:', match, 'for trip:', trip.id);
             if (match.status === 'pending' || match.status === 'requested') {
                 // If the matched_trip_id is MINE, then someone requested ME -> Incoming
                 // If the trip_id is MINE, then I requested someone -> Sent
 
                 // Allow loose comparison for IDs in case of string/number mismatch
                 if (match.matched_trip_id == trip.id) {
-                    console.log('-> Classified as INCOMING');
                     incomingRequests.push({ ...match, tripDetails: trip });
                 } else if (match.trip_id == trip.id) {
-                    console.log('-> Classified as SENT');
                     sentRequests.push({ ...match, tripDetails: trip });
-                } else {
-                    console.log('-> Unclassified match:', match.trip_id, match.matched_trip_id, trip.id);
                 }
             }
         });
     });
-
-    console.log('Incoming:', incomingRequests);
-    console.log('Sent:', sentRequests);
 
     const handleRequestAction = async (match, action) => {
         try {
@@ -522,27 +514,6 @@ export const Trips = () => {
                             ))}
                         </div>
                     )}
-                </div>
-            </div>
-
-            {/* DEBUG SECTION - REMOVE BEFORE PRODUCTION */}
-            <div className="fixed bottom-4 left-4 p-4 bg-black/80 text-white text-xs rounded-lg max-w-lg z-50 overflow-auto max-h-[300px]">
-                <h3 className="font-bold border-b border-white/20 mb-2">Debug Info</h3>
-                <div>Total Trips: {tripList.length}</div>
-                <div>Incoming Requests: {incomingRequests.length}</div>
-                <div>Sent Requests: {sentRequests.length}</div>
-                <div className="mt-2">
-                    <strong>Matches Found:</strong>
-                    <pre>{JSON.stringify(tripList.map(t => ({
-                        id: t.id,
-                        matchesCount: t.matches?.length || 0,
-                        matchIds: t.matches?.map(m => ({
-                            id: m.id,
-                            trip_id: m.trip_id,
-                            matched_trip_id: m.matched_trip_id,
-                            status: m.status
-                        }))
-                    })), null, 2)}</pre>
                 </div>
             </div>
         </div>

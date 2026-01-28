@@ -96,7 +96,6 @@ export default function PostTripModal({ onClose, onAdd }) {
             };
 
             const response = await createTrip(payload).unwrap();
-            console.log("Trip posted successfully:", response);
 
             onAdd({
                 ...response,

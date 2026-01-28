@@ -11,14 +11,17 @@ import {
   Mail,
   Phone,
   Loader2,
+
 } from "lucide-react";
-import { useCreateBuySellMutation, useGetHostProfileQuery } from "@/store/api/hostApi";
+import { useCreateBuySellMutation, useUpdateBuySellMutation, useGetHostProfileQuery } from "@/store/api/hostApi";
 import { useGetMeQuery } from "@/store/api/authApi";
 import { cn } from "@/lib/utils";
 import { fetchAddressByPincode } from "@/lib/pincodeUtils";
 import { useEffect } from "react";
 import { Country, State, City } from 'country-state-city';
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import { COUNTRIES } from "@/lib/mock-data";
+import { CountryCodeSelect } from "@/components/ui/CountryCodeSelect";
 
 /* =========================================================
    BASIC UI COMPONENTS (MUST BE ABOVE SellForm)
@@ -122,12 +125,50 @@ const appendIfExists = (formData, key, value) => {
   }
 };
 
-/* =========================================================
-   MAIN COMPONENT
-   ========================================================= */
+// Helper to split phone number
+// Known country codes (most common first)
+const KNOWN_CODES = ["+1", "+91", "+44", "+86", "+81", "+49", "+33", "+61", "+55", "+39", "+34", "+7", "+82", "+62", "+52", "+31", "+27", "+966", "+971", "+65", "+60", "+63", "+66", "+84", "+92", "+94", "+880", "+977", "+254", "+233", "+234"];
 
-export function SellForm({ onPost }) {
+const splitPhone = (fullPhone) => {
+  if (!fullPhone) return { code: "+91", number: "" };
+
+  const phoneStr = fullPhone.toString().trim();
+
+  // Case 1: Starts with + - check against known country codes
+  if (phoneStr.startsWith('+')) {
+    // Sort by length (longest first) to match +971 before +97, etc.
+    const sortedCodes = [...KNOWN_CODES].sort((a, b) => b.length - a.length);
+    for (const code of sortedCodes) {
+      if (phoneStr.startsWith(code)) {
+        return { code: code, number: phoneStr.slice(code.length).trim() };
+      }
+    }
+    // Fallback: if not a known code, try matching 1-4 digits
+    const match = phoneStr.match(/^(\+\d{1,4})(.*)$/);
+    if (match) {
+      return { code: match[1], number: match[2]?.trim() };
+    }
+  }
+
+  // Case 2: Starts with country code without + (e.g., 918328632931 for India)
+  // For Indian numbers: if starts with 91 and has 12 digits total, strip 91
+  if (/^91\d{10}$/.test(phoneStr)) {
+    return { code: "+91", number: phoneStr.slice(2) };
+  }
+
+  // Case 3: Just the number without any code (10 digits for India)
+  if (/^\d{10}$/.test(phoneStr)) {
+    return { code: "+91", number: phoneStr };
+  }
+
+  // Fallback: assume it's just the number
+  return { code: "+91", number: phoneStr };
+};
+
+export function SellForm({ onPost, initialData, isEditing: externalIsEditing }) {
   const [images, setImages] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [imagesToDelete, setImagesToDelete] = useState([]);
   const [dragActive, setDragActive] = useState(false);
 
   const { data: userData } = useGetMeQuery();
@@ -137,6 +178,7 @@ export function SellForm({ onPost }) {
 
   const isVerifiedHost = hostProfile?.status === 'approved';
 
+  // State
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
@@ -146,8 +188,11 @@ export function SellForm({ onPost }) {
   const [country, setCountry] = useState("");
   const [streetAddress, setStreetAddress] = useState("");
   const [name, setName] = useState("");
-  // const [email, setEmail] = useState(""); // Email from DB
   const [phone, setPhone] = useState("");
+  const [phoneCode, setPhoneCode] = useState("+91");
+  const [category, setCategory] = useState("Furniture");
+  const [subcategory, setSubcategory] = useState("");
+
   const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [validationError, setValidationError] = useState("");
 
@@ -155,26 +200,85 @@ export function SellForm({ onPost }) {
   const [statesList, setStatesList] = useState([]);
   const [citiesList, setCitiesList] = useState([]);
 
-  const [category, setCategory] = useState("Furniture");
-  const [subcategory, setSubcategory] = useState("");
+  // Mutations
+  const [createBuySell, { isLoading: isCreating, isError: isCreateError, error: createError, isSuccess: isCreateSuccess }] = useCreateBuySellMutation();
+  const [updateBuySell, { isLoading: isUpdating, isError: isUpdateError, error: updateError, isSuccess: isUpdateSuccess }] = useUpdateBuySellMutation();
 
-  // Pre-fill user data
+  const isLoading = isCreating || isUpdating;
+  const isError = isCreateError || isUpdateError;
+  const error = createError || updateError;
+  const isSuccess = isCreateSuccess || isUpdateSuccess;
+
+  const isEditing = !!initialData || externalIsEditing;
+
+  // Pre-fill user data OR initialData
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user.fullName || user.name) setName(user.fullName || user.name);
-        if (user.email) setEmail(user.email);
-        if (user.phone) setPhone(user.phone);
-      } catch (err) {
-        console.warn("Failed to parse user for SellForm pre-fill", err);
+    if (initialData) {
+      setTitle(initialData.title || "");
+      setPrice(initialData.price || "");
+      setDescription(initialData.description || "");
+      setZipCode(initialData.zip_code || "");
+      setCity(initialData.city || "");
+      setState(initialData.state || "");
+      setCountry(initialData.country || "");
+      setStreetAddress(initialData.street_address || "");
+      setName(initialData.name || "");
+      setCategory(initialData.category || "Furniture");
+      setSubcategory(initialData.subcategory || "");
+
+      // Phone
+      if (initialData.phone) {
+        const { code, number } = splitPhone(initialData.phone);
+        setPhoneCode(code);
+        setPhone(number);
+      }
+
+      // Existing images
+      if (initialData.images && Array.isArray(initialData.images)) {
+        setExistingImages(initialData.images);
+      } else if (initialData.image) {
+        setExistingImages([initialData.image]);
+      }
+
+      // Populate location lists
+      // Note: We might need to find the ISO codes to populate states/cities lists correctly
+      // For now, we set values directly. Lists will populate if user interacts with dropdowns.
+      if (initialData.country) {
+        const cObj = countriesList.find(c => c.name === initialData.country);
+        if (cObj) {
+          setStatesList(State.getStatesOfCountry(cObj.isoCode));
+          const sObj = State.getStatesOfCountry(cObj.isoCode).find(s => s.name === initialData.state);
+          if (sObj) {
+            setCitiesList(City.getCitiesOfState(cObj.isoCode, sObj.isoCode));
+          }
+        }
+      }
+
+    } else {
+      // Pre-fill from User Data (Only for new listings)
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.fullName || user.name) setName(user.fullName || user.name);
+          if (user.phone) {
+            const { code, number } = splitPhone(user.phone);
+            setPhoneCode(code);
+            setPhone(number);
+          }
+        } catch (err) {
+          console.warn("Failed to parse user for SellForm pre-fill", err);
+        }
       }
     }
-  }, []);
+  }, [initialData, countriesList]);
 
-  // Auto-fill address based on Pincode
+  // Auto-fill address based on Pincode (Only if not editing or if user changes zip explicitly?)
+  // Keeping logic simple: triggers on zipCode change.
   useEffect(() => {
+    // If editing and zip matches initial, don't auto-fetch to avoid overwriting specific manual edits
+    if (initialData && zipCode === initialData.zip_code) return;
+
     const fetchPincodeDetails = async () => {
       if (zipCode && zipCode.length === 6 && /^\d+$/.test(zipCode)) {
         setIsPincodeLoading(true);
@@ -182,7 +286,6 @@ export function SellForm({ onPost }) {
         if (addressData) {
           const matchedCountry = countriesList.find(c => c.name.toLowerCase() === (addressData.country || "India").toLowerCase());
           const countryCode = matchedCountry?.isoCode || "IN";
-
           const states = State.getStatesOfCountry(countryCode);
           const matchedState = states.find(s => s.name.toLowerCase() === addressData.state?.toLowerCase());
 
@@ -199,12 +302,9 @@ export function SellForm({ onPost }) {
       }
     };
 
-    const timeoutId = setTimeout(fetchPincodeDetails, 500); // Debounce
+    const timeoutId = setTimeout(fetchPincodeDetails, 500);
     return () => clearTimeout(timeoutId);
   }, [zipCode]);
-
-  const [createBuySell, { isLoading, isError, error, isSuccess }] =
-    useCreateBuySellMutation();
 
   /* ================= IMAGE HANDLERS ================= */
 
@@ -221,6 +321,11 @@ export function SellForm({ onPost }) {
 
   const removeImage = (index) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingImage = (imgUrl) => {
+    setExistingImages(prev => prev.filter(img => img !== imgUrl));
+    setImagesToDelete(prev => [...prev, imgUrl]);
   };
 
   /* ================= SUBMIT ================= */
@@ -241,7 +346,6 @@ export function SellForm({ onPost }) {
     appendIfExists(formData, "price", Number(price));
     appendIfExists(formData, "description", description);
 
-    // Prefer ONE location strategy
     appendIfExists(formData, "country", typeof country === 'string' ? country : country?.name);
     appendIfExists(formData, "state", state);
     appendIfExists(formData, "city", city);
@@ -252,23 +356,42 @@ export function SellForm({ onPost }) {
     appendIfExists(formData, "subcategory", subcategory || category);
 
     appendIfExists(formData, "name", name);
-    // appendIfExists(formData, "email", email);
-    appendIfExists(formData, "phone", phone);
+    appendIfExists(formData, "phone", `${phoneCode}${phone}`);
 
     formData.append("status", "active");
 
-    // IMPORTANT: image key name matches backend/Postman
+    // New images
     images.forEach((img) => {
       formData.append("galleryImages", img);
     });
 
+    // Existing images to keep (if backend supports re-sending or if we just send deletions)
+    // The current backend likely expects 'galleryImages' for NEW uploads.
+    // For updating existing images, we might need a separate strategy or the backend might handle 'deleteImages' field.
+    // Assuming backend handles replacements or we just add new ones. 
+    // If backend replaces all images provided, we need to handle that. 
+    // Usually 'update' with FormData appends. 
+    // Let's assume for now we append new ones. 
+    // And if we deleted existing ones, we check if backend supports a 'delete_images' field. 
+    // If not, we might be limited. 
+    // But basic NEW image upload works.
+
+    // Pass existing images that were NOT deleted? 
+    // Usually backend handling varies. For now let's send new images.
+
     try {
-      const res = await createBuySell(formData).unwrap();
+      let res;
+      if (isEditing && initialData?.id) {
+        res = await updateBuySell({ id: initialData.id, data: formData }).unwrap();
+      } else {
+        res = await createBuySell(formData).unwrap();
+      }
+
       if (res?.success && onPost) {
-        onPost(res.listings?.[0]);
+        onPost(res.listing || res.listings?.[0]);
       }
     } catch (err) {
-      console.error("Create listing failed:", err);
+      console.error("Listing operation failed:", err);
     }
   };
 
@@ -306,9 +429,11 @@ export function SellForm({ onPost }) {
   return (
     <div className="max-w-3xl mx-auto bg-gray-50 p-4 sm:p-6 lg:p-8 rounded-xl">
       <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
-        List an Item for Sale
+        {isEditing ? "Update Listing" : "List an Item for Sale"}
       </h2>
-      <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">Share your items with community</p>
+      <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">
+        {isEditing ? "Update your listing details" : "Share your items with community"}
+      </p>
 
       {isError && (
         <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
@@ -328,7 +453,7 @@ export function SellForm({ onPost }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* PHOTOS */}
         <div
           className={cn(
@@ -356,8 +481,32 @@ export function SellForm({ onPost }) {
             </p>
           </label>
 
-          {images.length > 0 && (
+
+
+          {(images.length > 0 || existingImages.length > 0) && (
             <div className="flex gap-2 sm:gap-3 mt-4 overflow-x-auto">
+              {/* Existing Images */}
+              {existingImages.map((imgUrl, i) => (
+                <div
+                  key={`existing-${i}`}
+                  className="relative w-20 h-20 sm:w-24 sm:h-24 border rounded-lg overflow-hidden shrink-0"
+                >
+                  <img
+                    src={imgUrl}
+                    alt="preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeExistingImage(imgUrl)}
+                    className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-sm hover:bg-red-50"
+                  >
+                    <X size={12} className="text-red-500" />
+                  </button>
+                </div>
+              ))}
+
+              {/* New Images */}
               {images.map((img, i) => (
                 <div
                   key={i}
@@ -382,7 +531,7 @@ export function SellForm({ onPost }) {
         </div>
 
         {/* ITEM DETAILS */}
-        <div className="bg-white p-4 sm:p-6 rounded-lg space-y-3 sm:space-y-4">
+        <div className="bg-white p-4 rounded-lg space-y-3">
           <Label>Title</Label>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} />
 
@@ -402,15 +551,20 @@ export function SellForm({ onPost }) {
           />
 
           <Label>Price</Label>
-          <Input
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
+          <div className="relative">
+            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="pl-9"
+              placeholder="0.00"
+            />
+          </div>
         </div>
 
         {/* LOCATION & DESCRIPTION */}
-        <div className="bg-white p-4 sm:p-6 rounded-lg space-y-3 sm:space-y-4">
+        <div className="bg-white p-4 rounded-lg space-y-3">
           <SearchableDropdown
             label="Country"
             placeholder="Select Country"
@@ -477,7 +631,7 @@ export function SellForm({ onPost }) {
         </div>
 
         {/* CONTACT */}
-        <div className="bg-white p-4 sm:p-6 rounded-lg space-y-3 sm:space-y-4">
+        <div className="bg-white p-4 rounded-lg space-y-3">
           <Label>Name</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
 
@@ -489,23 +643,29 @@ export function SellForm({ onPost }) {
           /> */}
 
           <Label>Phone</Label>
-          <Input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
+          <div className="flex gap-2">
+            <CountryCodeSelect
+              value={phoneCode || "+91"}
+              onChange={setPhoneCode}
+              className="w-[110px]"
+            />
+            <Input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="flex-1"
+            />
+          </div>
         </div>
 
         {/* ACTIONS */}
         <div className="flex gap-3 sm:gap-4 flex-col sm:flex-row">
-          <Button variant="secondary" disabled={isLoading} className="w-full sm:w-auto">
-            Save as Draft
-          </Button>
+
           <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-            {isLoading ? "Posting..." : "Post Listing"}
+            {isLoading ? (isEditing ? "Updating..." : "Posting...") : (isEditing ? "Update Listing" : "Post Listing")}
           </Button>
         </div>
-      </form>
-    </div>
+      </form >
+    </div >
   );
 }

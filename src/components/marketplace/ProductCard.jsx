@@ -1,7 +1,7 @@
 import React from "react";
-import { MapPin, Clock, MessageCircle, Heart, ImageOff } from "lucide-react";
+import { MapPin, Clock, Heart, ImageOff } from "lucide-react";
 import { useCountry } from "@/context/CountryContext";
-import { Button } from "@/components/ui/button";
+
 import { Badge } from "@/components/ui/badge";
 
 const FALLBACK_IMAGE = null;
@@ -104,23 +104,11 @@ export function ProductCard({ product, onMessage, onClick }) {
           <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-gray-500 truncate max-w-[55%]">
             <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
             <span className="truncate">
-              {product.location || "Location not specified"}
+              {product.location || [product.city, product.state, product.country].filter(Boolean).join(", ") || "Location not specified"}
             </span>
           </div>
 
-          {typeof onMessage === "function" && (
-            <Button
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMessage(product);
-              }}
-              className="h-6 sm:h-7 text-[10px] sm:text-xs px-2 sm:px-3 bg-white border border-primary text-primary hover:bg-primary hover:text-white transition-colors shadow-none"
-            >
-              <MessageCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
-              <span className="hidden sm:inline">Chat</span>
-            </Button>
-          )}
+
         </div>
       </div>
     </div>

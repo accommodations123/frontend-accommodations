@@ -45,7 +45,7 @@ export const ApplicationForm = ({ jobId, jobTitle, onSuccess, onCancel }) => {
         formData.append('phone', data.phone || '');
         formData.append('linkedin_url', data.linkedin_url || '');
         formData.append('portfolio_url', data.portfolio_url || '');
-        formData.append('availability_date', data.availability_date || '');
+        formData.append('experience', data.experience || '');
         formData.append('resume', resumeFile);
 
         try {
@@ -65,10 +65,7 @@ export const ApplicationForm = ({ jobId, jobTitle, onSuccess, onCancel }) => {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="bg-blue-50/50 p-4 rounded-xl mb-6 border border-blue-100">
-                <h3 className="text-sm font-medium text-blue-800">Applying for</h3>
-                <p className="text-lg font-bold text-blue-900">{jobTitle}</p>
-            </div>
+
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* First Name */}
@@ -139,16 +136,18 @@ export const ApplicationForm = ({ jobId, jobTitle, onSuccess, onCancel }) => {
                     />
                 </div>
 
-                {/* Availability Date */}
+                {/* Experience */}
                 <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-medium text-gray-700">Earliest Start Date</label>
+                    <label className="text-sm font-medium text-gray-700">Years of Experience *</label>
                     <div className="relative">
                         <input
-                            type="date"
-                            {...register('availability_date')}
+                            type="text"
+                            {...register('experience', { required: "Experience is required" })}
                             className="w-full h-11 px-4 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                            placeholder="e.g. 5+ years"
                         />
                     </div>
+                    {errors.experience && <span className="text-xs text-red-500">{errors.experience.message}</span>}
                 </div>
             </div>
 

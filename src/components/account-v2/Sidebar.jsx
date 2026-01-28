@@ -10,6 +10,7 @@ export const Sidebar = ({ activeTab, onTabChange }) => {
         // Actually user said "when i click on my profile [get these sections]".
         // Let's keep them in sidebar for now as "shortcuts" but make Profile the main view.
         { id: 'listings', label: 'My Listings', icon: Home },
+        { id: 'buy-sell', label: 'My Buy/Sell', icon: LayoutDashboard }, // Using LayoutDashboard temporarily or maybe ShoppingBag if importable
         { id: 'applications', label: 'My Applications', icon: Briefcase },
         { id: 'trips', label: 'Trips', icon: MapPin },
         // { id: 'wishlists', label: 'Wishlists', icon: Heart },

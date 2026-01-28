@@ -125,7 +125,7 @@ export const HorizontalEventCard = memo(({ event, onViewDetails, index }) => {
                         <HostPhoto host={event.host} />
                         <div className="overflow-hidden">
                             <p className="text-[10px] text-gray-500 uppercase tracking-wider">Organizer</p>
-                            <p className="text-sm font-medium text-gray-900 truncate">{getOrganizerName()}</p>
+                            <p className="text-sm font-medium text-gray-900 break-words">{getOrganizerName()}</p>
                         </div>
                     </div>
 

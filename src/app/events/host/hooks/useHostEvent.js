@@ -43,8 +43,34 @@ export const useHostEvent = () => {
         bannerImage: null,
         galleryImages: [],
         what_is_included: "",
-        what_is_not_included: ""
+        what_is_not_included: "",
+        phone: "",
+        phoneCode: "+91",
     })
+
+    // Helper to split phone number
+    // Known country codes (most common first)
+    const KNOWN_CODES = ["+1", "+91", "+44", "+86", "+81", "+49", "+33", "+61", "+55", "+39", "+34", "+7", "+82", "+62", "+52", "+31", "+27", "+966", "+971", "+65", "+60", "+63", "+66", "+84", "+92", "+94", "+880", "+977", "+254", "+233", "+234"];
+
+    const splitPhone = (fullPhone) => {
+        if (!fullPhone) return { code: "+91", number: "" };
+
+        const phoneStr = fullPhone.toString().trim();
+
+        // Check against known country codes (sorted by length, longest first)
+        if (phoneStr.startsWith('+')) {
+            const sortedCodes = [...KNOWN_CODES].sort((a, b) => b.length - a.length);
+            for (const code of sortedCodes) {
+                if (phoneStr.startsWith(code)) {
+                    return { code: code, number: phoneStr.slice(code.length).trim() };
+                }
+            }
+        }
+
+        // Fallback for numbers without + or unknown codes
+        return { code: "+91", number: phoneStr };
+    };
+
 
     // Data Fetching
     const { data: myEvents } = useGetMyEventsQuery(undefined, { skip: !editId });
@@ -67,7 +93,6 @@ export const useHostEvent = () => {
         }
 
         if (event) {
-            console.log("📝 Editing Event:", event);
             setEventId(editId); // Ensure ID is set
 
             // Check status for read-only mode, but allow editing if it's the owner (which it is if found in myEvents/edit flow)
@@ -80,6 +105,8 @@ export const useHostEvent = () => {
                 setError("This event is approved and cannot be modified.");
             }
 
+            const { code, number } = splitPhone(event.phone || "");
+
             // Populate form
             setFormData(prev => ({
                 ...prev,
@@ -87,6 +114,10 @@ export const useHostEvent = () => {
                 description: event.description || "",
                 event_type: event.event_type || "meetup",
                 event_mode: event.event_mode || "offline",
+
+                // Phone
+                phone: number,
+                phoneCode: code,
 
                 // Date/Time (handling potential ISO strings)
                 date: event.start_date ? new Date(event.start_date).toISOString().split('T')[0] : "",
@@ -248,7 +279,8 @@ export const useHostEvent = () => {
                 start_time: formData.time,
                 end_time: formData.end_time,
                 event_url: formData.event_url,
-                online_instructions: formData.online_instructions
+                online_instructions: formData.online_instructions,
+                phone: `${formData.phoneCode}${formData.phone}`
             })
 
             if (formData.event_mode !== 'online') {

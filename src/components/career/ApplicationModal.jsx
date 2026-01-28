@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Upload, Check, ChevronRight, ChevronLeft, Calendar, Linkedin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { CountryCodeSelect } from '@/components/ui/CountryCodeSelect'
 
 export function ApplicationModal({ job, isOpen, onClose }) {
     const [step, setStep] = useState(1)
@@ -10,6 +11,7 @@ export function ApplicationModal({ job, isOpen, onClose }) {
         lastName: '',
         email: '',
         phone: '',
+        phoneCode: '+91',
         linkedin: '',
         portfolio: '',
         experience: [],
@@ -81,7 +83,22 @@ export function ApplicationModal({ job, isOpen, onClose }) {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-sm text-gray-400">Phone</label>
-                                        <input type="tel" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-[#7B2CBF] focus:outline-none transition-colors" placeholder="+1 (555) 000-0000" />
+                                        <div className="flex gap-2">
+                                            <div className="w-[110px] shrink-0">
+                                                <CountryCodeSelect
+                                                    value={formData.phoneCode}
+                                                    onChange={(code) => setFormData({ ...formData, phoneCode: code })}
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            <input
+                                                type="tel"
+                                                value={formData.phone}
+                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-[#7B2CBF] focus:outline-none transition-colors"
+                                                placeholder="000-0000"
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="pt-4 border-t border-white/10">
@@ -92,7 +109,7 @@ export function ApplicationModal({ job, isOpen, onClose }) {
                                                 type="file"
                                                 accept=".pdf,.doc,.docx"
                                                 className="hidden"
-                                                onChange={(e) => console.log(e.target.files)}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, resume: e.target.files[0] }))}
                                             />
                                             <Upload className="w-8 h-8 text-gray-400 mx-auto mb-3 group-hover:text-[#7B2CBF] transition-colors" />
                                             <p className="text-sm text-gray-300">Drag and drop your resume here, or click to browse</p>

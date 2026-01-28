@@ -346,10 +346,25 @@ export const hostApi = createApi({
         }),
 
         getBuySellListings: builder.query({
-            query: (country) => ({
-                url: "buy-sell/get",
-                params: country ? { country } : undefined
-            }),
+            query: ({ country, state, city, zip_code, category, minPrice, maxPrice, search } = {}) => {
+                const headers = {};
+                if (country) headers["X-Country"] = country;
+                if (state) headers["X-State"] = state;
+                if (city) headers["X-City"] = city;
+                if (zip_code) headers["X-Zip-Code"] = zip_code;
+
+                const params = {};
+                if (category) params.category = category;
+                if (minPrice) params.minPrice = minPrice;
+                if (maxPrice) params.maxPrice = maxPrice;
+                if (search) params.search = search;
+
+                return {
+                    url: "buy-sell/get",
+                    headers,
+                    params
+                };
+            },
             providesTags: ["BuySell"],
             transformResponse: (response) => {
                 const res = response?.listings || response?.data?.listings || response?.data || response;

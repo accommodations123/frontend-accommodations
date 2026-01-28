@@ -2,10 +2,20 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Heart, Star, MapPin, Users, Wifi, Car, Utensils, Tv,
-    Thermometer, Bed, CheckCircle, ShieldCheck, Dumbbell, ArrowRight, ExternalLink, Bath, MessageCircle
+    Thermometer, Bed, CheckCircle, ShieldCheck, Dumbbell, ArrowRight, ExternalLink, Bath, MessageCircle,
+    Globe, Twitter
 } from 'lucide-react';
 import { VerificationBadge } from '@/components/ui/VerificationBadge';
 import { MdEmail } from "react-icons/md";
+import {
+    FaWhatsapp,
+    FaInstagram,
+    FaFacebookF,
+    FaLinkedinIn,
+    FaYoutube,
+    FaLink,
+    FaXTwitter
+} from "react-icons/fa6";
 import { useCountry } from '@/context/CountryContext';
 import { toast } from 'sonner';
 
@@ -26,7 +36,7 @@ export const PropertyCard = ({ property }) => {
 
     // Helper to normalize image URLs
     const getValidImageUrl = (imagePath) => {
-        if (!imagePath) return "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&h=400&fit=crop";
+        if (!imagePath) return "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80"; // Generic House
         if (imagePath.startsWith('http')) return imagePath;
         return `/${imagePath.startsWith('/') ? imagePath.slice(1) : imagePath}`;
     };
@@ -34,7 +44,11 @@ export const PropertyCard = ({ property }) => {
     // Safely get property data
     const propertyData = {
         id: property.id || property._id || 'unknown',
-        title: property.title || property.name || (property.property_type ? `${property.property_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}` : "Premium Stay"),
+        title: (property.title && !property.title.toLowerCase().includes("untitled"))
+            ? property.title
+            : (property.name && !property.name.toLowerCase().includes("untitled"))
+                ? property.name
+                : (property.property_type ? property.property_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : "Stay"),
         location: property.city || property.location?.city || property.address || "Location Info",
         hostPreference: property.host_preference || "",
         image: getValidImageUrl((Array.isArray(property.photos) && property.photos.length > 0)
@@ -54,16 +68,82 @@ export const PropertyCard = ({ property }) => {
             currency: property.currency || property.pricing?.currency || 'INR',
             period: (property.price_per_month || property.pricing?.perMonth) ? 'month' : (property.price_per_night || property.pricing?.perNight) ? 'night' : 'hour'
         },
-        host: property.host || property.Host || property.creator || null,
-        hostImage: getValidImageUrl(property.host?.profile_image || property.Host?.profile_image || property.host?.image || property.creator?.profile_image),
-        // Contact Details
-        phone: property.phone || property.mobile || property.host?.phone || property.Host?.phone,
-        email: property.email || property.host?.email || property.Host?.email,
-        whatsapp: property.whatsapp || property.phone || property.mobile || property.host?.phone, // Robust Fallback
-        facebook: property.facebook || property.host?.facebook || property.Host?.facebook,
-        instagram: property.instagram || property.host?.instagram || property.Host?.instagram,
+        host: property.host || property.Host || property.creator || {},
+        hostImage: getValidImageUrl(property.host?.User?.profile_image || property.Host?.User?.profile_image || property.host?.profile_image || property.Host?.profile_image || property.host?.image || property.creator?.profile_image),
+        // Contact Details & Socials (Perfect & Robust Mapping)
+        socials: {
+            whatsapp:
+                property.Host?.whatsapp ||
+                property.host?.whatsapp ||
+                property.Host?.phone ||
+                property.host?.phone ||
+                property.phone ||
+                "",
+
+            instagram:
+                property.Host?.instagram ||
+                property.host?.instagram ||
+                property.Host?.User?.instagram ||
+                property.creator?.instagram ||
+                "",
+
+            facebook:
+                property.Host?.facebook ||
+                property.host?.facebook ||
+                property.Host?.User?.facebook ||
+                property.creator?.facebook ||
+                "",
+
+            twitter:
+                property.Host?.twitter ||
+                property.host?.twitter ||
+                property.Host?.x ||
+                property.Host?.User?.twitter ||
+                ""
+        }
+
+
     };
 
+    const handleSocialClick = (e, platform, value) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!value) return;
+
+        let url;
+
+        switch (platform) {
+            case "whatsapp": {
+                const phone = value.replace(/\D/g, "");
+                if (!phone) return;
+                url = `https://wa.me/${phone}`;
+                break;
+            }
+
+            case "instagram":
+                url = value.startsWith("http")
+                    ? value
+                    : `https://instagram.com/${value.replace(/^@/, "")}`;
+                break;
+
+            case "facebook":
+                url = value.startsWith("http")
+                    ? value
+                    : `https://facebook.com/${value}`;
+                break;
+
+            case "twitter":
+                url = value.startsWith("http")
+                    ? value
+                    : `https://twitter.com/${value.replace(/^@/, "")}`;
+                break;
+
+            default:
+                return;
+        }
+
+        window.open(url, "_blank", "noopener,noreferrer");
+    };
 
 
     return (
@@ -76,7 +156,7 @@ export const PropertyCard = ({ property }) => {
                     className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
                     onLoad={() => setIsImageLoaded(true)}
                     onError={(e) => {
-                        e.target.src = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&h=400&fit=crop";
+                        e.target.src = "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80";
                         e.target.classList.remove('opacity-0');
                     }}
                     loading="lazy"
@@ -98,7 +178,7 @@ export const PropertyCard = ({ property }) => {
 
                 </div>
 
-                {/* Favorite Button */}
+                {/* Top Right Heart */}
                 <div className="absolute top-4 right-4 z-20">
                     <button
                         className={`h-9 w-9 rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-md shadow-sm border border-white/20 ${isFavorited ? 'bg-[#CB2A25] text-white shadow-[#CB2A25]/30' : 'bg-black/20 text-white hover:bg-white hover:text-[#CB2A25]'}`}
@@ -111,17 +191,6 @@ export const PropertyCard = ({ property }) => {
                     >
                         <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
                     </button>
-                </div>
-
-                {/* Host Image Overlay (Bottom Right) */}
-                <div className="absolute bottom-3 right-3 z-20">
-                    <div className="w-10 h-10 rounded-full p-0.5 bg-white shadow-lg">
-                        <img
-                            src={propertyData.hostImage}
-                            alt="Host"
-                            className="w-full h-full rounded-full object-cover"
-                        />
-                    </div>
                 </div>
             </div>
 
@@ -162,7 +231,7 @@ export const PropertyCard = ({ property }) => {
 
                 {/* Price & Actions Row */}
                 <div className="flex items-end justify-between mt-auto pt-4 border-t border-gray-100">
-                    <div>
+                    <div className="flex flex-col gap-2">
                         <div className="flex items-baseline gap-1">
                             <span className="text-xl font-black text-[#00142E]">
                                 {propertyData.price.amount > 0 ? formatPrice(propertyData.price.amount) : "On Request"}
@@ -173,6 +242,61 @@ export const PropertyCard = ({ property }) => {
                         </div>
                     </div>
 
+                    {/* Social Media Quick Connect (Price Section) */}
+                    <div className="flex gap-2 items-center justify-end">
+
+                        {propertyData.socials.whatsapp && (
+                            <button
+                                onClick={(e) =>
+                                    handleSocialClick(e, "whatsapp", propertyData.socials.whatsapp)
+                                }
+                                className="w-7 h-7 rounded-full bg-[#25D366] text-white flex items-center justify-center hover:scale-110 transition"
+                                title="WhatsApp"
+                            >
+                                <FaWhatsapp className="w-4 h-4" />
+                            </button>
+                        )}
+
+                        {propertyData.socials.instagram && (
+                            <button
+                                onClick={(e) =>
+                                    handleSocialClick(e, "instagram", propertyData.socials.instagram)
+                                }
+                                className="w-7 h-7 rounded-full bg-gray-100 text-[#E4405F] flex items-center justify-center hover:bg-[#E4405F] hover:text-white transition"
+                                title="Instagram"
+                            >
+                                <FaInstagram className="w-4 h-4" />
+                            </button>
+                        )}
+
+                        {propertyData.socials.facebook && (
+                            <button
+                                onClick={(e) =>
+                                    handleSocialClick(e, "facebook", propertyData.socials.facebook)
+                                }
+                                className="w-7 h-7 rounded-full bg-gray-100 text-[#1877F2] flex items-center justify-center hover:bg-[#1877F2] hover:text-white transition"
+                                title="Facebook"
+                            >
+                                <FaFacebookF className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+
+
+
+
+                        {propertyData.socials.twitter && (
+                            <button
+                                onClick={(e) =>
+                                    handleSocialClick(e, "twitter", propertyData.socials.twitter)
+                                }
+                                className="w-7 h-7 rounded-full bg-gray-100 text-black flex items-center justify-center hover:bg-black hover:text-white transition"
+                                title="X (Twitter)"
+                            >
+                                <FaXTwitter className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+
+                    </div>
 
                 </div>
             </div>

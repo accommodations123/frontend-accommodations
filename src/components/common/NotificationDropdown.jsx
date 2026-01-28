@@ -12,6 +12,8 @@ import {
     hostApi
 } from "@/store/api/hostApi";
 import { useDispatch } from "react-redux";
+import { useTimeAgo } from "../../hooks/useTimeAgo";
+
 
 export function NotificationDropdown({ minimal = false }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -33,7 +35,6 @@ export function NotificationDropdown({ minimal = false }) {
             const socket = getSocket();
 
             const handleNotification = (payload) => {
-                console.log("🔔 Real-time notification received:", payload);
                 // Refetch notifications to get the latest data
                 refetch();
             };
@@ -62,6 +63,48 @@ export function NotificationDropdown({ minimal = false }) {
         } catch (err) {
             console.error("Failed to mark all as read:", err);
         }
+    };
+
+    const NotificationItem = ({ notif, onRead }) => {
+        const timeAgo = useTimeAgo(notif.createdAt);
+
+        return (
+            <div
+                className={cn(
+                    "relative group p-3 rounded-xl transition-all border border-transparent hover:border-white/5",
+                    notif.is_read ? "bg-transparent text-white/60" : "bg-white/5 text-white"
+                )}
+            >
+                <div className="flex gap-3">
+                    <div
+                        className="mt-1 w-2 h-2 rounded-full bg-accent shrink-0"
+                        style={{ opacity: notif.is_read ? 0 : 1 }}
+                    />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold truncate">{notif.title}</p>
+                        <p className="text-xs text-white/70 line-clamp-2 mt-0.5">
+                            {notif.message}
+                        </p>
+                        <p className="text-[10px] text-white/40 mt-1.5">
+                            {timeAgo}
+                        </p>
+                    </div>
+
+                    {!notif.is_read && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRead(notif.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded-full transition-all self-start text-white/60 hover:text-accent"
+                            title="Mark as read"
+                        >
+                            <Check className="w-3 h-3" />
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -111,38 +154,14 @@ export function NotificationDropdown({ minimal = false }) {
                                     No new notifications
                                 </div>
                             ) : (
-                                notifications.map((notif, idx) => (
-                                    <div
-                                        key={notif.id || idx}
-                                        className={cn(
-                                            "relative group p-3 rounded-xl transition-all border border-transparent hover:border-white/5",
-                                            notif.is_read ? "bg-transparent text-white/60" : "bg-white/5 text-white"
-                                        )}
-                                    >
-                                        <div className="flex gap-3">
-                                            <div className="mt-1 w-2 h-2 rounded-full bg-accent shrink-0" style={{ opacity: notif.is_read ? 0 : 1 }} />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold truncate">{notif.title}</p>
-                                                <p className="text-xs text-white/70 line-clamp-2 mt-0.5">{notif.message}</p>
-                                                <p className="text-[10px] text-white/40 mt-1.5">
-                                                    {notif.created_at ? new Date(notif.created_at).toLocaleString() : 'Just now'}
-                                                </p>
-                                            </div>
-                                            {!notif.is_read && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleMarkAsRead(notif.id);
-                                                    }}
-                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded-full transition-all self-start text-white/60 hover:text-accent"
-                                                    title="Mark as read"
-                                                >
-                                                    <Check className="w-3 h-3" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
+                                notifications.map((notif) => (
+                                    <NotificationItem
+                                        key={notif.id}
+                                        notif={notif}
+                                        onRead={handleMarkAsRead}
+                                    />
                                 ))
+
                             )}
                         </div>
                     </motion.div>

@@ -14,13 +14,17 @@ import {
     Link as LinkIcon,
     Camera,
     Image as ImageIcon,
-    Upload
+    Upload,
+    Phone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCreateCommunityMutation, useUpdateCommunityMutation } from '@/store/api/hostApi';
 import { useNavigate } from 'react-router-dom';
+import { CountryCodeSelect } from '@/components/ui/CountryCodeSelect';
+import { Country, State, City } from 'country-state-city';
+import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import { useEffect } from 'react';
 
-const COUNTRIES = ["India", "USA", "UK", "Canada", "Australia", "Germany"];
 const VISIBILITY_OPTIONS = [
     { id: 'public', label: 'Public', desc: 'Anyone can find and see posts', icon: Unlock },
     { id: 'private', label: 'Private', desc: 'Only members can see posts', icon: Lock }
@@ -74,8 +78,23 @@ const CommunityDetailsForm = () => {
         country: "",
         state: "",
         city: "",
-        topics: []
+        topics: [],
+        phone: "",
+        phoneCode: "+91"
     });
+
+    const [countriesList] = useState(Country.getAllCountries());
+    const [statesList, setStatesList] = useState([]);
+    const [citiesList, setCitiesList] = useState([]);
+
+    useEffect(() => {
+        if (formData.country) {
+            const countryObj = countriesList.find(c => c.name === formData.country);
+            if (countryObj) {
+                setStatesList(State.getStatesOfCountry(countryObj.isoCode));
+            }
+        }
+    }, []);
 
     const [newTopic, setNewTopic] = useState("");
 
@@ -138,7 +157,13 @@ const CommunityDetailsForm = () => {
 
         try {
             // Step 1: Create Community
-            const result = await createCommunity({ ...formData }).unwrap();
+            // Combine phone number
+            const payload = {
+                ...formData,
+                phone: formData.phone ? `${formData.phoneCode}${formData.phone}` : ""
+            };
+
+            const result = await createCommunity(payload).unwrap();
 
             if (result.success && result.community) {
                 const communityId = result.community._id || result.community.id; // Handle both ID formats
@@ -325,37 +350,79 @@ const CommunityDetailsForm = () => {
                     {errors.description && <p className="text-[10px] font-bold text-accent ml-1 flex items-center gap-1"><AlertCircle size={10} /> {errors.description}</p>}
                 </div>
 
+                {/* Phone Number */}
+                <div className="space-y-2">
+                    <Label>Contact Phone</Label>
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="w-[120px] shrink-0">
+                            <CountryCodeSelect
+                                value={formData.phoneCode || "+91"}
+                                onChange={(val) => updateFormData("phoneCode", val)}
+                                className="w-full bg-white/5 border-white/10 text-white [&>button]:bg-white/5 [&>button]:border-white/10 [&>button]:text-white"
+                            />
+                        </div>
+                        <div className="flex-1 relative">
+                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                            <Input
+                                type="tel"
+                                placeholder="1234567890"
+                                className="pl-12"
+                                value={formData.phone}
+                                onChange={(e) => updateFormData('phone', e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 {/* Location Details */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                        <Label required>Country</Label>
-                        <div className="relative">
-                            <select
-                                className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent/50 transition-all font-semibold text-white appearance-none"
-                                value={formData.country}
-                                onChange={(e) => updateFormData('country', e.target.value)}
-                            >
-                                <option value="" disabled className="bg-[#00152d]">Select Country</option>
-                                {COUNTRIES.map(c => <option key={c} value={c} className="bg-[#00152d]">{c}</option>)}
-                            </select>
-                            <Globe className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>State</Label>
-                        <Input
-                            placeholder="e.g. Karnataka"
-                            value={formData.state}
-                            onChange={(e) => updateFormData('state', e.target.value)}
+                        <SearchableDropdown
+                            label="Country"
+                            placeholder="Select Country"
+                            options={countriesList}
+                            value={formData.country}
+                            onChange={(option) => {
+                                updateFormData('country', option.name);
+                                updateFormData('state', '');
+                                updateFormData('city', '');
+                                setStatesList(State.getStatesOfCountry(option.isoCode));
+                                setCitiesList([]);
+                            }}
+                            className="bg-white/5 border-white/10 text-white"
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label required>City</Label>
-                        <Input
-                            placeholder="e.g. Bangalore"
+                        <SearchableDropdown
+                            label="State"
+                            placeholder="Select State"
+                            options={statesList}
+                            value={formData.state}
+                            disabled={!formData.country}
+                            isLoading={!statesList.length && formData.country}
+                            onChange={(option) => {
+                                updateFormData('state', option.name);
+                                updateFormData('city', '');
+                                const countryObj = countriesList.find(c => c.name === formData.country);
+                                if (countryObj) {
+                                    setCitiesList(City.getCitiesOfState(countryObj.isoCode, option.isoCode));
+                                }
+                            }}
+                            className="bg-white/5 border-white/10 text-white"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <SearchableDropdown
+                            label="City"
+                            placeholder="Select City"
+                            options={citiesList}
                             value={formData.city}
-                            onChange={(e) => updateFormData('city', e.target.value)}
-                            error={errors.city}
+                            disabled={!formData.state}
+                            isLoading={!citiesList.length && formData.state}
+                            onChange={(option) => {
+                                updateFormData('city', option.name);
+                            }}
+                            className="bg-white/5 border-white/10 text-white"
                         />
                     </div>
                 </div>

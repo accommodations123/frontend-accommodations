@@ -7,12 +7,37 @@ import { fetchAddressByPincode } from "@/lib/pincodeUtils";
 import { Navbar } from "@/components/layout/Navbar";
 import { Country, State, City } from 'country-state-city';
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import { CountryCodeSelect } from "@/components/ui/CountryCodeSelect";
+
+// Helper to split phone number
+// Known country codes (most common first)
+const KNOWN_CODES = ["+1", "+91", "+44", "+86", "+81", "+49", "+33", "+61", "+55", "+39", "+34", "+7", "+82", "+62", "+52", "+31", "+27", "+966", "+971", "+65", "+60", "+63", "+66", "+84", "+92", "+94", "+880", "+977", "+254", "+233", "+234"];
+
+const splitPhone = (fullPhone) => {
+  if (!fullPhone) return { code: "+91", number: "" };
+
+  const phoneStr = fullPhone.toString().trim();
+
+  // Check against known country codes (sorted by length, longest first)
+  if (phoneStr.startsWith('+')) {
+    const sortedCodes = [...KNOWN_CODES].sort((a, b) => b.length - a.length);
+    for (const code of sortedCodes) {
+      if (phoneStr.startsWith(code)) {
+        return { code: code, number: phoneStr.slice(code.length).trim() };
+      }
+    }
+  }
+
+  // Fallback for numbers without + or unknown codes
+  return { code: "+91", number: phoneStr };
+};
 
 export default function HostOnboardingForm() {
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
     phone: "",
+    phonePrefix: "+91",
     country: "",
     countryCode: "",
     state: "",
@@ -21,6 +46,7 @@ export default function HostOnboardingForm() {
     zip_code: "",
     street_address: "",
     whatsapp: "",
+    whatsappPrefix: "+91",
     facebook: "",
     instagram: ""
   });
@@ -53,16 +79,21 @@ export default function HostOnboardingForm() {
   useEffect(() => {
     if (hostProfile) {
       // Populate form with existing data if available
+      const phoneData = splitPhone(hostProfile.phone || prev.phone);
+      const whatsappData = splitPhone(hostProfile.whatsapp || prev.whatsapp);
+
       setFormData(prev => ({
         ...prev,
         full_name: hostProfile.full_name || prev.full_name,
         email: hostProfile.email || prev.email,
-        phone: hostProfile.phone || prev.phone,
+        phone: phoneData.number,
+        phonePrefix: phoneData.code,
         country: hostProfile.country || prev.country,
         state: hostProfile.state || prev.state,
         city: hostProfile.city || prev.city,
         street_address: hostProfile.address || prev.street_address,
-        whatsapp: hostProfile.whatsapp || prev.whatsapp,
+        whatsapp: whatsappData.number,
+        whatsappPrefix: whatsappData.code,
         facebook: hostProfile.facebook || prev.facebook,
         instagram: hostProfile.instagram || prev.instagram,
         zip_code: hostProfile.zip_code || prev.zip_code || "",
@@ -191,21 +222,19 @@ export default function HostOnboardingForm() {
         user_id: userId,
         full_name: formData.full_name,
         email: formData.email,
-        phone: formData.phone,
+        email: formData.email,
+        phone: `${formData.phonePrefix} ${formData.phone}`,
         country: formData.country,
         state: formData.state,
         city: formData.city,
         address: formData.street_address,
-        whatsapp: formData.whatsapp,
+        whatsapp: formData.whatsapp ? `${formData.whatsappPrefix} ${formData.whatsapp}` : "",
         facebook: formData.facebook,
         instagram: formData.instagram,
       };
 
-      console.log("Submitting Host Payload:", hostPayload);
-
-      // 4. Submit to host/save
+      // Submit to host/save
       const result = await saveHost(hostPayload).unwrap();
-      console.log("Success:", result);
       setShowSuccess(true);
 
       // Navigate to host create page after successful submission
@@ -414,19 +443,26 @@ export default function HostOnboardingForm() {
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                     Phone Number
                   </label>
-                  <input
-                    id="phone"
-                    name="phone"
-                    placeholder="Include country code"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    onFocus={() => setFocusedField("phone")}
-                    onBlur={() => setFocusedField(null)}
-                    className={`block w-full px-4 py-3 rounded-lg shadow-sm placeholder-gray-400 text-black focus:outline-none sm:text-sm transition-all ${focusedField === "phone"
-                      ? "border-2 border-primary ring-1 ring-primary bg-primary/10"
-                      : "border-2 border-gray-200 bg-gray-50"
-                      }`}
-                  />
+                  <div className="flex gap-2">
+                    <CountryCodeSelect
+                      value={formData.phonePrefix || "+91"}
+                      onChange={(code) => setFormData(prev => ({ ...prev, phonePrefix: code }))}
+                      className="w-[110px]"
+                    />
+                    <input
+                      id="phone"
+                      name="phone"
+                      placeholder="9876543210"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      onFocus={() => setFocusedField("phone")}
+                      onBlur={() => setFocusedField(null)}
+                      className={`block w-full px-4 py-3 rounded-lg shadow-sm placeholder-gray-400 text-black focus:outline-none sm:text-sm transition-all ${focusedField === "phone"
+                        ? "border-2 border-primary ring-1 ring-primary bg-primary/10"
+                        : "border-2 border-gray-200 bg-gray-50"
+                        }`}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -596,15 +632,22 @@ export default function HostOnboardingForm() {
                       <FaWhatsapp className="text-green-600 w-4 h-4" />
                       WhatsApp Number
                     </label>
-                    <input
-                      id="whatsapp"
-                      name="whatsapp"
-                      placeholder="e.g., +91 9876543210"
-                      value={formData.whatsapp}
-                      onChange={handleChange}
-                      autoFocus
-                      className="block w-full px-4 py-3 rounded-lg shadow-sm border-2 border-green-100 focus:border-green-500 focus:ring-green-500 sm:text-sm transition-all"
-                    />
+                    <div className="flex gap-2">
+                      <CountryCodeSelect
+                        value={formData.whatsappPrefix || "+91"}
+                        onChange={(code) => setFormData(prev => ({ ...prev, whatsappPrefix: code }))}
+                        className="w-[110px]"
+                      />
+                      <input
+                        id="whatsapp"
+                        name="whatsapp"
+                        placeholder="9876543210"
+                        value={formData.whatsapp}
+                        onChange={handleChange}
+                        autoFocus
+                        className="block w-full px-4 py-3 rounded-lg shadow-sm border-2 border-green-100 focus:border-green-500 focus:ring-green-500 sm:text-sm transition-all"
+                      />
+                    </div>
                   </div>
                 )}
 

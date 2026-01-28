@@ -179,7 +179,6 @@ export default function TravelPage() {
   useEffect(() => {
     if (myTripsData?.trips) {
       const mapped = myTripsData.trips.map(mapTripToPlan);
-      console.log("My Trips Mapped:", mapped); // Debug log
       setMyTrips(mapped);
     }
   }, [myTripsData, currentUser]);
@@ -351,11 +350,11 @@ export default function TravelPage() {
       <main className="min-h-screen pt-20" style={{ backgroundColor: 'var(--color-background)' }}>
 
         {/* Hero Section */}
-        <section className="relative h-[60vh] flex items-center bg-cover bg-center"
+        <section className="relative min-h-[75vh] flex items-center bg-cover bg-center"
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1600&q=80')" }}>
           <div className="absolute inset-0 bg-gradient-to-r from-[#00142E]/90 to-transparent"></div>
 
-          <div className="relative z-10 container mx-auto px-6">
+          <div className="relative z-10 container mx-auto px-6 pb-20">
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl text-white">
               <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
                 Find Your Perfect <br /> <span style={{ color: 'var(--color-accent)' }}>Travel Partner</span>

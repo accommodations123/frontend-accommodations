@@ -45,6 +45,7 @@ export function FilterPanel({ filters, onChange }) {
       country: "",
       state: "",
       city: "",
+      search: "",
     });
     setStatesList([]);
     setCitiesList([]);
@@ -59,6 +60,8 @@ export function FilterPanel({ filters, onChange }) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <Input
             placeholder="Search for items..."
+            value={filters.search || ""}
+            onChange={(e) => onChange({ ...filters, search: e.target.value })}
             className="pl-9 h-9 sm:h-10 bg-white border-gray-300 text-gray-900 text-sm"
           />
         </div>

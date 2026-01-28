@@ -7,10 +7,15 @@ import {
 import { cn } from "@/lib/utils"
 import { Facebook, Instagram, MessageCircle } from "lucide-react"
 
-const DetailCard = ({ title, description, children, onEdit, isEditing, icon: Icon, isUpdating }) => (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-neutral/5 to-neutral/10 border border-neutral/20 shadow-xl">
-        {/* Decorative Background */}
-        <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/3 to-accent/5 rounded-full blur-3xl"></div>
+const DetailCard = ({ title, description, children, onEdit, isEditing, icon: Icon, isUpdating, className }) => (
+    <div className={cn(
+        "relative rounded-2xl bg-gradient-to-br from-white via-neutral/5 to-neutral/10 border border-neutral/20 shadow-xl",
+        className
+    )}>
+        {/* Decorative Background - Clipped */}
+        <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/3 to-accent/5 rounded-full blur-3xl"></div>
+        </div>
 
         <div className="relative z-10 p-6 md:p-8 space-y-6">
             <div className="flex items-start justify-between">
@@ -58,6 +63,11 @@ const DetailCard = ({ title, description, children, onEdit, isEditing, icon: Ico
     </div>
 )
 
+import { CountryCodeSelect } from "@/components/ui/CountryCodeSelect"
+import { useNavigate } from "react-router-dom"
+import SearchableDropdown from "@/components/ui/SearchableDropdown"
+import { Country, State, City } from 'country-state-city'
+
 const InfoField = ({
     label,
     value,
@@ -67,7 +77,9 @@ const InfoField = ({
     type = "text",
     placeholder,
     action,
-    actionIcon: ActionIcon
+    actionIcon: ActionIcon,
+    prefix,
+    onPrefixChange
 }) => (
     <div className="space-y-2">
         <label className="text-xs font-semibold uppercase tracking-wider text-primary/40 ml-1 flex items-center gap-1">
@@ -84,22 +96,31 @@ const InfoField = ({
                     className="w-full bg-white border-2 border-neutral/30 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all font-medium text-primary placeholder:text-primary/30 min-h-[120px]"
                 />
             ) : (
-                <input
-                    type={type}
-                    name={name}
-                    value={value}
-                    onChange={onChange}
-                    placeholder={placeholder || label}
-                    className="w-full bg-white border-2 border-neutral/30 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all font-medium text-primary placeholder:text-primary/30"
-                />
+                <div className="flex gap-2">
+                    {prefix !== undefined && onPrefixChange && (
+                        <div className="w-[110px] flex-shrink-0">
+                            <CountryCodeSelect value={prefix} onChange={onPrefixChange} />
+                        </div>
+                    )}
+                    <input
+                        type={type}
+                        name={name}
+                        value={value}
+                        onChange={onChange}
+                        placeholder={placeholder || label}
+                        className="w-full bg-white border-2 border-neutral/30 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all font-medium text-primary placeholder:text-primary/30"
+                    />
+                </div>
             )
         ) : (
             <div className="relative group">
                 <div className="p-4 bg-neutral/10 rounded-xl border border-neutral/20 font-semibold text-primary truncate flex items-center justify-between hover:bg-neutral/15 transition-colors">
-                    <span className="truncate">{value || <span className="text-primary/30 font-normal italic">Not specified</span>}</span>
+                    <span className="truncate">
+                        {prefix && value ? `${prefix} ${value}` : (value || <span className="text-primary/30 font-normal italic">Not specified</span>)}
+                    </span>
                     {action && value && (
                         <button
-                            onClick={() => action(value)}
+                            onClick={() => action(prefix ? `${prefix}${value}` : value)}
                             className="p-2 bg-white rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-all text-accent hover:bg-accent hover:text-white"
                             title="Open link"
                         >
@@ -111,8 +132,6 @@ const InfoField = ({
         )}
     </div>
 )
-
-import { useNavigate } from "react-router-dom"
 
 // ... (existing imports)
 
@@ -138,33 +157,77 @@ export const PersonalInfo = ({ initialData, verificationState, onUpdate, isUpdat
         whatsapp: initialData?.whatsapp || "",
         facebook: initialData?.facebook || "",
         instagram: initialData?.instagram || "",
-        occupation: initialData?.occupation || "",
-        languages: initialData?.languages || "",
-        description: initialData?.description || initialData?.bio || ""
+        phoneCode: "+91",
+        whatsappCode: "+91"
     })
 
+    const [countriesList] = useState(Country.getAllCountries());
+    const [statesList, setStatesList] = useState([]);
+    const [citiesList, setCitiesList] = useState([]);
+
+    // Initialize location lists on mount or when data loads
     useEffect(() => {
-        console.log("🔍 PersonalInfo: initialData changed:", initialData);
-        if (initialData) {
-            setFormData(prev => ({
-                ...prev,
-                full_name: initialData.full_name || initialData.name || prev.full_name || "",
-                email: initialData.email || prev.email || "",
-                phone: initialData.phone || prev.phone || "",
-                country: initialData.country || prev.country || "",
-                state: initialData.state || prev.state || "",
-                city: initialData.city || prev.city || "",
-                address: initialData.address || prev.address || "",
-                zip: initialData.zip || prev.zip || "",
-                whatsapp: initialData.whatsapp || prev.whatsapp || "",
-                facebook: initialData.facebook || prev.facebook || "",
-                instagram: initialData.instagram || prev.instagram || "",
-                occupation: initialData.occupation || prev.occupation || "",
-                languages: initialData.languages || prev.languages || "",
-                description: initialData.description || initialData.bio || prev.description || "",
-            }))
+        if (formData.country) {
+            const countryObj = countriesList.find(c => c.name === formData.country);
+            if (countryObj) {
+                const states = State.getStatesOfCountry(countryObj.isoCode);
+                setStatesList(states);
+
+                if (formData.state) {
+                    const stateObj = states.find(s => s.name === formData.state);
+                    if (stateObj) {
+                        setCitiesList(City.getCitiesOfState(countryObj.isoCode, stateObj.isoCode));
+                    }
+                }
+            }
         }
-    }, [initialData])
+    }, [formData.country, formData.state, countriesList]);
+
+    // Known country codes (sorted by length for proper matching)
+    const KNOWN_CODES = ["+1", "+91", "+44", "+86", "+81", "+49", "+33", "+61", "+55", "+39", "+34", "+7", "+82", "+62", "+52", "+31", "+27", "+966", "+971", "+65", "+60", "+63", "+66", "+84", "+92", "+94", "+880", "+977", "+254", "+233", "+234"];
+
+    const splitPhone = (fullPhone) => {
+        if (!fullPhone) return { code: "+91", number: "" };
+
+        const phoneStr = fullPhone.toString().trim();
+
+        if (phoneStr.startsWith('+')) {
+            const sortedCodes = [...KNOWN_CODES].sort((a, b) => b.length - a.length);
+            for (const code of sortedCodes) {
+                if (phoneStr.startsWith(code)) {
+                    return { code, number: phoneStr.slice(code.length).trim() };
+                }
+            }
+        }
+
+        return { code: "+91", number: phoneStr };
+    }
+
+    useEffect(() => {
+        if (initialData) {
+            setFormData(prev => {
+                const parsedPhone = splitPhone(initialData.phone || prev.phone);
+                const parsedWhatsApp = splitPhone(initialData.whatsapp || prev.whatsapp);
+
+                return {
+                    ...prev,
+                    full_name: initialData.full_name || initialData.name || prev.full_name || "",
+                    email: initialData.email || prev.email || "",
+                    phone: parsedPhone.number || "",
+                    phoneCode: parsedPhone.code,
+                    country: initialData.country || prev.country || "",
+                    state: initialData.state || prev.state || "",
+                    city: initialData.city || prev.city || "",
+                    address: initialData.street_address || initialData.address || prev.address || "",
+                    zip: initialData.zip_code || initialData.zip || prev.zip || "",
+                    whatsapp: parsedWhatsApp.number || "",
+                    whatsappCode: parsedWhatsApp.code,
+                    facebook: initialData.facebook || prev.facebook || "",
+                    instagram: initialData.instagram || prev.instagram || "",
+                };
+            });
+        }
+    }, [initialData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -180,7 +243,15 @@ export const PersonalInfo = ({ initialData, verificationState, onUpdate, isUpdat
         if (editStates[section]) {
             try {
                 if (onUpdate) {
-                    await onUpdate(formData);
+                    // Normalize for backend
+                    const payload = {
+                        ...formData,
+                        phone: formData.phone ? `${formData.phoneCode}${formData.phone}` : "",
+                        whatsapp: formData.whatsapp ? `${formData.whatsappCode}${formData.whatsapp}` : "",
+                        zip_code: formData.zip,
+                        street_address: formData.address
+                    };
+                    await onUpdate(payload);
                 }
                 setEditStates(prev => ({ ...prev, [section]: false }))
             } catch (error) {
@@ -261,29 +332,25 @@ export const PersonalInfo = ({ initialData, verificationState, onUpdate, isUpdat
                     isEditing={editStates.personal}
                     onEdit={() => toggleEdit('personal')}
                     isUpdating={isUpdating && editStates.personal}
+                    className="z-30"
                 >
                     <div className="md:col-span-2">
                         <InfoField label="Full Name" name="full_name" value={formData.full_name} isEditing={editStates.personal} onChange={handleChange} />
                     </div>
                     <InfoField label="Email Address" name="email" type="email" value={formData.email} isEditing={editStates.personal} onChange={handleChange} />
-                    <InfoField label="Phone Number" name="phone" type="tel" value={formData.phone} isEditing={editStates.personal} onChange={handleChange} />
+                    <InfoField
+                        label="Phone Number"
+                        name="phone"
+                        type="tel"
+                        value={formData.phone}
+                        isEditing={editStates.personal}
+                        onChange={handleChange}
+                        prefix={formData.phoneCode}
+                        onPrefixChange={(code) => setFormData(prev => ({ ...prev, phoneCode: code }))}
+                    />
                 </DetailCard>
 
-                {/* Host Information Card */}
-                <DetailCard
-                    title="Host Information"
-                    description="Tell guests more about yourself"
-                    icon={Building2}
-                    isEditing={editStates.host}
-                    onEdit={() => toggleEdit('host')}
-                    isUpdating={isUpdating && editStates.host}
-                >
-                    <InfoField label="Occupation / Title" name="occupation" value={formData.occupation} isEditing={editStates.host} onChange={handleChange} placeholder="e.g. Software Engineer, Student" />
-                    <InfoField label="Languages" name="languages" value={formData.languages} isEditing={editStates.host} onChange={handleChange} placeholder="e.g. English, Hindi, Telugu" />
-                    <div className="md:col-span-2">
-                        <InfoField label="About Me" name="description" type="textarea" value={formData.description} isEditing={editStates.host} onChange={handleChange} placeholder="Share a little bit about yourself, your hosting style, or your interests..." />
-                    </div>
-                </DetailCard>
+
 
                 {/* Location & Address Card */}
                 <DetailCard
@@ -293,10 +360,78 @@ export const PersonalInfo = ({ initialData, verificationState, onUpdate, isUpdat
                     isEditing={editStates.location}
                     onEdit={() => toggleEdit('location')}
                     isUpdating={isUpdating && editStates.location}
+                    className="z-20"
                 >
-                    <InfoField label="Country" name="country" value={formData.country} isEditing={editStates.location} onChange={handleChange} />
-                    <InfoField label="State / Province" name="state" value={formData.state} isEditing={editStates.location} onChange={handleChange} />
-                    <InfoField label="City" name="city" value={formData.city} isEditing={editStates.location} onChange={handleChange} />
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-primary/40 ml-1 flex items-center gap-1">Country</label>
+                        {editStates.location ? (
+                            <SearchableDropdown
+                                label=""
+                                placeholder="Select Country"
+                                options={countriesList}
+                                value={formData.country}
+                                onChange={(option) => {
+                                    setFormData(prev => ({ ...prev, country: option.name, state: "", city: "" }));
+                                    setStatesList(State.getStatesOfCountry(option.isoCode));
+                                    setCitiesList([]);
+                                }}
+                                className="bg-white border-2 border-neutral/30 rounded-xl focus:ring-accent/30 focus:border-accent text-primary"
+                            />
+                        ) : (
+                            <div className="p-4 bg-neutral/10 rounded-xl border border-neutral/20 font-semibold text-primary">
+                                {formData.country || <span className="text-primary/30 font-normal italic">Not specified</span>}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-primary/40 ml-1 flex items-center gap-1">State / Province</label>
+                        {editStates.location ? (
+                            <SearchableDropdown
+                                label=""
+                                placeholder="Select State"
+                                options={statesList}
+                                value={formData.state}
+                                disabled={!formData.country}
+                                isLoading={!statesList.length && formData.country}
+                                onChange={(option) => {
+                                    setFormData(prev => ({ ...prev, state: option.name, city: "" }));
+                                    const countryObj = countriesList.find(c => c.name === formData.country);
+                                    if (countryObj) {
+                                        setCitiesList(City.getCitiesOfState(countryObj.isoCode, option.isoCode));
+                                    }
+                                }}
+                                className="bg-white border-2 border-neutral/30 rounded-xl focus:ring-accent/30 focus:border-accent text-primary"
+                            />
+                        ) : (
+                            <div className="p-4 bg-neutral/10 rounded-xl border border-neutral/20 font-semibold text-primary">
+                                {formData.state || <span className="text-primary/30 font-normal italic">Not specified</span>}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-primary/40 ml-1 flex items-center gap-1">City</label>
+                        {editStates.location ? (
+                            <SearchableDropdown
+                                label=""
+                                placeholder="Select City"
+                                options={citiesList}
+                                value={formData.city}
+                                disabled={!formData.state}
+                                isLoading={!citiesList.length && formData.state}
+                                onChange={(option) => {
+                                    setFormData(prev => ({ ...prev, city: option.name }));
+                                }}
+                                className="bg-white border-2 border-neutral/30 rounded-xl focus:ring-accent/30 focus:border-accent text-primary"
+                            />
+                        ) : (
+                            <div className="p-4 bg-neutral/10 rounded-xl border border-neutral/20 font-semibold text-primary">
+                                {formData.city || <span className="text-primary/30 font-normal italic">Not specified</span>}
+                            </div>
+                        )}
+                    </div>
+
                     <InfoField label="Zip / Pin Code" name="zip" value={formData.zip} isEditing={editStates.location} onChange={handleChange} />
                     <div className="md:col-span-2">
                         <InfoField label="Street Address" name="address" value={formData.address} isEditing={editStates.location} onChange={handleChange} placeholder="House number, street name..." />
@@ -311,6 +446,7 @@ export const PersonalInfo = ({ initialData, verificationState, onUpdate, isUpdat
                     isEditing={editStates.social}
                     onEdit={() => toggleEdit('social')}
                     isUpdating={isUpdating && editStates.social}
+                    className="z-10"
                 >
                     <div className="md:col-span-2">
                         <InfoField
@@ -319,9 +455,11 @@ export const PersonalInfo = ({ initialData, verificationState, onUpdate, isUpdat
                             value={formData.whatsapp}
                             isEditing={editStates.social}
                             onChange={handleChange}
-                            placeholder="+1 234 567 890"
+                            placeholder="1234567890"
                             action={openWhatsApp}
                             actionIcon={MessageCircle}
+                            prefix={formData.whatsappCode}
+                            onPrefixChange={(code) => setFormData(prev => ({ ...prev, whatsappCode: code }))}
                         />
                     </div>
                     <InfoField

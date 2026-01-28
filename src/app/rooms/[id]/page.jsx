@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Navbar } from "@/components/layout/Navbar";
 import { useCountry } from "@/context/CountryContext";
 import { Footer } from "@/components/layout/Footer";
@@ -24,112 +24,98 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaWhatsapp } from "react-icons/fa";
 
+const normalizeSocialUrl = (platform, value) => {
+    if (!value) return null;
+    let v = value.trim();
+    if (v.startsWith("http://") || v.startsWith("https://")) return v;
+    v = v.replace(/^@/, "");
+
+    switch (platform) {
+        case "whatsapp":
+            const num = v.replace(/\D/g, "");
+            return num ? `https://wa.me/${num}` : null;
+        case "instagram": return `https://instagram.com/${v}`;
+        case "facebook": return `https://facebook.com/${v}`;
+        case "twitter": return `https://twitter.com/${v}`;
+        case "linkedin": return `https://linkedin.com/in/${v}`;
+        case "youtube": return `https://youtube.com/@${v}`;
+        case "website": return `https://${v}`;
+        default: return null;
+    }
+};
+
 export default function RoomPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { formatPrice } = useCountry();
+    const { formatPrice, activeCountry } = useCountry();
+    const location = useLocation();
+
+    // State
     const [isContactOpen, setIsContactOpen] = useState(false);
     const [contactType, setContactType] = useState('inquiry');
     const [isFavorite, setIsFavorite] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [copiedEmail, setCopiedEmail] = useState(false);
-    const [copiedPhone, setCopiedPhone] = useState(false);
-    const [showPhoneNumber, setShowPhoneNumber] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const [isAmenitiesOpen, setIsAmenitiesOpen] = useState(false);
 
-    const location = useLocation();
-
-    // 1. Try fetching public data (fails for unverified)
+    // Data Fetching
     const { data: apiData, isLoading: isApiLoading, isError: isApiError, refetch } = useGetPropertyByIdQuery(id, { skip: !id });
-
-    // 2. Fetch owner options (in case user is the owner viewing unverified content)
     const { data: myListings } = useGetMyListingsQuery();
     const { data: hostProfile } = useGetHostProfileQuery();
 
-    // 3. Resolve Data Priority: API -> Location State -> My Listings Finding
-    const resolvedData = React.useMemo(() => {
-        // A. If API worked, use it.
+    // Scroll Effect
+    useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 50);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Refresh Data
+    useEffect(() => {
+        if (id) refetch();
+    }, [id, refetch]);
+
+    // Data Resolution Logic
+    const resolvedData = useMemo(() => {
         if (apiData?.property) return apiData;
-
-        // B. If not, try location state (from dashboard click)
         if (location.state?.property) return { property: location.state.property, host: hostProfile };
-
-        // C. If not, try finding in My Listings (robust against refresh)
         if (myListings && Array.isArray(myListings)) {
-            console.log("🔍 Searching MyListings for ID:", id, "Available:", myListings.map(p => p.id || p._id));
             const found = myListings.find(p => String(p._id) === String(id) || String(p.id) === String(id));
             if (found) return { property: found, host: hostProfile };
         }
-
         return null;
     }, [apiData, location.state, myListings, id, hostProfile]);
 
     const data = resolvedData;
-    const isLoading = (isApiLoading && !data) || (!data && !isApiError && !myListings); // Keep loading if we are waiting for myListings
-    const isError = isApiError && !data && myListings; // Error only if API failed AND myListings loaded but didn't have it
+    const isLoading = (isApiLoading && !data) || (!data && !isApiError && !myListings);
 
-    console.log("📊 RoomPage Data Resolution:", {
-        source: apiData ? 'API' : (location.state?.property ? 'State' : (data ? 'MyListings' : 'None')),
-        data,
-        isApiLoading,
-        myListingsLen: myListings?.length
-    });
-
-    // Refresh data on mount
-    useEffect(() => {
-        if (id) {
-            refetch();
-        }
-    }, [id, refetch]);
-
-    // Copy to clipboard
-    const copyToClipboard = (text, type) => {
-        navigator.clipboard.writeText(text).then(() => {
-            if (type === 'email') {
-                setCopiedEmail(true);
-                toast.success("Email copied");
-                setTimeout(() => setCopiedEmail(false), 2000);
-            } else if (type === 'phone') {
-                setCopiedPhone(true);
-                toast.success("Phone copied");
-                setTimeout(() => setCopiedPhone(false), 2000);
-            }
-        }).catch(err => {
-            console.error('Failed to copy', err);
-            toast.error("Failed to copy");
-        });
-    };
-
-    // Process API data
-    const listing = React.useMemo(() => {
+    // Process Listing Data
+    const listing = useMemo(() => {
         if (!data || !data.property) return null;
-
         const p = data.property;
-        const hostObj = p.Host || p.host || p.creator || {};
-        const userObj = hostObj.User || {};
 
-        const hostPhone = hostObj.phone_number || userObj.phone || "";
-        const hostEmail = userObj.email || "";
+        // Host Data Resolution:
+        // 1. Try p.Host (from API property details)
+        // 2. Try data.host (from HostProfile when viewing own listing)
+        const sourceHost = p.Host || data.host || {};
+        const sourceUser = sourceHost.User || sourceHost || {}; // Some endpoints nest user in .User, others flatten it
 
-        // Social Media Extraction (Strictly from Host Data)
-        const socialLinks = {
-            whatsapp: hostObj.whatsapp || "",
-            instagram: hostObj.instagram || "",
-            facebook: hostObj.facebook || "",
-            linkedin: hostObj.linkedin || "",
-            twitter: hostObj.twitter || "",
-            youtube: hostObj.youtube || "",
-            website: hostObj.website || ""
+        const hostName = sourceHost.full_name || sourceUser.full_name || "Host";
+        const hostAvatar = sourceUser.profile_image || sourceHost.profile_image || sourceHost.selfie_photo || null;
+        const hostInitials = (hostName || "PH").slice(0, 2).toUpperCase();
+
+        // Socials extraction
+        const socials = {
+            whatsapp: sourceHost.whatsapp || sourceHost.phone || sourceUser.phone,
+            instagram: sourceHost.instagram,
+            facebook: sourceHost.facebook,
         };
 
-        const photos = Array.isArray(p.photos) && p.photos.length > 0
-            ? p.photos
-            : [
-                "https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4?q=80&w=2070&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=2070&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=2070&auto=format&fit=crop",
-            ];
+        const amenities = Array.isArray(p.amenities) ? p.amenities : [];
+        const photos = Array.isArray(p.photos) && p.photos.length > 0 ? p.photos : [];
 
+        // Amenity Categorization
         const amenityIcons = {
             'Wifi': Wifi, 'Parking': Car, 'Air Conditioning': Wind, 'TV': Tv,
             'Kitchen': Utensils, 'Pool': Pool, 'Gym': Dumbbell, 'Pet Friendly': Heart,
@@ -137,33 +123,22 @@ export default function RoomPage() {
             'Balcony': Sun, 'Garden': Flower
         };
 
-        const amenities = Array.isArray(p.amenities) ? p.amenities : [];
-        const processedAmenities = [];
-        const essentials = [], comfort = [], luxury = [], safety = [];
+        const processedAmenities = {
+            essentials: [], comfort: [], luxury: [], safety: []
+        };
 
         amenities.forEach(amenity => {
             const name = typeof amenity === 'string' ? amenity : amenity.name || '';
             const icon = amenityIcons[name] || CheckCircle;
             const item = { name, icon };
 
-            if (['Wifi', 'TV', 'Air Conditioning', 'Kitchen', 'Laundry', 'Heating', 'Internet'].includes(name)) essentials.push(item);
-            else if (['Pool', 'Gym', 'Parking', 'Balcony', 'Garden'].includes(name)) comfort.push(item);
-            else if (['Security', 'Fire Extinguisher'].includes(name)) safety.push(item);
-            else luxury.push(item);
+            if (['Wifi', 'TV', 'Air Conditioning', 'Kitchen', 'Laundry', 'Heating', 'Internet'].includes(name)) processedAmenities.essentials.push(item);
+            else if (['Pool', 'Gym', 'Parking', 'Balcony', 'Garden'].includes(name)) processedAmenities.comfort.push(item);
+            else if (['Security', 'Fire Extinguisher'].includes(name)) processedAmenities.safety.push(item);
+            else processedAmenities.luxury.push(item);
         });
 
-        if (essentials.length) processedAmenities.push({ category: 'Essentials', items: essentials });
-        if (comfort.length) processedAmenities.push({ category: 'Comfort', items: comfort });
-        if (safety.length) processedAmenities.push({ category: 'Safety', items: safety });
-        if (luxury.length) processedAmenities.push({ category: 'Features', items: luxury });
-
-        if (processedAmenities.length === 0) {
-            processedAmenities.push({
-                category: 'Essentials',
-                items: [{ name: 'WiFi', icon: Wifi }, { name: 'AC', icon: Wind }, { name: 'TV', icon: Tv }]
-            });
-        }
-
+        // Highlights
         const highlights = [];
         if (p.guests) highlights.push({ icon: Users, text: `${p.guests} Guests`, label: 'Capacity' });
         if (p.bedrooms) highlights.push({ icon: Bed, text: `${p.bedrooms} Bedrooms`, label: 'Sleeping' });
@@ -172,351 +147,330 @@ export default function RoomPage() {
 
         return {
             id: p.id,
-            title: (p.title && p.title.toLowerCase() !== 'untitled property') ? p.title : `${p.property_type || 'Property'} in ${p.city || 'Location'}`,
-            subtitle: p.privacy_type ? p.privacy_type : 'Entire Place',
-            description: p.description || "A comfortable and well-maintained property perfect for your stay.",
+            title: p.title || `${p.property_type} in ${p.city}`,
+            description: p.description || "A wonderful place to stay.",
             location: {
                 city: p.city || "",
                 country: p.country || "",
                 address: p.address || "",
             },
             price: {
-                hourly: parseFloat(p.price_per_hour) || 0,
                 nightly: parseFloat(p.price_per_night) || 0,
+                hourly: parseFloat(p.price_per_hour) || 0,
                 monthly: parseFloat(p.price_per_month) || 0,
-                currency: p.currency || 'INR',
-                securityDeposit: p.security_deposit || 0,
-            },
-            stats: {
-                bedrooms: p.bedrooms || 0,
-                bathrooms: p.bathrooms || 0,
-                guests: p.guests || 0,
-                propertyType: p.property_type || 'Apartment',
-            },
-            ratings: {
-                overall: hostObj.rating || 4.8,
-                reviews: hostObj.review_count || 12,
             },
             host: {
-                id: hostObj.id,
-                name: hostObj.full_name || "Property Host",
-                initials: (hostObj.full_name || "Host").slice(0, 2).toUpperCase(),
-                title: hostObj.occupation || "Superhost",
-                avatar: hostObj.selfie_photo || null,
-                email: hostEmail,
-                phone: hostPhone,
-                socials: socialLinks,
-                isVerified: hostObj.status === 'approved',
-                responseTime: hostObj.response_time || "1 hour",
-                languages: hostObj.languages || ["English"],
-                joinedDate: new Date(hostObj.created_at || Date.now()).getFullYear(),
-                description: hostObj.description || "Dedicated to providing a comfortable stay.",
+                name: hostName,
+                avatar: hostAvatar,
+                initials: hostInitials,
+                isVerified: sourceHost.status === "approved",
+                socials: socials
             },
             photos,
-            amenities: processedAmenities,
+            amenities: [
+                ...processedAmenities.essentials,
+                ...processedAmenities.comfort,
+                ...processedAmenities.luxury,
+                ...processedAmenities.safety
+            ],
             highlights,
             isVerified: p.status === 'approved',
-            availability: {
-                status: p.status === 'approved' ? "Available" : "Booked",
-                minStay: p.minimum_stay || 1,
-            },
-            rules: Array.isArray(p.rules) ? p.rules : [],
+            type: p.property_type || 'Property',
+            rating: 0, // Removed static 4.8
+            reviews: 0  // Removed static 12
         };
     }, [data]);
 
-    const handleContact = (type) => { setContactType(type); setIsContactOpen(true); };
-    const handleFavorite = () => { setIsFavorite(!isFavorite); toast.success(isFavorite ? "Removed" : "Saved"); };
-    const nextImage = () => setCurrentImageIndex((p) => (p + 1) % listing.photos.length);
-    const prevImage = () => setCurrentImageIndex((p) => (p - 1 + listing.photos.length) % listing.photos.length);
-
-    const handleCallHost = () => listing.host.phone ? window.location.href = `tel:${listing.host.phone}` : toast.error("No phone");
-    const handleEmailHost = () => listing.host.email ? window.location.href = `mailto:${listing.host.email}` : toast.error("No email");
-    const handleWhatsAppHost = () => {
-        if (listing.host.phone) {
-            window.open(`https://wa.me/${listing.host.phone.replace(/\D/g, '')}?text=Hi, I'm interested in ${listing.title}`, '_blank');
-        } else toast.error("No phone");
+    // Handlers
+    const handleContact = (type) => {
+        setContactType(type);
+        setIsContactOpen(true);
     };
 
-    const handleSocialClick = (platform, handle) => {
-        if (!handle) return;
-        let url = handle;
-        if (!url.startsWith('http')) {
-            if (platform === 'whatsapp') url = `https://wa.me/${handle.replace(/\D/g, '')}`;
-            else if (platform === 'instagram') url = `https://instagram.com/${handle.replace('@', '')}`;
-            else if (platform === 'facebook') url = `https://facebook.com/${handle}`;
-            else if (platform === 'twitter') url = `https://twitter.com/${handle}`;
-            else if (platform === 'linkedin') url = `https://linkedin.com/in/${handle}`;
-            else if (platform === 'youtube') url = `https://youtube.com/@${handle}`;
-            else if (platform === 'website') url = `https://${handle}`;
-        }
-        window.open(url, '_blank');
+    const handleSocialClick = (platform, value) => {
+        const url = normalizeSocialUrl(platform, value);
+        if (url) window.open(url, "_blank", "noopener,noreferrer");
+        else toast.error("Link not available");
     };
 
-    const { activeCountry } = useCountry();
+    const copyLink = () => {
+        navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard!");
+    };
 
-    if (isLoading) return <div className="min-h-screen bg-white flex items-center justify-center"><div className="w-10 h-10 border-4 border-[#CB2A25] border-t-transparent rounded-full animate-spin" /></div>;
-    // logic: if we have data (either from API or state), we show it. 
-    // If we have NO data and (isError is true OR we attempted to load), then show not found.
-    if ((!data && isError) || !listing) return <div className="min-h-screen flex items-center justify-center">Property not found</div>;
+    if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><div className="w-8 h-8 border-4 border-rose-600 border-t-transparent rounded-full animate-spin" /></div>;
+    if (!listing) return <div className="min-h-screen flex items-center justify-center">Property not found</div>;
 
-    // Strict Country Check
-    if (activeCountry && listing.location.country !== activeCountry.name) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFDFD] text-[#00142E]">
-                <Navbar />
-                <div className="flex-1 flex flex-col items-center justify-center">
-                    <h2 className="text-2xl font-bold mb-2">No data found</h2>
-                    <p className="text-gray-500">This property is not listed in {activeCountry.name}.</p>
-                    <Button onClick={() => navigate('/search')} className="mt-6 bg-[#00142E] text-white rounded-full px-8">
-                        View All Accommodations
-                    </Button>
-                </div>
-                <Footer />
-            </div>
-        );
-    }
+    // Gallery Modal
+    const GalleryModal = () => (
+        <AnimatePresence>
+            {isFullscreen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl flex flex-col"
+                >
+                    <div className="absolute top-4 right-4 z-10 flex gap-4">
+                        <Button
+                            variant="ghost"
+                            className="text-white hover:bg-white/10 rounded-full w-12 h-12 p-0"
+                            onClick={() => setIsFullscreen(false)}
+                        >
+                            <X className="w-6 h-6" />
+                        </Button>
+                    </div>
 
-    const displayPrice = listing.price.monthly > 0
-        ? { amount: listing.price.monthly, period: 'month' }
-        : listing.price.nightly > 0
-            ? { amount: listing.price.nightly, period: 'night' }
-            : { amount: listing.price.hourly, period: 'hour' };
+                    <div className="flex-1 flex items-center justify-center p-4 md:p-10 relative">
+                        <Button
+                            variant="ghost"
+                            className="absolute left-4 text-white hover:bg-white/10 rounded-full w-12 h-12 p-0 hidden md:flex"
+                            onClick={() => setCurrentImageIndex(prev => (prev - 1 + listing.photos.length) % listing.photos.length)}
+                        >
+                            <ChevronLeft className="w-8 h-8" />
+                        </Button>
+
+                        <motion.img
+                            key={currentImageIndex}
+                            src={listing.photos[currentImageIndex]}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="max-h-full max-w-5xl object-contain rounded-lg shadow-2xl"
+                        />
+
+                        <Button
+                            variant="ghost"
+                            className="absolute right-4 text-white hover:bg-white/10 rounded-full w-12 h-12 p-0 hidden md:flex"
+                            onClick={() => setCurrentImageIndex(prev => (prev + 1) % listing.photos.length)}
+                        >
+                            <ChevronRight className="w-8 h-8" />
+                        </Button>
+                    </div>
+
+                    <div className="h-24 p-4 flex gap-2 overflow-x-auto justify-center">
+                        {listing.photos.map((p, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setCurrentImageIndex(i)}
+                                className={cn(
+                                    "h-full aspect-square rounded-lg overflow-hidden border-2 transition-all",
+                                    i === currentImageIndex ? "border-rose-500 scale-105" : "border-transparent opacity-50 hover:opacity-100"
+                                )}
+                            >
+                                <img src={p} className="w-full h-full object-cover" alt="" />
+                            </button>
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
 
     return (
-        <div className="min-h-screen bg-[#FDFDFD] font-sans text-[#00142E]">
+        <div className="bg-white min-h-screen">
             <Navbar />
 
-            {/* Premium Hero Section */}
-            <div className="relative h-[55vh] md:h-[65vh] w-full overflow-hidden group">
-                <AnimatePresence mode='wait'>
-                    <motion.img
-                        key={currentImageIndex}
-                        src={listing.photos[currentImageIndex]}
-                        initial={{ opacity: 0, scale: 1.05 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="absolute inset-0 w-full h-full object-cover object-center"
-                    />
-                </AnimatePresence>
+            {/* Gallery Section - Full Width on Mobile, Grid on Desktop */}
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <div className="relative rounded-xl md:rounded-3xl overflow-hidden aspect-[4/3] md:aspect-[3/1] shadow-sm group">
+                    {listing.photos.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 h-full">
+                            {/* Main Photo */}
+                            <div className="md:col-span-2 h-full relative cursor-pointer" onClick={() => setIsFullscreen(true)}>
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10" />
+                                <img src={listing.photos[0]} alt="Property" className="w-full h-full object-cover" />
+                            </div>
 
-                {/* Cinema Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#00142E]/90 via-[#00142E]/30 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-b from-[#00142E]/20 to-transparent" />
-
-                {/* Hero Content */}
-                <div className="absolute inset-0 container mx-auto px-4 flex flex-col justify-end pb-10 md:pb-16">
-                    <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-10 duration-700">
-                        <div className="flex gap-3 mb-4">
-                            {listing.isVerified && (
-                                <Badge className="bg-[#CB2A25] text-white hover:bg-[#a0221e] border-none px-3 py-1.5 text-sm font-bold shadow-lg shadow-[#CB2A25]/20 backdrop-blur-md">
-                                    <ShieldCheck className="w-4 h-4 mr-1.5" /> Verified Residence
-                                </Badge>
-                            )}
+                            {/* Secondary Photos (Desktop Only) */}
+                            <div className="hidden md:grid grid-rows-2 gap-2 h-full">
+                                {[1, 2].map(i => (
+                                    <div key={i} className="relative h-full cursor-pointer" onClick={() => { setCurrentImageIndex(i); setIsFullscreen(true); }}>
+                                        <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors z-10" />
+                                        <img src={listing.photos[i] || listing.photos[0]} className="w-full h-full object-cover" alt="" />
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="hidden md:grid grid-rows-2 gap-2 h-full">
+                                {[3, 4].map(i => (
+                                    <div key={i} className="relative h-full cursor-pointer" onClick={() => { setCurrentImageIndex(i); setIsFullscreen(true); }}>
+                                        <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors z-10" />
+                                        <img src={listing.photos[i] || listing.photos[0]} className="w-full h-full object-cover" alt="" />
+                                        {i === 4 && (
+                                            <Button
+                                                variant="secondary"
+                                                className="absolute bottom-4 right-4 z-20 font-medium shadow-md hover:bg-white"
+                                                onClick={(e) => { e.stopPropagation(); setIsFullscreen(true); }}
+                                            >
+                                                <Maximize2 className="w-4 h-4 mr-2" />
+                                                Show all photos
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-
-                        <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white mb-3 leading-tight tracking-tight drop-shadow-2xl">
-                            {listing.title}
-                        </h1>
-                        <p className="text-xl md:text-2xl text-white/90 font-medium max-w-2xl mb-8 flex items-center gap-2 drop-shadow-lg">
-                            <MapPin className="w-5 h-5 text-[#CB2A25]" />
-                            {listing.location.city}, {listing.location.country}
-                        </p>
-
-                        <div className="flex flex-wrap gap-4">
-                            <Button
-                                onClick={() => setIsFullscreen(true)}
-                                size="lg"
-                                className="bg-white text-[#00142E] hover:bg-white/90 font-bold rounded-full h-14 px-8 shadow-2xl transition-transform hover:scale-105"
-                            >
-                                <Camera className="w-5 h-5 mr-2" />
-                                View Gallery
-                            </Button>
-                            <Button
-                                onClick={handleFavorite}
-                                size="lg"
-                                variant="outline"
-                                className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20 rounded-full h-14 px-8 font-bold transition-transform hover:scale-105"
-                            >
-                                <Heart className={`w-5 h-5 mr-2 ${isFavorite ? 'fill-[#CB2A25] text-[#CB2A25]' : ''}`} />
-                                {isFavorite ? 'Saved' : 'Save'}
-                            </Button>
+                    ) : (
+                        <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-400">
+                            No photos available
                         </div>
+                    )}
+
+                    {/* Mobile "See All" overlay */}
+                    <button
+                        className="md:hidden absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-sm"
+                        onClick={() => setIsFullscreen(true)}
+                    >
+                        1/{listing.photos.length}
+                    </button>
+
+                    {/* Share/Save floating buttons (Mobile) */}
+                    <div className="absolute top-4 right-4 flex gap-2 md:hidden">
+                        <button onClick={copyLink} className="p-2 bg-white rounded-full shadow-md"><Share2 className="w-4 h-4" /></button>
+                        <button onClick={() => setIsFavorite(!isFavorite)} className="p-2 bg-white rounded-full shadow-md">
+                            <Heart className={cn("w-4 h-4", isFavorite ? "fill-rose-500 text-rose-500" : "")} />
+                        </button>
                     </div>
-                </div>
-
-                {/* Hero Navigation */}
-                <div className="absolute bottom-12 right-12 hidden md:flex gap-4">
-                    <button onClick={prevImage} className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white hover:text-[#00142E] transition-all">
-                        <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <button onClick={nextImage} className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white hover:text-[#00142E] transition-all">
-                        <ChevronRight className="w-6 h-6" />
-                    </button>
                 </div>
             </div>
 
-            {/* Main Layout */}
-            <div className="container mx-auto px-4 py-16">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            {/* Main Content */}
+            <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-12">
 
-                    {/* Left Content Column */}
-                    <div className="lg:col-span-8 space-y-16">
+                    {/* Left Column: Details (Expanded) */}
+                    <div className="min-w-0 space-y-10">
 
-                        {/* Highlights Grid */}
+                        {/* Title Header */}
+                        <div className="border-b border-slate-100 pb-8">
+                            <div className="flex justify-between items-start gap-4">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-medium hover:bg-slate-200">
+                                            {listing.type}
+                                        </Badge>
+                                        {listing.isVerified && (
+                                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1 pl-1 pr-2 hover:bg-emerald-100">
+                                                <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                                            </Badge>
+                                        )}
+                                        {/* Removed static rating/reviews display */}
+                                    </div>
+                                    <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight mb-2">
+                                        {listing.title}
+                                    </h1>
+                                    <div className="flex items-center text-slate-500 text-base">
+                                        <MapPin className="w-4 h-4 mr-1.5 text-rose-500" />
+                                        {listing.location.city}, {listing.location.country}
+                                    </div>
+                                </div>
+
+                                {/* Desktop Share/Save */}
+                                <div className="hidden md:flex gap-2">
+                                    <Button variant="outline" size="sm" onClick={copyLink} className="gap-2 text-slate-700">
+                                        <Share2 className="w-4 h-4" /> Share
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => setIsFavorite(!isFavorite)} className="gap-2 text-slate-700">
+                                        <Heart className={cn("w-4 h-4", isFavorite ? "fill-rose-500 text-rose-500" : "")} /> Save
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Host Promo Card */}
+                        <div className="flex items-center gap-4 p-6 rounded-2xl bg-gradient-to-r from-rose-50 to-white border border-rose-100/50">
+                            <div className="relative">
+                                {listing.host.avatar ? (
+                                    <img src={listing.host.avatar} className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" alt={listing.host.name} />
+                                ) : (
+                                    <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-xl border-2 border-white shadow-sm">
+                                        {listing.host.initials}
+                                    </div>
+                                )}
+                                {listing.host.isVerified && (
+                                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                                        <ShieldCheck className="w-5 h-5 text-emerald-500 fill-emerald-50" />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-bold text-lg text-slate-900">Hosted by {listing.host.name}</h3>
+                                <p className="text-slate-500 text-sm">Superhost · Very responsive</p>
+                            </div>
+                            <div className="flex gap-2">
+                                {listing.host.socials.whatsapp && (
+                                    <button onClick={() => handleSocialClick('whatsapp', listing.host.socials.whatsapp)} className="w-10 h-10 flex items-center justify-center rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition-colors">
+                                        <FaWhatsapp className="w-5 h-5" />
+                                    </button>
+                                )}
+                                {listing.host.socials.instagram && (
+                                    <button onClick={() => handleSocialClick('instagram', listing.host.socials.instagram)} className="w-10 h-10 flex items-center justify-center rounded-full bg-pink-50 text-pink-600 hover:bg-pink-100 transition-colors">
+                                        <Instagram className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Highlights Stats */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {listing.highlights.map((item, idx) => (
-                                <div key={idx} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center gap-2 transition-all hover:shadow-md hover:-translate-y-1">
-                                    <div className="w-10 h-10 rounded-full bg-[#CB2A25]/5 flex items-center justify-center text-[#CB2A25]">
-                                        <item.icon className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-[#00142E] text-base">{item.text}</div>
-                                        <div className="text-xs text-gray-400 font-medium uppercase tracking-wider mt-0.5">{item.label}</div>
-                                    </div>
+                            {listing.highlights.map((h, i) => (
+                                <div key={i} className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center hover:shadow-sm transition-shadow">
+                                    <h.icon className="w-6 h-6 text-slate-700 mb-2" />
+                                    <span className="font-semibold text-slate-900">{h.text.split(' ')[0]}</span>
+                                    <span className="text-xs text-slate-500 uppercase tracking-wide">{h.label}</span>
                                 </div>
                             ))}
                         </div>
 
                         {/* Description */}
-                        <div>
-                            <h2 className="text-2xl font-bold text-[#00142E] mb-6">About this place</h2>
-                            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm leading-relaxed text-gray-600 text-lg whitespace-pre-wrap">
+                        <div className="space-y-4">
+                            <h2 className="text-2xl font-bold text-slate-900">About this place</h2>
+                            <p className="text-slate-600 leading-relaxed whitespace-pre-wrap text-lg">
                                 {listing.description}
-                            </div>
+                            </p>
                         </div>
 
                         {/* Amenities */}
-                        <div>
-                            <h2 className="text-2xl font-bold text-[#00142E] mb-6">What this place offers</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {listing.amenities.map((category, idx) => (
-                                    <div key={idx} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-                                        <h3 className="font-bold text-[#00142E] mb-4 flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-[#CB2A25]" />
-                                            {category.category}
-                                        </h3>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {category.items.map((am, i) => (
-                                                <div key={i} className="flex items-center gap-3 text-gray-600 p-2 rounded-xl hover:bg-gray-50 transition-colors">
-                                                    <am.icon className="w-5 h-5 text-gray-400" />
-                                                    <span className="font-medium text-sm">{am.name}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+                        <div className="border-t border-slate-200 pt-10">
+                            <h2 className="text-2xl font-bold text-slate-900 mb-6">What this place offers</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {listing.amenities.slice(0, 10).map((am, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                                        <am.icon className="w-6 h-6 text-slate-500" />
+                                        <span className="text-slate-700">{am.name}</span>
                                     </div>
                                 ))}
                             </div>
+                            {listing.amenities.length > 10 && (
+                                <Button variant="outline" className="mt-6 w-full md:w-auto" onClick={() => setIsAmenitiesOpen(true)}>
+                                    Show all {listing.amenities.length} amenities
+                                </Button>
+                            )}
                         </div>
 
-                        {/* Host Section */}
-                        <div className="bg-[#00142E] rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-[#CB2A25]/20 rounded-full blur-[80px]" />
-
-                            <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
-                                <div className="relative">
-                                    {listing.host.avatar ? (
-                                        <img src={listing.host.avatar} className="w-32 h-32 rounded-full border-4 border-white/10 object-cover" alt="Host" />
-                                    ) : (
-                                        <div className="w-32 h-32 rounded-full border-4 border-white/10 bg-blue-600 flex items-center justify-center text-4xl font-bold text-white tracking-widest shadow-inner">
-                                            {listing.host.initials}
-                                        </div>
-                                    )}
-                                    {listing.host.isVerified && (
-                                        <div className="absolute bottom-0 right-0 bg-[#CB2A25] text-white p-2 rounded-full border-4 border-[#00142E]">
-                                            <ShieldCheck className="w-5 h-5" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="text-3xl font-bold mb-2">Hosted by {listing.host.name}</h3>
-                                    <p className="text-white/60 text-lg mb-6 max-w-xl">{listing.host.description}</p>
-
-                                    <div className="flex flex-wrap justify-center md:justify-start gap-4 mb-8">
-                                        <div className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                                            <div className="text-xl font-bold">{listing.host.responseTime}</div>
-                                            <div className="text-xs text-white/40 uppercase tracking-wider">Response Time</div>
-                                        </div>
-                                        <div className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                                            <div className="text-xl font-bold">{listing.host.joinedDate}</div>
-                                            <div className="text-xs text-white/40 uppercase tracking-wider">Joined In</div>
-                                        </div>
-                                    </div>
-
-
-
-                                    <div className="flex gap-2">
-                                        {listing.host.socials.whatsapp && (
-                                            <button onClick={() => handleSocialClick('whatsapp', listing.host.socials.whatsapp)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-[#25D366] flex items-center justify-center transition-colors">
-                                                <FaWhatsapp className="w-6 h-6 text-white" />
-                                            </button>
-                                        )}
-                                        {listing.host.socials.instagram && (
-                                            <button onClick={() => handleSocialClick('instagram', listing.host.socials.instagram)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-pink-600 flex items-center justify-center transition-colors">
-                                                <Instagram className="w-5 h-5 text-white" />
-                                            </button>
-                                        )}
-                                        {listing.host.socials.facebook && (
-                                            <button onClick={() => handleSocialClick('facebook', listing.host.socials.facebook)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-blue-600 flex items-center justify-center transition-colors">
-                                                <Facebook className="w-5 h-5 text-white" />
-                                            </button>
-                                        )}
-                                        {listing.host.socials.twitter && (
-                                            <button onClick={() => handleSocialClick('twitter', listing.host.socials.twitter)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-blue-400 flex items-center justify-center transition-colors">
-                                                <Twitter className="w-5 h-5 text-white" />
-                                            </button>
-                                        )}
-                                        {listing.host.socials.linkedin && (
-                                            <button onClick={() => handleSocialClick('linkedin', listing.host.socials.linkedin)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-blue-700 flex items-center justify-center transition-colors">
-                                                <Linkedin className="w-5 h-5 text-white" />
-                                            </button>
-                                        )}
-                                        {listing.host.socials.youtube && (
-                                            <button onClick={() => handleSocialClick('youtube', listing.host.socials.youtube)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-red-600 flex items-center justify-center transition-colors">
-                                                <Youtube className="w-5 h-5 text-white" />
-                                            </button>
-                                        )}
-                                        {listing.host.socials.website && (
-                                            <button onClick={() => handleSocialClick('website', listing.host.socials.website)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-gray-500 flex items-center justify-center transition-colors">
-                                                <Globe className="w-5 h-5 text-white" />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Map Section */}
-                        <div>
-                            <h2 className="text-2xl font-bold text-[#00142E] mb-6">Where you'll be</h2>
-                            <div className="relative h-96 w-full rounded-[2rem] overflow-hidden group shadow-lg border border-gray-100">
+                        {/* Map */}
+                        <div className="border-t border-slate-200 pt-10">
+                            <h2 className="text-2xl font-bold text-slate-900 mb-6">Where you’ll be</h2>
+                            <div className="h-[400px] w-full rounded-2xl overflow-hidden relative group">
                                 <iframe
                                     width="100%"
                                     height="100%"
                                     src={`https://maps.google.com/maps?q=${encodeURIComponent(`${listing.location.city}, ${listing.location.country}`)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
                                     frameBorder="0"
-                                    scrolling="no"
-                                    marginHeight="0"
-                                    marginWidth="0"
-                                    className="filter grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700 w-full h-full"
-                                    title="Property Location"
+                                    className="w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500"
+                                    title="Location"
                                 />
-                                <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${listing.location.city}, ${listing.location.country}`)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="absolute inset-0 bg-black/0 hover:bg-black/5 transition-colors flex items-center justify-center group cursor-pointer"
-                                >
-                                    <div className="bg-white/90 backdrop-blur-md text-[#00142E] px-8 py-4 rounded-full font-bold shadow-2xl transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 flex items-center gap-3 border border-white/50">
-                                        <div className="w-8 h-8 rounded-full bg-[#CB2A25]/10 flex items-center justify-center text-[#CB2A25]">
-                                            <MapPin className="w-4 h-4" />
-                                        </div>
-                                        <span>Open in Google Maps</span>
-                                        <ExternalLink className="w-4 h-4 text-gray-400" />
-                                    </div>
-                                </a>
+                                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${listing.location.city}, ${listing.location.country}`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-white/90 backdrop-blur pointer-events-auto px-6 py-3 rounded-full shadow-lg font-semibold text-slate-900 flex items-center gap-2 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all"
+                                    >
+                                        <MapPin className="w-4 h-4 text-rose-600" /> Open in Maps
+                                    </a>
+                                </div>
                             </div>
-                            <div className="mt-4 flex items-start gap-2 text-gray-500 text-sm">
+                            <div className="mt-4 text-slate-500 text-sm flex items-start gap-2">
                                 <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
                                 <p>{listing.location.city}, {listing.location.country}. Exact location provided after booking.</p>
                             </div>
@@ -524,137 +478,68 @@ export default function RoomPage() {
 
                     </div>
 
-                    {/* Right Sticky Sidebar */}
-                    <div className="lg:col-span-4">
-                        <div className="sticky top-28 space-y-6">
-
-                            {/* Booking Card */}
-                            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-[#00142E]/5 border border-gray-100">
-                                <div className="flex justify-between items-start mb-6 pb-6 border-b border-gray-50">
-                                    <div>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-3xl font-black text-[#00142E]">
-                                                {formatPrice(displayPrice.amount)}
-                                            </span>
-                                            <span className="text-gray-500 font-medium text-lg">
-                                                / {displayPrice.period}
-                                            </span>
-                                        </div>
-                                        {listing.price.securityDeposit > 0 && (
-                                            <div className="text-xs text-green-600 font-bold mt-1 inline-flex items-center bg-green-50 px-2 py-0.5 rounded-full">
-                                                + {formatPrice(listing.price.securityDeposit)} deposit
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4 mb-8">
-                                    <div className="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                        <div className="flex-1">
-                                            <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Check-in</div>
-                                            <div className="font-bold text-[#00142E]">After 2:00 PM</div>
-                                        </div>
-                                        <div className="w-px bg-gray-200" />
-                                        <div className="flex-1">
-                                            <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Status</div>
-                                            <div className={`font-bold ${listing.availability.status === 'Available' ? 'text-green-600' : 'text-red-500'}`}>
-                                                {listing.availability.status}
+                    {/* Right Column: Sticky Sidebar */}
+                    <div className="">
+                        <div className="sticky top-28">
+                            <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-6 md:p-8">
+                                <div className="flex flex-col gap-3 mb-6">
+                                    {listing.price.nightly > 0 && (
+                                        <div className="flex items-baseline justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-3xl font-bold text-slate-900">{formatPrice(listing.price.nightly)}</span>
+                                                <span className="text-slate-500 font-medium">/ night</span>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
 
-                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
-                                        <span className="text-sm font-bold text-gray-600">Guests</span>
-                                        <span className="font-bold text-[#00142E]">{listing.stats.guests} Max</span>
-                                    </div>
+                                    {listing.price.hourly > 0 && (
+                                        <div className="flex items-baseline justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                                            <div className="flex items-baseline gap-1">
+                                                <span className={`${listing.price.nightly > 0 ? 'text-xl text-slate-700' : 'text-3xl text-slate-900'} font-bold`}>
+                                                    {formatPrice(listing.price.hourly)}
+                                                </span>
+                                                <span className="text-slate-500 font-medium">/ hour</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {listing.price.monthly > 0 && (
+                                        <div className="flex items-baseline justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                                            <div className="flex items-baseline gap-1">
+                                                <span className={`${(listing.price.nightly > 0 || listing.price.hourly > 0) ? 'text-xl text-slate-700' : 'text-3xl text-slate-900'} font-bold`}>
+                                                    {formatPrice(listing.price.monthly)}
+                                                </span>
+                                                <span className="text-slate-500 font-medium">/ month</span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                 </div>
 
-                                <div className="flex flex-col gap-3">
-
-                                    <Button
-                                        onClick={handleWhatsAppHost}
-                                        className="w-full h-14 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-lg font-bold shadow-lg shadow-[#25D366]/20"
-                                    >
-                                        <MessageCircle className="w-5 h-5 mr-2" />
-                                        WhatsApp
-                                    </Button>
-
-
-                                    {/* Social Quick Links */}
-                                    <div className="flex gap-2 justify-center pt-2">
-                                        {listing.host.socials.instagram && (
-                                            <button onClick={() => handleSocialClick('instagram', listing.host.socials.instagram)} className="w-10 h-10 rounded-full bg-gray-50 hover:bg-pink-100 text-pink-600 flex items-center justify-center transition-colors">
-                                                <Instagram className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                        {listing.host.socials.website && (
-                                            <button onClick={() => handleSocialClick('website', listing.host.socials.website)} className="w-10 h-10 rounded-full bg-gray-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors">
-                                                <Globe className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                        {listing.host.socials.linkedin && (
-                                            <button onClick={() => handleSocialClick('linkedin', listing.host.socials.linkedin)} className="w-10 h-10 rounded-full bg-gray-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center transition-colors">
-                                                <Linkedin className="w-4 h-4" />
-                                            </button>
-                                        )}
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 border border-slate-200 rounded-xl overflow-hidden">
+                                        <div className="p-3 bg-white hover:bg-slate-50 transition-colors cursor-pointer flex justify-between items-center group">
+                                            <div>
+                                                <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Guests</div>
+                                                <div className="text-sm font-medium text-slate-900 mt-0.5">{listing.highlights.find(h => h.label === 'Capacity')?.text || '1 Guest'}</div>
+                                            </div>
+                                            <Users className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                                        </div>
                                     </div>
+
+
+
+                                    <p className="text-center text-xs text-slate-400 mt-4">
+                                        You won't be charged yet
+                                    </p>
                                 </div>
 
-                                <div className="mt-6 text-center text-xs text-gray-400 font-medium">
-                                    You won't be charged yet
-                                </div>
+
                             </div>
-
-                            {/* Trust Badge */}
-                            <div className="bg-white rounded-3xl p-6 border border-gray-100 flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600 shrink-0">
-                                    <ShieldCheck className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-[#00142E]">Verified Listing</h4>
-                                    <p className="text-xs text-gray-500">Inspected for quality & safety</p>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
                 </div>
-            </div>
-
-            {/* Gallery Overlay Modal */}
-            <AnimatePresence>
-                {isFullscreen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col"
-                    >
-                        <div className="p-6 flex justify-between items-center text-white">
-                            <h3 className="font-bold text-lg">Gallery ({currentImageIndex + 1}/{listing.photos.length})</h3>
-                            <button onClick={() => setIsFullscreen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X className="w-8 h-8" /></button>
-                        </div>
-                        <div className="flex-1 flex items-center justify-center relative p-4">
-                            <motion.img
-                                key={currentImageIndex}
-                                src={listing.photos[currentImageIndex]}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
-                            />
-                            <button onClick={prevImage} className="absolute left-4 p-4 hover:bg-white/10 rounded-full text-white"><ChevronLeft className="w-10 h-10" /></button>
-                            <button onClick={nextImage} className="absolute right-4 p-4 hover:bg-white/10 rounded-full text-white"><ChevronRight className="w-10 h-10" /></button>
-                        </div>
-                        <div className="p-6 flex gap-2 overflow-x-auto justify-center">
-                            {listing.photos.map((p, i) => (
-                                <button key={i} onClick={() => setCurrentImageIndex(i)} className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${i === currentImageIndex ? 'border-[#CB2A25] scale-110' : 'border-transparent opacity-50'}`}>
-                                    <img src={p} className="w-full h-full object-cover" />
-                                </button>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            </main>
 
             <ContactModal
                 isOpen={isContactOpen}
@@ -666,6 +551,55 @@ export default function RoomPage() {
                     setIsContactOpen(false);
                 }}
             />
+            <GalleryModal />
+
+            {/* Amenities Modal */}
+            <AnimatePresence>
+                {isAmenitiesOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+                        onClick={() => setIsAmenitiesOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl relative overflow-hidden"
+                        >
+                            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                                <h3 className="text-xl font-bold text-gray-900">What this place offers</h3>
+                                <button
+                                    onClick={() => setIsAmenitiesOpen(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-900"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <div className="p-6 overflow-y-auto custom-scrollbar">
+                                <div className="space-y-8">
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">All Amenities</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                                            {listing.amenities.map((am, i) => (
+                                                <div key={i} className="flex items-center gap-4 py-2 border-b border-gray-50 last:border-0">
+                                                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+                                                        <am.icon className="w-5 h-5 text-gray-600" />
+                                                    </div>
+                                                    <span className="text-gray-700 font-medium">{am.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             <Footer />
         </div>
     );

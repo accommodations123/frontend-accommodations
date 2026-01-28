@@ -108,8 +108,6 @@ const AddResourceForm = ({ onResourceAdded }) => {
             description: formData.description
         };
 
-        console.log("Submitting Resource:", payload);
-
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1500));
 

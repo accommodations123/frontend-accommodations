@@ -13,21 +13,63 @@ import { ShieldCheck, Zap, Tag, MessageCircle } from "lucide-react";
 import { useCountry } from "@/context/CountryContext";
 import { useGetBuySellListingsQuery, useGetHostProfileQuery, useGetBuySellByIdQuery } from "@/store/api/hostApi";
 import { useGetMeQuery } from "@/store/api/authApi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import HostGuard from "@/components/auth/HostGuard";
 
 /* ================= COMPONENT ================= */
 
 export default function MarketplacePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const productIdFromUrl = searchParams.get("product");
+
   const [activeTab, setActiveTab] = useState("buy");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [viewProduct, setViewProduct] = useState(null);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
 
+  const [filters, setFilters] = useState({
+    priceMin: "",
+    priceMax: "",
+    condition: "",
+    category: "",
+    country: "",
+    state: "",
+    city: "",
+    search: "",
+  });
+
   const { activeCountry, isSelected } = useCountry();
   // products state is now managed by RTK Query
-  const { data: productsData, isLoading: loading, error } = useGetBuySellListingsQuery(activeCountry?.name);
+  const { data: productsData, isLoading: loading, error } = useGetBuySellListingsQuery({
+    country: filters.country || activeCountry?.name,
+    state: filters.state,
+    city: filters.city,
+    category: filters.category,
+    minPrice: filters.priceMin,
+    maxPrice: filters.priceMax,
+    search: filters.search // Assuming search might be added to filters later or passed separately
+  });
+
+  // Fetch single product if coming from URL param
+  const { data: productFromUrl } = useGetBuySellByIdQuery(productIdFromUrl, {
+    skip: !productIdFromUrl
+  });
+
+  // Auto-display product from URL param
+  useEffect(() => {
+    if (productFromUrl && productIdFromUrl) {
+      setViewProduct(productFromUrl);
+    }
+  }, [productFromUrl, productIdFromUrl]);
+
+  // Clear URL param when closing product view
+  const handleBackFromProduct = () => {
+    setViewProduct(null);
+    if (productIdFromUrl) {
+      setSearchParams({});
+    }
+  };
 
   const navigate = useNavigate();
   const { data: user } = useGetMeQuery();
@@ -41,44 +83,14 @@ export default function MarketplacePage() {
     setActiveTab(tab);
   };
 
-  const [filters, setFilters] = useState({
-    priceMin: "",
-    priceMax: "",
-    condition: "",
-    category: "",
-    country: "",
-    state: "",
-    city: "",
-  });
-
 
   const products = productsData || [];
 
   /* ================= FILTER LOGIC ================= */
 
-  const filteredProducts = useMemo(() => {
-    return products.filter(p => {
-      const price = Number(p.price);
-
-      if (filters.priceMin && price < Number(filters.priceMin)) return false;
-      if (filters.priceMax && price > Number(filters.priceMax)) return false;
-
-      if (filters.condition && p.condition !== filters.condition) return false;
-
-      if (
-        filters.category &&
-        !p.tags?.includes(filters.category)
-      )
-        return false;
-
-      // Location Filtering
-      if (filters.country && p.country && p.country.toLowerCase() !== filters.country.toLowerCase()) return false;
-      if (filters.state && p.state && p.state.toLowerCase() !== filters.state.toLowerCase()) return false;
-      if (filters.city && p.city && p.city.toLowerCase() !== filters.city.toLowerCase()) return false;
-
-      return true;
-    });
-  }, [products, filters]);
+  /* ================= FILTER LOGIC ================= */
+  // Filtering is now handled by the backend API
+  const filteredProducts = products;
 
   /* ================= HANDLERS ================= */
 
@@ -120,7 +132,7 @@ export default function MarketplacePage() {
                   {viewProduct ? (
                     <SingleProductView
                       product={viewProduct}
-                      onBack={() => setViewProduct(null)}
+                      onBack={handleBackFromProduct}
                       onMessage={handleMessage}
                     />
                   ) : filteredProducts.length > 0 ? (
@@ -197,7 +209,7 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
     ...rawProduct,
     sellerName: rawProduct.sellerName || rawProduct.name || "Seller",
     sellerPhone: rawProduct.sellerPhone || rawProduct.phone,
-    location: rawProduct.location || [rawProduct.city, rawProduct.country].filter(Boolean).join(", ") || "Location not specified",
+    location: rawProduct.location || [rawProduct.city, rawProduct.state, rawProduct.country].filter(Boolean).join(", ") || "Location not specified",
     postedTime: rawProduct.postedTime || (rawProduct.createdAt ? new Date(rawProduct.createdAt).toLocaleDateString() : "Recently"),
   };
 
@@ -311,10 +323,7 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
                         onClick={() => {
                           // Strip non-numeric characters for the link
                           const cleanNumber = product.sellerPhone.replace(/\D/g, '');
-                          // Default to '91' prefix if 10 digits (India assumption based on user context)
-                          // otherwise use as is. 
-                          const formattedNumber = cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
-                          window.open(`https://wa.me/${formattedNumber}`, '_blank');
+                          window.open(`https://wa.me/${cleanNumber}`, '_blank');
                         }}
                         className="flex-1 h-10 sm:h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#25D366]/20 active:scale-95 text-sm sm:text-base"
                       >

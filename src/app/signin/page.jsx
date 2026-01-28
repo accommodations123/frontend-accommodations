@@ -61,7 +61,6 @@ const Signin = () => {
 
   /* ---------- GOOGLE LOGIN ---------- */
   const loginWithGoogle = () => {
-    console.log("Initiating Google Login...");
     window.location.href = "https://accomodation.api.test.nextkinlife.live/auth/google";
   };
 

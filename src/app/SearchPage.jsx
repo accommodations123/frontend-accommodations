@@ -26,7 +26,6 @@ export default function SearchPage() {
     const [isCountryOpen, setCountryOpen] = useState(false);
     const { activeCountry, setCountry } = useCountry();
 
-    const { data: approvedHosts } = useGetApprovedHostDetailsQuery(activeCountry?.name);
     // Use getAllProperties to show pending/unverified listings too
     const { data: allProperties } = useGetAllPropertiesQuery({ country: activeCountry?.name });
 
@@ -65,29 +64,47 @@ export default function SearchPage() {
             setLoading(true);
             try {
                 if (allProperties) {
-                    let mapped = allProperties.map((property) => ({
-                        ...property, // Preserve original fields for PropertyCard
-                        _id: property.id || property._id,
-                        title: property.title || "Untitled Property",
-                        location: property.city || "Unknown Location",
-                        fullAddress: property.address || "", // For location filtering
-                        price: property.price_per_month || property.price_per_night || 0,
-                        currency: property.currency || 'INR',
-                        image: (property.photos && property.photos.length > 0)
-                            ? property.photos[0]
-                            : "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=2070&auto=format&fit=crop",
-                        type: property.property_type || "Stays", // Matches 'House', 'Apartment', etc.
-                        category: property.category_id || "Apartment", // Should probably match type
-                        rating: 4.8, // Mock
-                        reviews: 12, // Mock
-                        rating: 4.8, // Mock
-                        reviews: 12, // Mock
-                        isVerified: property.status === 'approved',
-                        status: property.status, // Pass status for UI badge
-                        furnishing: property.furnishing || "Unfurnished", // Backend field
-                        stayType: property.stay_type || "Flexible", // Backend field
-                        tags: property.amenities || []
-                    }));
+                    let mapped = allProperties.map((property) => {
+                        // Resolve Host object (check Host, host, and property root for fallback socials)
+                        const rawHost = property.Host || property.host || {};
+                        const mergedHost = {
+                            ...rawHost,
+                            // Aggressively find available socials
+                            instagram: rawHost.instagram || property.instagram || "",
+                            facebook: rawHost.facebook || property.facebook || "",
+                            whatsapp: rawHost.whatsapp || property.whatsapp || rawHost.phone || property.phone || "",
+                            twitter: rawHost.twitter || rawHost.x || property.twitter || property.x || ""
+                        };
+
+                        return {
+                            ...property, // Preserve original fields for PropertyCard
+                            _id: property.id || property._id,
+                            title: property.title || "Untitled Property",
+                            location: property.city || "Unknown Location",
+                            fullAddress: property.address || "", // For location filtering
+                            price: property.price_per_month || property.price_per_night || 0,
+                            currency: property.currency || 'INR',
+                            image: (property.photos && property.photos.length > 0)
+                                ? property.photos[0]
+                                : "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=2070&auto=format&fit=crop",
+                            type: property.property_type || "Stays", // Matches 'House', 'Apartment', etc.
+                            category: property.category_id || "Apartment", // Should probably match type
+                            rating: 4.8, // Mock
+                            reviews: 12, // Mock
+                            isVerified: property.status === 'approved',
+                            status: property.status, // Pass status for UI badge
+                            furnishing: property.furnishing || "Unfurnished", // Backend field
+                            stayType: property.stay_type || "Flexible", // Backend field
+                            tags: property.amenities || [],
+                            Host: mergedHost, // Explicitly pass merged host
+                            host: mergedHost // Pass as lowercase too for compatibility
+                        };
+                    }).filter(item => {                            // Filter out expired properties, but allow Pending + Approved
+                        const isVisible = item.status === 'approved' || item.status === 'pending';
+                        const isActive = !item.is_expired;
+                        const notExpired = !item.listing_expires_at || new Date(item.listing_expires_at) > new Date();
+                        return isVisible && isActive && notExpired;
+                    });
 
                     // Apply Filters
                     const { location, category, minPrice, maxPrice, stayType, furnishing } = filters;
@@ -182,39 +199,6 @@ export default function SearchPage() {
 
                     {/* Listings Grid */}
                     <main className="flex-1">
-                        {/* Verified Hosts Strip */}
-                        {approvedHosts && approvedHosts.length > 0 && (
-                            <div className="mb-8">
-                                <h3 className="font-bold text-gray-900 text-lg mb-4">Verified Hosts in your area</h3>
-                                <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-                                    {approvedHosts.map((host, idx) => {
-                                        const hostImage = host.host_id_photo || host.host_selfie_photo;
-                                        return (
-                                            <div key={idx} className="min-w-[200px] bg-white border border-gray-100 p-3 rounded-xl flex items-center gap-3 shadow-sm hover:shadow-md transition-all cursor-pointer">
-                                                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-gray-100 bg-gray-200 flex items-center justify-center">
-                                                    {hostImage ? (
-                                                        <img
-                                                            src={hostImage}
-                                                            alt={host.host_full_name}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <User className="w-6 h-6 text-gray-400" />
-                                                    )}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h4 className="font-bold text-gray-900 text-sm truncate flex items-center gap-1">
-                                                        {host.host_full_name}
-                                                        <UserCheck className="w-3 h-3 text-primary" />
-                                                    </h4>
-                                                    <p className="text-xs text-gray-500 truncate">{host.host_city || "Superhost"}</p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
 
                         <div className="flex items-center justify-between mb-6 hidden md:flex">
                             <h1 className="text-2xl font-bold text-gray-900">

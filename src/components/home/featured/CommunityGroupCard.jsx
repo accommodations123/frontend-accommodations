@@ -22,7 +22,7 @@ const HostPhoto = ({ host }) => {
     );
 };
 
-export const CommunityGroupCard = ({ group }) => {
+export const CommunityGroupCard = ({ group, onJoin, isJoining }) => {
     const groupId = group.id || group._id;
     const groupName = group.name || group.title || "";
     const groupImage = group.avatar_image || group.cover_image || group.image || "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?q=80&w=400&h=200&fit=crop";
@@ -31,6 +31,7 @@ export const CommunityGroupCard = ({ group }) => {
     const upcomingEvents = group.upcoming_events_count || 0;
     const category = group.category || group.type || "Community";
     const creator = group.creator || group.host || group.admin || group.Creator || group.Host || group.Admin;
+    const isJoined = !!(group.isJoined || group.is_member || group.isMember || group.member_role || group.is_joined || group.joined);
 
     return (
         <CardContainer linkTo={`/groups/${groupId}`}>
@@ -83,13 +84,12 @@ export const CommunityGroupCard = ({ group }) => {
                         <span>{upcomingEvents} community events</span>
                     </div>
                     <button
-                        className="bg-accent hover:bg-accent/90 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs font-semibold shadow-sm hover:shadow transition-all w-full sm:w-auto"
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs font-semibold shadow-sm hover:shadow transition-all w-full sm:w-auto bg-[#00142E] text-white hover:bg-[#00142E]/90 border border-transparent"
                         onClick={(e) => {
-                            e.preventDefault();
-                            // Handle join group logic
+                            // Let the parent Link handle navigation
                         }}
                     >
-                        Join
+                        View Details
                     </button>
                 </div>
             </div>

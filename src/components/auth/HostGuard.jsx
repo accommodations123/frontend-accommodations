@@ -32,7 +32,6 @@ const HostGuard = ({ children }) => {
         const hasHostProfile = host && (host.id || host._id); // Check for valid ID
 
         if (!hasHostProfile) {
-            console.log("HostGuard: User is not a host. Redirecting to /hosts");
             navigate('/hosts', { replace: true });
         }
 

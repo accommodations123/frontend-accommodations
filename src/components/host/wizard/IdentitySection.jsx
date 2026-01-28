@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Check, Mail, Phone, MapPin, User, FileText, AlertCircle } from 'lucide-react';
+import { CountryCodeSelect } from '@/components/ui/CountryCodeSelect';
 
 const IdentitySection = ({ formData, setFormData, isEmailVerified, setShowOtpModal, handleSendOtp, handleFileChange }) => {
   return (
@@ -60,15 +61,22 @@ const IdentitySection = ({ formData, setFormData, isEmailVerified, setShowOtpMod
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-300">Phone Number</label>
-          <div className="relative">
-            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="tel"
-              placeholder="Phone Number"
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:border-accent outline-none"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          <div className="flex gap-2">
+            <CountryCodeSelect
+              value={formData.phoneCode || "+91"}
+              onChange={(code) => setFormData({ ...formData, phoneCode: code })}
+              className="w-[110px]"
             />
+            <div className="relative flex-1">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="tel"
+                placeholder="Phone Number"
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:border-accent outline-none"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
           </div>
         </div>
       </div>

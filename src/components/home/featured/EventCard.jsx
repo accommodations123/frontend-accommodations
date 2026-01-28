@@ -5,6 +5,8 @@ import { useCountry } from '@/context/CountryContext';
 
 const HostPhoto = ({ host, name }) => {
     const photoUrl =
+        host?.User?.profile_image ||
+        host?.profile_image ||
         host?.selfie_photo ||
         host?.photo ||
         host?.avatar_image ||
@@ -142,7 +144,7 @@ export const EventCard = ({ event, viewMode = "grid", onViewDetails }) => {
                             <HostPhoto host={event.Host || event.host || event.creator} name={getOrganizerName()} />
                             <div>
                                 <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Hosted by</p>
-                                <p className="text-xs font-bold text-[#00142E] truncate max-w-[100px]" title={getOrganizerName()}>
+                                <p className="text-xs font-bold text-[#00142E] break-words whitespace-normal overflow-visible" title={getOrganizerName()}>
                                     {getOrganizerName()}
                                 </p>
                             </div>

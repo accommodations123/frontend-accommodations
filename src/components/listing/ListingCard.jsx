@@ -28,7 +28,7 @@ export function ListingCard({ listing, layout = "grid" }) {
     // Handle Title Fallback (if title is null or "Untitled Property")
     const displayTitle = (title && title !== "Untitled Property")
         ? title
-        : (type ? `${type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}${typeof location === 'string' ? ` in ${location}` : ''}` : "Untitled Property");
+        : (type ? `${type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}` : "Accommodation");
 
 
     // Normalize Location (Handle New vs Old Schema)

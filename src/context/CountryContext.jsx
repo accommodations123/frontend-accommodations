@@ -35,8 +35,7 @@ export const CountryProvider = ({ children }) => {
   }, []);
 
   const initializeWithGeolocation = async () => {
-    // Geolocation logic removed as per request to fix production errors.
-    console.log("Geolocation disabled.");
+    // Geolocation is not auto-initialized; users can manually set location.
   };
 
   const setCountry = useCallback((country) => {

@@ -28,7 +28,6 @@ const notificationSlice = createSlice({
     },
     reducers: {
         addNotification: (state, action) => {
-            console.log("🛠️ Redux: Adding notification", action.payload);
             const newNotif = {
                 id: action.payload.id || Date.now().toString(),
                 message: action.payload.message,

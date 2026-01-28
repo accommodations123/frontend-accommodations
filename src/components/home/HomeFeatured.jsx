@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import {
   Shield, ShieldCheck, Sparkles, MapPin, Users, Calendar,
-  ArrowRight, Heart, Globe, Star
+  ArrowRight, Heart, Globe, Star, Facebook, Instagram, MessageCircle
 } from 'lucide-react';
+
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useCountry } from '@/context/CountryContext';
@@ -32,6 +33,40 @@ import { TravelCommunity } from '../dashboard/TravelCommunity';
 import {
   SAFETY_TIPS, FEATURE_CARDS
 } from './featured/HomeFeaturedConstants.jsx';
+const openSocialLink = (platform, value, fallbackPhone) => {
+  if (!value && !fallbackPhone) return;
+
+  let url = null;
+
+  switch (platform) {
+    case "whatsapp": {
+      const num = (value || fallbackPhone || "").replace(/\D/g, "");
+      if (!num) return;
+      url = `https://wa.me/${num}`;
+      break;
+    }
+
+    case "instagram": {
+      const handle = value?.replace(/^@/, "");
+      if (!handle) return;
+      url = `https://instagram.com/${handle}`;
+      break;
+    }
+
+    case "facebook": {
+      if (!value) return;
+      url = value.startsWith("http")
+        ? value
+        : `https://facebook.com/${value}`;
+      break;
+    }
+
+    default:
+      return;
+  }
+
+  window.open(url, "_blank", "noopener,noreferrer");
+};
 
 // Inline Skeleton
 const Skeleton = ({ className = "" }) => (
@@ -44,7 +79,7 @@ const HomeFeatured = () => {
   const { data: allProperties, isLoading: propertiesLoading } = useGetAllPropertiesQuery({ country: activeCountry?.name });
   const { data: approvedEvents, isLoading: eventsLoading } = useGetApprovedEventsQuery(activeCountry?.code);
   const { data: communities, isLoading: communitiesLoading } = useGetCommunitiesQuery(activeCountry?.name);
-  const { data: marketplaceItems, isLoading: marketplaceLoading } = useGetBuySellListingsQuery(activeCountry?.name);
+  const { data: marketplaceItems, isLoading: marketplaceLoading } = useGetBuySellListingsQuery({ country: activeCountry?.name });
 
   const [viewMode, setViewMode] = useState("grid");
 
@@ -59,7 +94,7 @@ const HomeFeatured = () => {
     <div className="bg-white font-inter text-[#00142E]">
 
       {/* 1. Community Stays Section */}
-      <section className="py-6 sm:py-8 lg:py-12 relative overflow-hidden">
+      <section className="py-4 sm:py-6 relative overflow-hidden">
         {/* Decorative Blob */}
         <div className="absolute top-0 right-0 w-[300px] sm:w-[400px] lg:w-[500px] h-[300px] sm:h-[400px] lg:h-[500px] bg-gradient-to-br from-[#CB2A25]/5 to-transparent rounded-full blur-[100px] pointer-events-none" />
 
@@ -82,6 +117,7 @@ const HomeFeatured = () => {
                   transition={{ delay: idx * 0.1 }}
                 >
                   <PropertyCard property={property} />
+
                 </motion.div>
               ))
             ) : (
@@ -103,7 +139,7 @@ const HomeFeatured = () => {
       />
 
       {/* 3. Community Groups Section */}
-      <section className="py-6 sm:py-8 lg:py-12 relative bg-white">
+      <section className="py-4 sm:py-6 relative bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             title="Community Groups"
@@ -133,7 +169,7 @@ const HomeFeatured = () => {
       </section>
 
       {/* 4. Community Events Section */}
-      <section className="py-6 sm:py-8 lg:py-12 relative bg-[#F8F9FA] overflow-hidden">
+      <section className="py-4 sm:py-6 relative bg-[#F8F9FA] overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader
             title="Events"
@@ -177,7 +213,7 @@ const HomeFeatured = () => {
       </section>
 
       {/* 5. Marketplace */}
-      <section className="py-6 sm:py-8 lg:py-12 bg-white">
+      <section className="py-4 sm:py-6 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             title="Marketplace"
@@ -191,7 +227,7 @@ const HomeFeatured = () => {
             ) : marketplaceItems?.length > 0 ? (
               marketplaceItems.slice(0, 4).filter(Boolean).map((item, idx) => (
                 <motion.div key={item.id} {...fadeInUp} transition={{ delay: idx * 0.1 }}>
-                  <ProductCard product={item} onClick={(p) => window.location.href = `/marketplace/${p.id}`} />
+                  <ProductCard product={item} onClick={(p) => navigate(`/marketplace?product=${p.id}`)} />
                 </motion.div>
               ))
             ) : (
@@ -202,7 +238,7 @@ const HomeFeatured = () => {
       </section>
 
       {/* 6. Safety Tips Section */}
-      <section className="py-6 sm:py-8 lg:py-12 bg-[#F8F9FA]">
+      <section className="py-4 sm:py-6 bg-[#F8F9FA]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             title="Safety Tips"
@@ -232,7 +268,7 @@ const HomeFeatured = () => {
       </section>
 
       {/* 7. Feature Cards Section */}
-      <section className="py-6 sm:py-8 lg:py-12 bg-white">
+      <section className="py-4 sm:py-6 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {FEATURE_CARDS.map((card, idx) => (
@@ -260,7 +296,7 @@ const HomeFeatured = () => {
       </section>
 
       {/* 8. Final Call to Action */}
-      <section className="py-8 sm:py-12 lg:py-16 relative overflow-hidden bg-white">
+      <section className="py-6 sm:py-8 relative overflow-hidden bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <div className="max-w-3xl mx-auto space-y-6 sm:space-y-8">
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[#00142E] tracking-tight">
@@ -282,6 +318,7 @@ const HomeFeatured = () => {
           </div>
         </div>
       </section>
+
 
     </div>
   );

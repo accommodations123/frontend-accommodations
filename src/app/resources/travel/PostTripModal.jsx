@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plane, User, MapPin, Clock } from "lucide-react";
+import { X, Plane, User, MapPin, Clock, Phone } from "lucide-react";
 // import { GEOGRAPHIC_DATA, MORE_DESTINATIONS } from "../../app/resources/travel/constants";
+import { CountryCodeSelect } from "@/components/ui/CountryCodeSelect";
+import { Country, State, City } from 'country-state-city';
+import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import { useEffect } from "react";
 
 export default function PostTripModal({ onClose, onAdd }) {
     const [form, setForm] = useState({
@@ -23,7 +27,22 @@ export default function PostTripModal({ onClose, onAdd }) {
         arrivalDate: "",
         arrivalTime: "",
         stops: [],
+        phone: "",
+        phoneCode: "+91",
     });
+
+    const [countriesList] = useState(Country.getAllCountries());
+    const [statesList, setStatesList] = useState([]);
+    const [citiesList, setCitiesList] = useState([]);
+
+    useEffect(() => {
+        if (form.country) {
+            const countryObj = countriesList.find(c => c.name === form.country);
+            if (countryObj) {
+                setStatesList(State.getStatesOfCountry(countryObj.isoCode));
+            }
+        }
+    }, []);
 
     const [activeTab, setActiveTab] = useState("personal");
     const [formErrors, setFormErrors] = useState({});
@@ -86,7 +105,7 @@ export default function PostTripModal({ onClose, onAdd }) {
                 city: form.city,
                 zipCode: form.zipCode,
                 languages: form.languages.split(",").map((l) => l.trim()),
-                phone: "",
+                phone: form.phone ? `${form.phoneCode}${form.phone}` : "",
                 email: "",
                 whatsapp: "",
                 image:
@@ -193,6 +212,29 @@ export default function PostTripModal({ onClose, onAdd }) {
                                         />
                                     </div>
 
+                                    {/* Phone Number */}
+                                    <div className="md:col-span-1">
+                                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>Phone Number</label>
+                                        <div className="flex gap-2">
+                                            <div className="w-[100px] shrink-0">
+                                                <CountryCodeSelect
+                                                    value={form.phoneCode || "+91"}
+                                                    onChange={(val) => setForm({ ...form, phoneCode: val })}
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            <input
+                                                name="phone"
+                                                type="tel"
+                                                placeholder="1234567890"
+                                                className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition-all"
+                                                onChange={handleChange}
+                                                value={form.phone}
+                                                style={{ borderColor: 'var(--color-neutral)', color: 'var(--color-foreground)' }}
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div>
                                         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>Age</label>
                                         <input
@@ -230,64 +272,61 @@ export default function PostTripModal({ onClose, onAdd }) {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>Country</label>
-                                        <select
-                                            name="country"
-                                            className={`w-full rounded-lg border ${formErrors.country ? "border-red-500" : "border-gray-300"} bg-white px-3 py-2.5 text-sm outline-none transition-all`}
-                                            onChange={handleChange}
+                                        <SearchableDropdown
+                                            label="Country"
+                                            placeholder="Select Country"
+                                            options={countriesList}
                                             value={form.country}
-                                            style={{
-                                                borderColor: formErrors.country ? '#ef4444' : 'var(--color-neutral)',
-                                                color: 'var(--color-foreground)'
+                                            onChange={(option) => {
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    country: option.name,
+                                                    state: "",
+                                                    city: ""
+                                                }));
+                                                setStatesList(State.getStatesOfCountry(option.isoCode));
+                                                setCitiesList([]);
                                             }}
-                                        >
-                                            <option value="" disabled>Select Country</option>
-                                            {Object.keys(GEOGRAPHIC_DATA).map(country => (
-                                                <option key={country} value={country}>{country}</option>
-                                            ))}
-                                        </select>
+                                        />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>State</label>
-                                        <select
-                                            name="state"
-                                            className={`w-full rounded-lg border ${formErrors.state ? "border-red-500" : "border-gray-300"} bg-white px-3 py-2.5 text-sm outline-none transition-all`}
-                                            onChange={handleChange}
+                                        <SearchableDropdown
+                                            label="State"
+                                            placeholder="Select State"
+                                            options={statesList}
                                             value={form.state}
                                             disabled={!form.country}
-                                            style={{
-                                                borderColor: formErrors.state ? '#ef4444' : 'var(--color-neutral)',
-                                                color: 'var(--color-foreground)',
-                                                backgroundColor: !form.country ? '#f3f4f6' : 'white'
+                                            isLoading={!statesList.length && form.country}
+                                            onChange={(option) => {
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    state: option.name,
+                                                    city: ""
+                                                }));
+                                                const countryObj = countriesList.find(c => c.name === form.country);
+                                                if (countryObj) {
+                                                    setCitiesList(City.getCitiesOfState(countryObj.isoCode, option.isoCode));
+                                                }
                                             }}
-                                        >
-                                            <option value="" disabled>Select State</option>
-                                            {form.country && Object.keys(GEOGRAPHIC_DATA[form.country] || {}).map(state => (
-                                                <option key={state} value={state}>{state}</option>
-                                            ))}
-                                        </select>
+                                        />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>City</label>
-                                        <select
-                                            name="city"
-                                            className={`w-full rounded-lg border ${formErrors.city ? "border-red-500" : "border-gray-300"} bg-white px-3 py-2.5 text-sm outline-none transition-all`}
-                                            onChange={handleChange}
+                                        <SearchableDropdown
+                                            label="City"
+                                            placeholder="Select City"
+                                            options={citiesList}
                                             value={form.city}
                                             disabled={!form.state}
-                                            style={{
-                                                borderColor: formErrors.city ? '#ef4444' : 'var(--color-neutral)',
-                                                color: 'var(--color-foreground)',
-                                                backgroundColor: !form.state ? '#f3f4f6' : 'white'
+                                            isLoading={!citiesList.length && form.state}
+                                            onChange={(option) => {
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    city: option.name
+                                                }));
                                             }}
-                                        >
-                                            <option value="" disabled>Select City</option>
-                                            {form.country && form.state && Object.keys(GEOGRAPHIC_DATA[form.country][form.state] || {}).map(city => (
-                                                <option key={city} value={city}>{city}</option>
-                                            ))}
-                                        </select>
+                                        />
                                     </div>
 
                                     <div>

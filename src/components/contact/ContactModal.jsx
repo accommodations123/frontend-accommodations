@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { X, ArrowLeft, Phone, MessageSquare, Check, User, Mail, Calendar, Shield, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CountryCodeSelect } from '@/components/ui/CountryCodeSelect';
 
 export function ContactModal({ isOpen, onClose, listing, type = 'call' }) {
     const [step, setStep] = useState('form');
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
+    const [phoneCode, setPhoneCode] = useState("+91");
     const [message, setMessage] = useState("");
     const [preferredTime, setPreferredTime] = useState("");
 
@@ -58,8 +60,8 @@ export function ContactModal({ isOpen, onClose, listing, type = 'call' }) {
                         {/* Header */}
                         <div className="relative p-6 pb-0">
                             <div className="flex items-center justify-between mb-6">
-                                <button 
-                                    onClick={onClose} 
+                                <button
+                                    onClick={onClose}
                                     className="p-3 hover:bg-white/10 rounded-xl transition-colors"
                                 >
                                     <ArrowLeft className="w-5 h-5 text-white/70" />
@@ -70,7 +72,7 @@ export function ContactModal({ isOpen, onClose, listing, type = 'call' }) {
                                 </div>
                                 <div className="w-12" />
                             </div>
-                            
+
                             <div className="text-center mb-6">
                                 <h2 className="text-3xl font-bold text-white mb-2">Connect with Owner</h2>
                                 <p className="text-white/60">Get instant response to your inquiry</p>
@@ -80,7 +82,7 @@ export function ContactModal({ isOpen, onClose, listing, type = 'call' }) {
                         {/* Scrollable Content */}
                         <div className="flex-1 overflow-y-auto px-6 pb-6">
                             {/* Owner Profile Card */}
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="bg-gradient-to-r from-violet-500/10 to-cyan-500/10 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10"
@@ -157,15 +159,23 @@ export function ContactModal({ isOpen, onClose, listing, type = 'call' }) {
 
                                 <div>
                                     <label className="block text-sm font-medium text-white/70 mb-2">Phone Number *</label>
-                                    <div className="relative group">
-                                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/40 group-focus-within:text-emerald-400 transition-colors" />
-                                        <input
-                                            type="tel"
-                                            value={phone}
-                                            onChange={(e) => setPhone(e.target.value)}
-                                            className="w-full h-12 pl-10 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-400 focus:bg-white/10 transition-all"
-                                            placeholder="+1 (555) 123-4567"
-                                        />
+                                    <div className="relative group flex gap-2">
+                                        <div className="w-[110px] shrink-0">
+                                            <CountryCodeSelect
+                                                value={phoneCode}
+                                                onChange={setPhoneCode}
+                                            />
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/40 group-focus-within:text-emerald-400 transition-colors" />
+                                            <input
+                                                type="tel"
+                                                value={phone}
+                                                onChange={(e) => setPhone(e.target.value)}
+                                                className="w-full h-12 pl-10 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-400 focus:bg-white/10 transition-all"
+                                                placeholder="123-4567"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -173,7 +183,7 @@ export function ContactModal({ isOpen, onClose, listing, type = 'call' }) {
                                     <label className="block text-sm font-medium text-white/70 mb-2">Preferred Contact Time</label>
                                     <div className="relative group">
                                         <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/40 group-focus-within:text-violet-400 transition-colors" />
-                                        <select 
+                                        <select
                                             value={preferredTime}
                                             onChange={(e) => setPreferredTime(e.target.value)}
                                             className="w-full h-12 pl-10 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-violet-400 focus:bg-white/10 transition-all appearance-none"

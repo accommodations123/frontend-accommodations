@@ -142,13 +142,6 @@ export default function GroupDetailsPage() {
     const community = React.useMemo(() => {
         if (!communityData) return null;
         const comm = communityData.community || communityData.data || communityData;
-        console.log("Community Data Debug:", {
-            member_role: comm?.member_role,
-            owner_id: comm?.owner_id,
-            userId: resolvedUser?.id,
-            isMember: comm?.isMember,
-            is_member: comm?.is_member
-        });
         return comm;
     }, [communityData, hostProfile, resolvedUser]);
 
@@ -208,9 +201,6 @@ export default function GroupDetailsPage() {
             // Force refresh data to update button state
             refetch();
         } catch (err) {
-            console.error("Join/Leave Error Full Object:", err);
-            console.log("Error data:", err.data);
-            console.log("Error status:", err.status);
             const errorMsg = err.data?.message || err.error || "An error occurred";
             const status = err.status;
 

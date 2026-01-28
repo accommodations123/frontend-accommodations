@@ -132,6 +132,7 @@ export default function DashboardPage() {
                     onVerify={() => setActive("overview")}
                     onUpdate={handleUpdateHost}
                     isUpdating={isUpdating}
+                    isHost={isHost}
                 />
             case 'listings':
                 return <MyListings />

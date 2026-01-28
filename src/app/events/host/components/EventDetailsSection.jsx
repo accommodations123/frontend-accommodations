@@ -1,10 +1,35 @@
 import React from "react"
-import { Calendar, DollarSign, Globe } from "lucide-react"
+import { Calendar, DollarSign, Globe, Phone, MapPin } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { CountryCodeSelect } from "@/components/ui/CountryCodeSelect"
+import { Country, State, City } from 'country-state-city';
+import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import { useState, useEffect } from "react";
 
 export const EventDetailsSection = ({ formData, handleInputChange }) => {
+    const [countriesList] = useState(Country.getAllCountries());
+    const [statesList, setStatesList] = useState([]);
+    const [citiesList, setCitiesList] = useState([]);
+
+    // Initialize lists if data exists
+    useEffect(() => {
+        if (formData.country) {
+            const countryObj = countriesList.find(c => c.name === formData.country);
+            if (countryObj) {
+                const states = State.getStatesOfCountry(countryObj.isoCode);
+                setStatesList(states);
+                if (formData.state) {
+                    const stateObj = states.find(s => s.name === formData.state);
+                    if (stateObj) {
+                        setCitiesList(City.getCitiesOfState(countryObj.isoCode, stateObj.isoCode));
+                    }
+                }
+            }
+        }
+    }, []); // Run once on mount
+
     return (
         <div className="rounded-xl p-6 border bg-[#f8f9fa] border-[#00162d]">
             <h3 className="text-lg font-semibold mb-4 flex items-center text-[#00162d]">
@@ -116,6 +141,91 @@ export const EventDetailsSection = ({ formData, handleInputChange }) => {
                         className="mt-1 text-gray-900 placeholder-gray-400 border-[#00162d]"
                         placeholder="https://example.com"
                     />
+                </div>
+
+                <div>
+                    <Label className="font-medium text-sm flex items-center text-[#00162d]">
+                        <Phone className="h-4 w-4 mr-1 text-[#00162d]" />
+                        Contact Number
+                    </Label>
+                    <div className="flex gap-2 mt-1">
+                        <div className="w-[120px] shrink-0">
+                            <CountryCodeSelect
+                                value={formData.phoneCode || "+91"}
+                                onChange={(val) => handleInputChange("phoneCode", val)}
+                                className="w-full"
+                            />
+                        </div>
+                        <Input
+                            type="tel"
+                            value={formData.phone || ""}
+                            onChange={e => handleInputChange("phone", e.target.value)}
+                            className="text-gray-900 placeholder-gray-400 border-[#00162d]"
+                            placeholder="Phone number"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="md:col-span-2 space-y-4">
+                <Label className="font-medium text-sm flex items-center text-[#00162d]">
+                    <MapPin className="h-4 w-4 mr-1 text-[#00162d]" />
+                    Location Details
+                </Label>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <SearchableDropdown
+                        label="Country"
+                        placeholder="Select Country"
+                        options={countriesList}
+                        value={formData.country}
+                        onChange={(option) => {
+                            handleInputChange("country", option.name);
+                            handleInputChange("state", "");
+                            handleInputChange("city", "");
+                            setStatesList(State.getStatesOfCountry(option.isoCode));
+                            setCitiesList([]);
+                        }}
+                    />
+
+                    <SearchableDropdown
+                        label="State"
+                        placeholder="Select State"
+                        options={statesList}
+                        value={formData.state}
+                        disabled={!formData.country}
+                        isLoading={!statesList.length && formData.country}
+                        onChange={(option) => {
+                            handleInputChange("state", option.name);
+                            handleInputChange("city", "");
+                            const countryObj = countriesList.find(c => c.name === formData.country);
+                            if (countryObj) {
+                                setCitiesList(City.getCitiesOfState(countryObj.isoCode, option.isoCode));
+                            }
+                        }}
+                    />
+
+                    <SearchableDropdown
+                        label="City"
+                        placeholder="Select City"
+                        options={citiesList}
+                        value={formData.city}
+                        disabled={!formData.state}
+                        isLoading={!citiesList.length && formData.state}
+                        onChange={(option) => {
+                            handleInputChange("city", option.name);
+                        }}
+                    />
+
+                    <div>
+                        <Label className="font-medium text-sm text-[#00162d] mb-1 block">Zip Code</Label>
+                        <Input
+                            value={formData.zip_code || ""}
+                            onChange={e => handleInputChange("zip_code", e.target.value)}
+                            className="mt-1 text-gray-900 placeholder-gray-400 border-[#00162d]"
+                            placeholder="Zip Code"
+                        />
+                    </div>
                 </div>
             </div>
 
