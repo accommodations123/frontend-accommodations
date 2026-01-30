@@ -222,7 +222,6 @@ export default function HostOnboardingForm() {
         user_id: userId,
         full_name: formData.full_name,
         email: formData.email,
-        email: formData.email,
         phone: `${formData.phonePrefix} ${formData.phone}`,
         country: formData.country,
         state: formData.state,

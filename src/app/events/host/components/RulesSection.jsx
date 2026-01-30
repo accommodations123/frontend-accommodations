@@ -2,7 +2,7 @@ import React from "react"
 import { FileText, Upload, AlertCircle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { EVENT_RULES } from "@/lib/mock-events"
+
 
 export const RulesSection = ({ country, handleFileChange }) => {
     const rawData = EVENT_RULES?.[country] || EVENT_RULES?.default;
