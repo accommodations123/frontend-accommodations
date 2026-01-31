@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { DollarSign, Ticket, Wallet } from 'lucide-react';
 import { COUNTRIES } from '@/lib/mock-data';
 
@@ -14,6 +14,36 @@ export function StepPricing({ formData, setFormData, contributionType = 'propert
         });
         return Array.from(unique.values()).sort((a, b) => a.code.localeCompare(b.code));
     }, []);
+
+    // Auto-set currency based on country
+    useEffect(() => {
+        if (formData.country) {
+            const countryName = typeof formData.country === 'string' ? formData.country : formData.country.name;
+            const matchedCountry = COUNTRIES.find(c => c.name === countryName);
+
+            // Prefer the mock data currency, or fallback to the object's currency if available
+            const currencyCode = matchedCountry?.currency || (typeof formData.country === 'object' ? formData.country.currency : null);
+
+            if (currencyCode && formData.currency !== currencyCode) {
+                setFormData(prev => ({ ...prev, currency: currencyCode }));
+            }
+        }
+    }, [formData.country]);
+
+    // Helper for robust symbol display
+    const getCurrencySymbol = (currencyCode) => {
+        if (!currencyCode) return '$';
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currencyCode,
+            }).formatToParts(0).find(part => part.type === 'currency')?.value || currencyCode;
+        } catch (e) {
+            return currencyCode;
+        }
+    };
+
+    const displaySymbol = getCurrencySymbol(formData.currency);
 
     // Render Event Pricing
     if (contributionType === 'event') {
@@ -54,7 +84,7 @@ export function StepPricing({ formData, setFormData, contributionType = 'propert
                             <div className="flex-1">
                                 <label className="text-sm font-bold block">Ticket Price</label>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-xl font-bold text-accent">{formData.currency}</span>
+                                    <span className="text-xl font-bold text-accent min-w-[20px] text-center">{displaySymbol}</span>
                                     <input
                                         type="number"
                                         placeholder="0"
@@ -128,7 +158,7 @@ export function StepPricing({ formData, setFormData, contributionType = 'propert
                     <div className="flex-1">
                         <label className="text-sm font-bold block">Price Per Month</label>
                         <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold text-gray-500">{formData.currency}</span>
+                            <span className="text-lg font-bold text-gray-500 min-w-[20px] text-center">{displaySymbol}</span>
                             <input
                                 type="number"
                                 placeholder="1200"
