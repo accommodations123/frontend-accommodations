@@ -43,6 +43,7 @@ export default function HostCreatePage() {
         nextStep,
         prevStep,
         handleSubmit,
+        contributionType,
         isEdit, // From hook
         isReadOnly
     } = useHostCreation();
@@ -90,6 +91,7 @@ export default function HostCreatePage() {
                                 <StepPricing
                                     formData={formData}
                                     setFormData={setFormData}
+                                    contributionType={contributionType}
                                 />
                             )}
                             {currentStep === 4 && (

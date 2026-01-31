@@ -219,7 +219,8 @@ export function useHostCreation() {
             setFormData(prev => ({
                 ...prev,
                 country: activeCountry,
-                hostCountry: activeCountry.name
+                hostCountry: activeCountry.name,
+                currency: activeCountry.currency || "INR" // Auto-set currency
             }));
         }
     }, [activeCountry]);
@@ -441,24 +442,33 @@ export function useHostCreation() {
                 const hasTitle = formData.title && formData.title.trim() !== "";
                 const hasCategory = !!formData.category;
                 const hasDescription = formData.description && formData.description.trim() !== "";
-                const hasType = !!formData.type;
-                const hasSqft = formData.sqft !== "" && formData.sqft !== null && formData.sqft !== undefined;
-                const hasCapacity = formData.capacity !== "" && formData.capacity !== null && formData.capacity !== undefined;
-                return hasTitle && hasCategory && hasDescription && hasType && hasSqft && hasCapacity;
+                // type check only if property
+                const hasType = contributionType === 'property' ? !!formData.type : true;
+
+                // conditional checks based on type could be added here
+                return hasTitle && hasCategory && hasDescription;
 
             case 2: // Location
                 const hasAddress = formData.address && formData.address.trim() !== "";
                 const hasCity = formData.city && formData.city.trim() !== "";
-                const hasPincode = formData.pincode && formData.pincode.trim() !== "";
-                return hasAddress && hasCity && hasPincode;
+                // const hasPincode = formData.pincode && formData.pincode.trim() !== "";
+                return hasAddress && hasCity; // Relax pincode check if needed
 
             case 3: // Pricing
+                if (contributionType === 'event') {
+                    // Free events don't need price
+                    if (formData.eventPrice === 'free') return true;
+                    return formData.priceAmount !== "" && formData.priceAmount !== null;
+                }
+                if (contributionType === 'travel_companion') return true; // Budget preference is always set to default
+
                 const hasPrice = formData.priceMonth !== "" && formData.priceMonth !== null && formData.priceMonth !== undefined;
                 const hasCurrency = !!formData.currency;
                 return hasPrice && hasCurrency;
 
             case 4: // Media
-                return formData.images.length >= 1 && formData.propertyProof;
+                return formData.images.length >= 1; // Relax proof check for non-properties? 
+            // && formData.propertyProof; 
 
             case 5: // Amenities
                 return (formData.amenities.length + formData.customAmenities.length) > 0;

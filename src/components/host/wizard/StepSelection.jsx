@@ -3,7 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Home, Calendar, Users, Building, Plane, BookOpen } from 'lucide-react';
 
-export const StepSelection = ({ formData, setFormData, nextStep }) => {
+export const StepSelection = ({ formData, setFormData, nextStep, setContributionType }) => {
     const options = [
         {
             id: 'property',
@@ -32,10 +32,20 @@ export const StepSelection = ({ formData, setFormData, nextStep }) => {
             bgColor: 'bg-green-500/10',
             borderColor: 'border-green-500/20'
         },
-       
+        {
+            id: 'travel_companion',
+            title: 'Travel Companion',
+            description: 'Find peers to travel with and share expenses',
+            icon: <Plane className="h-10 w-10" />,
+            color: 'from-orange-500 to-amber-500',
+            bgColor: 'bg-orange-500/10',
+            borderColor: 'border-orange-500/20'
+        }
     ];
 
     const handleSelection = (optionId) => {
+        setContributionType(optionId);
+        // We set formData.type for backward compatibility if needed, but contributionType is main driver
         setFormData(prev => ({
             ...prev,
             type: optionId
@@ -70,7 +80,7 @@ export const StepSelection = ({ formData, setFormData, nextStep }) => {
                     >
                         {/* Background Gradient */}
                         <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${option.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
-                        
+
                         {/* Icon */}
                         <div className={`mb-4 w-16 h-16 rounded-xl bg-gradient-to-br ${option.color} flex items-center justify-center text-white shadow-lg`}>
                             {option.icon}

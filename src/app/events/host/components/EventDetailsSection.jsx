@@ -7,11 +7,29 @@ import { CountryCodeSelect } from "@/components/ui/CountryCodeSelect"
 import { Country, State, City } from 'country-state-city';
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import { useState, useEffect } from "react";
+import { COUNTRIES } from "@/lib/mock-data";
 
 export const EventDetailsSection = ({ formData, handleInputChange }) => {
     const [countriesList] = useState(Country.getAllCountries());
     const [statesList, setStatesList] = useState([]);
     const [citiesList, setCitiesList] = useState([]);
+
+    const getCurrencySymbol = (countryName) => {
+        if (!countryName) return '$';
+        const country = COUNTRIES.find(c => c.name === countryName);
+        if (!country || !country.currency) return '$';
+
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: country.currency,
+            }).formatToParts(0).find(part => part.type === 'currency')?.value || country.currency;
+        } catch (e) {
+            return country.currency;
+        }
+    };
+
+    const currencySymbol = getCurrencySymbol(formData.country);
 
     // Initialize lists if data exists
     useEffect(() => {
@@ -118,7 +136,7 @@ export const EventDetailsSection = ({ formData, handleInputChange }) => {
 
                 <div>
                     <Label className="font-medium text-sm flex items-center text-[#00162d]">
-                        <DollarSign className="h-4 w-4 mr-1 text-[#00162d]" />
+                        <span className="min-w-[1rem] mr-2 text-[#00162d] font-bold text-center flex items-center justify-center">{currencySymbol}</span>
                         Price
                     </Label>
                     <Input

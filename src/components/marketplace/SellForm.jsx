@@ -552,12 +552,27 @@ export function SellForm({ onPost, initialData, isEditing: externalIsEditing }) 
 
           <Label>Price</Label>
           <div className="relative">
-            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm min-w-[1rem] text-center">
+              {(() => {
+                if (!country) return '$';
+                const cName = typeof country === 'string' ? country : country.name;
+                const found = COUNTRIES.find(c => c.name === cName);
+                if (!found || !found.currency) return '$';
+                try {
+                  return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: found.currency,
+                  }).formatToParts(0).find(part => part.type === 'currency')?.value || found.currency;
+                } catch (e) {
+                  return found.currency;
+                }
+              })()}
+            </div>
             <Input
               type="number"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="pl-9"
+              className="pl-14" // Increased padding for 3-letter codes
               placeholder="0.00"
             />
           </div>

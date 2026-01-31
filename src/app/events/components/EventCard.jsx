@@ -2,6 +2,7 @@ import React, { memo } from "react"
 import { Calendar, MapPin, Users, Star, MessageCircle, Heart, Bookmark, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { HostPhoto } from "./HostPhoto"
+import { COUNTRIES } from "@/lib/mock-data"
 
 export const EventCard = memo(({ event, viewMode, onViewDetails, index }) => {
     // Format date for display
@@ -50,6 +51,23 @@ export const EventCard = memo(({ event, viewMode, onViewDetails, index }) => {
 
     const eventImage = getEventImage();
 
+    const getCurrencySymbol = (countryName) => {
+        if (!countryName) return '$';
+        const country = COUNTRIES.find(c => c.name === countryName || c.code === countryName);
+        if (!country || !country.currency) return '$';
+
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: country.currency,
+            }).formatToParts(0).find(part => part.type === 'currency')?.value || country.currency;
+        } catch (e) {
+            return country.currency;
+        }
+    };
+
+    const currencySymbol = getCurrencySymbol(event.country);
+
     return (
         <div
             className={`${viewMode === "list" ? "flex flex-col sm:flex-row gap-4" : ""}`}
@@ -87,7 +105,7 @@ export const EventCard = memo(({ event, viewMode, onViewDetails, index }) => {
                     {event.price && (
                         <div className="absolute bottom-3 left-3">
                             <span className="px-2 sm:px-3 py-1 bg-white/90 backdrop-blur-md text-gray-900 font-bold rounded-lg shadow-lg text-sm">
-                                ${event.price}
+                                {currencySymbol}{event.price}
                             </span>
                         </div>
                     )}
