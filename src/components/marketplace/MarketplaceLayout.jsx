@@ -1,72 +1,96 @@
 import React from 'react';
-import { MapPin, ShoppingBag, Tag } from 'lucide-react';
+import { MapPin, ShoppingBag, Tag, Sparkles } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
 export function MarketplaceLayout({ children, activeTab, onTabChange }) {
     return (
-        <div className="min-h-screen bg-gray-50 font-sans">
-            {/* Fixed Top Bar - Reduced z-index */}
-            <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
-                <div className="container mx-auto px-3 sm:px-4 py-3 md:py-0 md:h-16 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
-                    {/* Location Selector */}
-                    <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50 px-2 sm:px-3 py-1.5 rounded-full cursor-pointer transition-colors border border-transparent hover:border-gray-200">
-                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
-                        <span className="font-medium hidden sm:inline">USA</span>
-                        <span className="text-gray-400 hidden sm:inline">/</span>
-                        <span className="font-medium hidden sm:inline">California</span>
-                        <span className="text-gray-400 hidden sm:inline">/</span>
-                        <span className="font-bold text-gray-900">San Francisco</span>
-                        <span className="font-bold text-gray-900 sm:hidden">SF</span>
-                    </div>
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 font-sans">
+            {/* Premium Top Bar with Glass Effect */}
+            <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-[0_4px_30px_rgba(0,0,0,0.05)]">
+                <div className="container mx-auto px-4 sm:px-6 py-3 md:py-0 md:h-18 flex flex-col md:flex-row items-center justify-between gap-4">
 
-                    {/* Tab Switcher */}
-                    <div className="flex bg-gray-100 p-1 rounded-lg">
-                        <button
+                    {/* Premium Tab Switcher */}
+                    <div className="flex bg-gradient-to-br from-gray-100 to-gray-50 p-1.5 rounded-2xl shadow-inner border border-gray-200/50">
+                        <motion.button
                             onClick={() => onTabChange('buy')}
-                            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeTab === 'buy'
-                                ? 'bg-white text-primary shadow-sm'
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className={`relative flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'buy'
+                                ? 'bg-white text-[#00142E] shadow-lg shadow-gray-200/50'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
-                            <ShoppingBag className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">Buy Items</span>
-                            <span className="sm:hidden">Buy</span>
-                        </button>
-                        <button
+                            {activeTab === 'buy' && (
+                                <motion.div
+                                    layoutId="activeTab"
+                                    className="absolute inset-0 bg-white rounded-xl shadow-lg shadow-gray-200/50"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+                            <ShoppingBag className="h-4 w-4 relative z-10" />
+                            <span className="hidden sm:inline relative z-10">Buy Items</span>
+                            <span className="sm:hidden relative z-10">Buy</span>
+                        </motion.button>
+
+                        <motion.button
                             onClick={() => onTabChange('sell')}
-                            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeTab === 'sell'
-                                ? 'bg-white text-accent shadow-sm'
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className={`relative flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'sell'
+                                ? 'bg-gradient-to-r from-[#C93A30] to-[#E04642] text-white shadow-lg shadow-[#C93A30]/30'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
-                            <Tag className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">Sell Items</span>
-                            <span className="sm:hidden">Sell</span>
-                        </button>
+                            {activeTab === 'sell' && (
+                                <motion.div
+                                    layoutId="activeTabSell"
+                                    className="absolute inset-0 bg-gradient-to-r from-[#C93A30] to-[#E04642] rounded-xl shadow-lg shadow-[#C93A30]/30"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+                            <Tag className="h-4 w-4 relative z-10" />
+                            <span className="hidden sm:inline relative z-10">Sell Items</span>
+                            <span className="sm:hidden relative z-10">Sell</span>
+                        </motion.button>
                     </div>
 
-                    {/* Quick Actions (Placeholder for now) */}
-                    <div className="w-[120px] sm:w-[200px] flex justify-end">
-                        <Button variant="ghost" size="sm" className="text-white cursor-pointer bg-accent text-xs sm:text-sm h-8 sm:h-10">
-                            <span className="hidden sm:inline">My Listings</span>
-                            <span className="sm:hidden">Listings</span>
+                    {/* Premium Quick Actions */}
+                    <motion.div
+                        className="flex items-center gap-3"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                    >
+                        <Button
+                            variant="ghost"
+                            className="relative overflow-hidden group bg-gradient-to-r from-[#C93A30] to-[#E04642] hover:from-[#b02e25] hover:to-[#d03d39] text-white font-bold text-sm h-10 sm:h-11 px-5 sm:px-6 rounded-xl shadow-lg shadow-[#C93A30]/25 hover:shadow-[#C93A30]/40 transition-all duration-300 cursor-pointer"
+                        >
+                            <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <Sparkles className="h-4 w-4 mr-2 fill-white/30" />
+                            <span className="hidden sm:inline relative z-10">My Listings</span>
+                            <span className="sm:hidden relative z-10">Listings</span>
                         </Button>
-                    </div>
+                    </motion.div>
                 </div>
             </div>
 
-            {/* Main Content Area */}
-            <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+            {/* Main Content Area with Premium Background */}
+            <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
                 <motion.div
                     key={activeTab}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
+                    initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
                 >
                     {children}
                 </motion.div>
             </main>
+
+            {/* Subtle Background Decoration */}
+            <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-[#C93A30]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+            <div className="fixed bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-[#00142E]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
         </div>
     );
 }

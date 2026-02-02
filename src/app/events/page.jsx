@@ -209,6 +209,16 @@ const EventsPage = () => {
               <div className="w-12 h-12 border-4 border-[#00142E] border-t-transparent rounded-full animate-spin"></div>
               <p className="text-gray-500 font-medium tracking-wide">Fetching amazing events...</p>
             </div>
+          ) : featuredEvents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <TrendingUp className="h-8 w-8 text-gray-400" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-700">No Trending Events</h3>
+                <p className="text-gray-500 text-sm mt-1">Check back later for trending events in your area</p>
+              </div>
+            </div>
           ) : (
             <div className={`grid gap-4 sm:gap-6 mb-12 sm:mb-16 ${viewMode === "grid"
               ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
@@ -229,7 +239,7 @@ const EventsPage = () => {
       )}
 
       {/* Event Sections or Search Results */}
-      <div className="container mx-auto max-w-7xl px-4 pb-8 sm:pb-12 min-h-[50vh]">
+      <div className="container mx-auto max-w-7xl px-4 pb-8 sm:pb-12">
         {filteredEventsDisplay ? (
           <div className="space-y-8 animate-in fade-in duration-500 slide-in-from-bottom-4">
             <h2 className="text-2xl font-bold text-[#00142E]">
@@ -269,6 +279,19 @@ const EventsPage = () => {
                 />
               )
             })}
+
+            {/* Show empty state if all categories are empty */}
+            {Object.values(eventsByCategory).every(arr => arr.length === 0) && !isLoading && (
+              <div className="flex flex-col items-center justify-center py-20 gap-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Sparkles className="h-10 w-10 text-gray-400" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold text-gray-700">No Events Available</h3>
+                  <p className="text-gray-500 mt-2 max-w-md">There are no events in your selected region right now. Check back soon or try a different location.</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

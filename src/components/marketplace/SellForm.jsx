@@ -101,7 +101,7 @@ const Button = ({
   const style =
     variant === "secondary"
       ? "bg-gray-200 text-gray-800 hover:bg-gray-300"
-      : "bg-indigo-600 text-white hover:bg-indigo-700";
+      : "bg-[#C93A30] text-white hover:bg-[#b02e25]";
 
   return (
     <button
@@ -628,9 +628,10 @@ export function SellForm({ onPost, initialData, isEditing: externalIsEditing }) 
             {isPincodeLoading && <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />}
           </div>
           <Input
-            type="number"
+            type="text"
             value={zipCode}
             onChange={(e) => setZipCode(e.target.value)}
+            placeholder="e.g., 10001 or SW1A 1AA"
           />
 
           <Label>Street Address</Label>

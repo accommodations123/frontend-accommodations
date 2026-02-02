@@ -13,13 +13,13 @@ const TrustCard = ({ icon: Icon, title, description, delay }) => (
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ delay, duration: 0.5 }}
-        className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-md group"
+        className="p-8 rounded-3xl bg-white border border-[#D1CBB7]/30 hover:border-[#CB2A25]/30 hover:shadow-xl transition-all group"
     >
-        <div className="w-14 h-14 bg-gradient-to-br from- emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-900/20 group-hover:scale-110 transition-transform">
+        <div className="w-14 h-14 bg-[#00142E] rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:bg-[#CB2A25] transition-colors">
             <Icon className="text-white h-7 w-7" />
         </div>
-        <h3 className="text-xl font-bold text-white mb-4">{title}</h3>
-        <p className="text-blue-100/70 leading-relaxed">
+        <h3 className="text-xl font-bold text-[#00142E] mb-4">{title}</h3>
+        <p className="text-[#00142E]/60 leading-relaxed">
             {description}
         </p>
     </motion.div>
@@ -27,15 +27,19 @@ const TrustCard = ({ icon: Icon, title, description, delay }) => (
 
 export default function TrustPage() {
     return (
-        <main className="min-h-screen bg-[#0B0F19] font-sans selection:bg-emerald-500/30">
+        <main className="min-h-screen bg-[#ffffff] font-sans">
             <Navbar />
 
             {/* Hero Section */}
-            <section className="relative pt-32 pb-20 overflow-hidden">
-                <div className="absolute inset-0 z-0">
-                    <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-emerald-600/10 rounded-full blur-[120px] animate-pulse" />
-                    <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-teal-600/10 rounded-full blur-[100px] animate-pulse animation-delay-2000" />
-                </div>
+            <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-to-br from-[#00142E] via-[#0A1C30] to-[#02152B]">
+                <div className="absolute inset-0 z-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+
+                {/* Accent Glow */}
+                <motion.div
+                    animate={{ opacity: [0.2, 0.4, 0.2] }}
+                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute -bottom-[30%] -right-[20%] w-[600px] h-[600px] rounded-full bg-[#CB2A25] blur-[200px] z-0"
+                />
 
                 <div className="container mx-auto px-4 relative z-10 text-center">
                     <motion.div
@@ -43,95 +47,89 @@ export default function TrustPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
                     >
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-8 backdrop-blur-sm">
-                            <Shield className="h-4 w-4" />
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#CB2A25]/20 border border-[#CB2A25]/30 text-white text-sm font-medium mb-8">
+                            <Shield className="h-4 w-4 text-[#CB2A25]" />
                             <span>Your Safety is Our Priority</span>
                         </div>
                         <h1 className="text-5xl md:text-7xl font-bold text-white mb-8 tracking-tight">
-                            Trust Built specifically <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
-                                For You.
-                            </span>
+                            Trust Built <br />
+                            <span className="text-[#CB2A25]">For You.</span>
                         </h1>
-                        <p className="text-xl text-blue-100/70 max-w-2xl mx-auto leading-relaxed mb-12">
-                            We've built a multi-layered defense system to ensure every interaction, booking, and stay on NextKinLife is secure, verified, and worry-free.
+                        <p className="text-xl text-[#D1CBB7] max-w-2xl mx-auto leading-relaxed mb-12">
+                            We've built a multi-layered defense system to ensure every interaction, booking, and community connection on NextKinLife is secure, verified, and worry-free for Indians abroad.
                         </p>
                     </motion.div>
                 </div>
             </section>
 
             {/* Core Pillars */}
-            <section className="py-20 relative">
+            <section className="py-20 bg-[#ffffff]">
                 <div className="container mx-auto px-4">
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                         <TrustCard
                             icon={UserCheck}
-                            title="Verified Identities"
+                            title="Verified  Hosts"
                             delay={0.1}
-                            description="Every host and guest undergoes rigorous identity verification using government ID checks and biometric matching."
+                            description="Every host in our community is verified with government ID checks. Connect with fellow Indians who understand your needs."
                         />
-                        <TrustCard
-                            icon={Lock}
-                            title="Secure Payments"
-                            delay={0.2}
-                            description="Our military-grade encryption ensures your financial data is never exposed. Payments are held in escrow until check-in."
-                        />
+
                         <TrustCard
                             icon={Eye}
-                            title="Fraud Detection"
+                            title="Community Monitoring"
                             delay={0.3}
-                            description="AI-powered algorithms monitor transactions 24/7 to detect and prevent suspicious activity before it happens."
+                            description="Powered algorithms monitor marketplace listings and community groups 24/7 to prevent scams."
                         />
                         <TrustCard
                             icon={AlertTriangle}
-                            title="Crisis Support"
+                            title="24/7 Support"
                             delay={0.4}
-                            description="Our dedicated global safety team is available 24/7 to handle emergencies and urgent situations."
+                            description="Our dedicated support team is available around the clock to handle emergencies and assist with any issues."
                         />
                         <TrustCard
                             icon={HeartHandshake}
-                            title="Host Guarantee"
+                            title="Community Guidelines"
                             delay={0.5}
-                            description="Hosts are protected against property damage with our comprehensive $1M protection program."
+                            description="Clear community guidelines ensure respectful interactions in groups, events, and marketplace."
                         />
                         <TrustCard
                             icon={CheckCircle}
-                            title="Quality Standards"
+                            title="Verified Listings"
                             delay={0.6}
-                            description="We enforce strict quality guidelines for listings. Properties that don't meet our standards are removed."
+                            description="All accommodations, events, and marketplace listings are reviewed for accuracy before going live."
                         />
                     </div>
                 </div>
             </section>
 
             {/* Commitment Section */}
-            <section className="py-24 bg-white/[0.02] border-y border-white/5">
+            <section className="py-24 bg-[#D1CBB7]/10 border-y border-[#D1CBB7]/30">
                 <div className="container mx-auto px-4">
                     <div className="grid lg:grid-cols-2 gap-20 items-center">
                         <div className="space-y-8">
-                            <h2 className="text-4xl font-bold text-white">
+                            <h2 className="text-4xl font-bold text-[#00142E]">
                                 Our Community <br />
-                                <span className="text-emerald-400">Commitment</span>
+                                <span className="text-[#CB2A25]">Commitment</span>
                             </h2>
-                            <p className="text-blue-100/70 text-lg leading-relaxed">
+                            <p className="text-[#00142E]/70 text-lg leading-relaxed">
                                 Trust isn't just about technology; it's about people. We foster a community where respect and inclusion aren't just rules—they're our way of life.
                             </p>
 
                             <div className="space-y-6">
                                 {[
-                                    { title: "Zero Tolerance Policy", desc: "We have zero tolerance for discrimination, harassment, or hate speech." },
-                                    { title: "Review Authenticity", desc: "Reviews are only from real stays. We strictly police fake reviews." },
-                                    { title: "Data Privacy", desc: "We never sell your personal data. Your privacy is yours alone." }
+                                    { title: "Zero Tolerance Policy", desc: "We have zero tolerance for discrimination, harassment, or hate speech in our community." },
+                                    // { title: "Verified Reviews", desc: "All reviews are from real community members with verified stays or transactions." },
+                                    { title: "Data Privacy", desc: "Your personal data is never sold. We comply with international privacy standards." },
+                                    // { title: "Secure Messaging", desc: "All in-app communications are encrypted and monitored for safety." }
                                 ].map((item, i) => (
                                     <div key={i} className="flex gap-4">
                                         <div className="mt-1">
-                                            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                            <div className="w-8 h-8 rounded-full bg-[#CB2A25]/10 flex items-center justify-center text-[#CB2A25]">
                                                 <CheckCircle size={16} />
                                             </div>
                                         </div>
                                         <div>
-                                            <h4 className="text-white font-bold text-lg">{item.title}</h4>
-                                            <p className="text-blue-100/60">{item.desc}</p>
+                                            <h4 className="text-[#00142E] font-bold text-lg">{item.title}</h4>
+                                            <p className="text-[#00142E]/60">{item.desc}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -139,17 +137,17 @@ export default function TrustPage() {
                         </div>
 
                         <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 rounded-3xl blur-2xl" />
-                            <div className="relative bg-[#131825] border border-white/10 rounded-3xl p-8 shadow-2xl">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-[#CB2A25]/20 to-[#00142E]/20 rounded-3xl blur-2xl" />
+                            <div className="relative bg-[#00142E] border border-[#D1CBB7]/20 rounded-3xl p-8 shadow-2xl">
                                 <h3 className="text-2xl font-bold text-white mb-6">Need help with a safety issue?</h3>
-                                <p className="text-blue-100/60 mb-8">
+                                <p className="text-[#D1CBB7] mb-8">
                                     Our Trust & Safety team is standing by to assist you.
                                 </p>
                                 <div className="space-y-4">
-                                    <Button className="w-full h-14 bg-white text-[#0B0F19] hover:bg-gray-100 font-bold text-lg rounded-xl">
+                                    <Button className="w-full h-14 bg-[#CB2A25] hover:bg-[#b02420] text-white font-bold text-lg rounded-xl">
                                         Visit Safety Center
                                     </Button>
-                                    <Button variant="outline" className="w-full h-14 border-white/10 text-white hover:bg-white/5 font-bold text-lg rounded-xl flex items-center gap-2">
+                                    <Button variant="outline" className="w-full h-14 border-[#D1CBB7]/30 text-white hover:bg-white/5 font-bold text-lg rounded-xl flex items-center justify-center gap-2">
                                         <Phone size={18} /> Emergency Contact
                                     </Button>
                                 </div>

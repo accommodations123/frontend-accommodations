@@ -43,7 +43,7 @@ export function Footer() {
         <footer className="bg-navy-dark text-white font-sans pt-16 pb-8 border-t border-white/5">
             <div className="container mx-auto px-6">
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 mb-16">
 
                     {/* Column 1: Brand */}
                     <div className="space-y-6">
@@ -93,12 +93,12 @@ export function Footer() {
                         <ul className="space-y-3 text-sm text-white/70">
                             <li><Link to="/marketplace" className="hover:text-accent transition-colors flex items-center gap-2">Marketplace</Link></li>
                             <li><Link to="/groups" className="hover:text-accent transition-colors flex items-center gap-2">Community Groups</Link></li>
+                            <li><Link to="/events" className="hover:text-accent transition-colors flex items-center gap-2">Events</Link></li>
+                            <li><Link to="/travel" className="hover:text-accent transition-colors flex items-center gap-2">Travel Partners</Link></li>
                             <li><Link to="/trust" className="hover:text-accent transition-colors flex items-center gap-2">Trust & Safety</Link></li>
                             <li><Link to="/help" className="hover:text-accent transition-colors flex items-center gap-2">Help Center</Link></li>
                         </ul>
                     </div>
-
-                    {/* Column 4: Newsletter */}
 
                 </div>
 

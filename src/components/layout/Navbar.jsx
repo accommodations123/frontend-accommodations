@@ -303,6 +303,7 @@ export function Navbar({ minimal = false, onMenuClick }) {
                                     >
                                         <div className="px-5 py-3 border-b border-white/5 bg-white/5">
                                             <p className="text-[10px] font-black text-accent uppercase tracking-widest">Select Region</p>
+                                            <p className="text-[10px] text-white/50 mt-1">💡 Currency will be set automatically</p>
                                         </div>
                                         <div className="max-h-64 overflow-y-auto py-2 px-2 scrollbar-hide">
                                             {COUNTRIES.map((country) => (
@@ -559,6 +560,7 @@ export function Navbar({ minimal = false, onMenuClick }) {
                                         >
                                             <div className="px-4 py-2 border-b border-white/5 bg-white/5">
                                                 <p className="text-[10px] font-black text-accent uppercase tracking-widest">Select Region</p>
+                                                <p className="text-[10px] text-white/50 mt-1">💡 Currency set automatically</p>
                                             </div>
                                             <div className="max-h-64 overflow-y-auto py-2 px-2 scrollbar-hide">
                                                 {COUNTRIES.map((country) => (
