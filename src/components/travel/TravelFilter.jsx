@@ -1,6 +1,7 @@
 import React from "react";
-import { Search, MapPin, Filter, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { Search, MapPin, Filter, X, ChevronDown, Globe } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { COUNTRIES } from "@/lib/mock-data";
 
 export default function TravelFilter({
     searchQuery,
@@ -9,7 +10,24 @@ export default function TravelFilter({
     setFilters,
     onReset
 }) {
+    const [isCountryOpen, setIsCountryOpen] = React.useState(false);
+    const countryRef = React.useRef(null);
+
     const hasActiveFilters = filters.country || filters.state || filters.city || searchQuery;
+
+    // Get selected country object
+    const selectedCountry = COUNTRIES.find(c => c.name === filters.country);
+
+    // Close dropdown when clicking outside
+    React.useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (countryRef.current && !countryRef.current.contains(e.target)) {
+                setIsCountryOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
         <motion.div
@@ -20,15 +38,15 @@ export default function TravelFilter({
             <div className="p-6 lg:p-8">
                 <div className="flex flex-col gap-6">
                     {/* Header */}
-                    <div className="flex items-center justify-between pointer-events-none">
-                        <div className="flex items-center gap-2 text-primary/60">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-primary/60 pointer-events-none">
                             <Filter size={18} />
                             <span className="text-sm font-bold uppercase tracking-wider">Refine Search</span>
                         </div>
                         {hasActiveFilters && (
                             <button
                                 onClick={onReset}
-                                className="pointer-events-auto flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-full transition-colors"
+                                className="flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-full transition-colors"
                             >
                                 <X size={14} /> Clear All
                             </button>
@@ -49,18 +67,90 @@ export default function TravelFilter({
                             />
                         </div>
 
-                        {/* Location Filters */}
-                        <div className="md:col-span-4 lg:col-span-3 relative group">
-                            <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-accent transition-colors" size={20} />
-                            <input
-                                type="text"
-                                placeholder="Country"
-                                className="w-full pl-14 pr-4 h-14 rounded-2xl bg-neutral/5 border border-neutral/10 focus:border-accent/30 focus:bg-white focus:ring-4 focus:ring-accent/5 outline-none transition-all font-medium text-primary placeholder:text-primary/30"
-                                value={filters.country}
-                                onChange={(e) => setFilters({ ...filters, country: e.target.value })}
-                            />
+                        {/* Country Dropdown */}
+                        <div className="md:col-span-4 lg:col-span-3 relative" ref={countryRef}>
+                            <button
+                                type="button"
+                                onClick={() => setIsCountryOpen(!isCountryOpen)}
+                                className="w-full h-14 px-5 rounded-2xl bg-neutral/5 border border-neutral/10 hover:border-accent/30 focus:border-accent/30 focus:bg-white focus:ring-4 focus:ring-accent/5 outline-none transition-all font-medium text-primary flex items-center justify-between gap-2 cursor-pointer"
+                            >
+                                <div className="flex items-center gap-3">
+                                    {selectedCountry ? (
+                                        <>
+                                            {selectedCountry.flag.startsWith('/') ? (
+                                                <img src={selectedCountry.flag} alt={selectedCountry.name} className="w-6 h-4 object-cover rounded" />
+                                            ) : (
+                                                <span className="text-lg">{selectedCountry.flag}</span>
+                                            )}
+                                            <span className="truncate">{selectedCountry.name}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Globe size={18} className="text-primary/40" />
+                                            <span className="text-primary/40">Select Country</span>
+                                        </>
+                                    )}
+                                </div>
+                                <ChevronDown size={18} className={`text-primary/40 transition-transform ${isCountryOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {/* Country Dropdown Menu */}
+                            <AnimatePresence>
+                                {isCountryOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
+                                    >
+                                        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                                            <p className="text-[10px] font-black text-accent uppercase tracking-widest">Select Country</p>
+                                            <p className="text-[10px] text-gray-500 mt-0.5">Filter trips by destination country</p>
+                                        </div>
+                                        <div className="max-h-64 overflow-y-auto">
+                                            {/* All Countries Option */}
+                                            <button
+                                                onClick={() => {
+                                                    setFilters({ ...filters, country: "" });
+                                                    setIsCountryOpen(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${!filters.country
+                                                    ? 'bg-accent/10 text-accent font-bold'
+                                                    : 'hover:bg-gray-50 text-gray-700'
+                                                    }`}
+                                            >
+                                                <Globe size={18} className="text-gray-400" />
+                                                <span>All Countries</span>
+                                            </button>
+
+                                            {COUNTRIES.map((country) => (
+                                                <button
+                                                    key={country.code}
+                                                    onClick={() => {
+                                                        setFilters({ ...filters, country: country.name });
+                                                        setIsCountryOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${filters.country === country.name
+                                                        ? 'bg-accent/10 text-accent font-bold'
+                                                        : 'hover:bg-gray-50 text-gray-700'
+                                                        }`}
+                                                >
+                                                    {country.flag.startsWith('/') ? (
+                                                        <img src={country.flag} alt={country.name} className="w-6 h-4 object-cover rounded shadow-sm" />
+                                                    ) : (
+                                                        <span className="text-lg">{country.flag}</span>
+                                                    )}
+                                                    <span>{country.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
+                        {/* State Input */}
                         <div className="md:col-span-4 lg:col-span-2 relative group">
                             <input
                                 type="text"
@@ -71,6 +161,7 @@ export default function TravelFilter({
                             />
                         </div>
 
+                        {/* City Input */}
                         <div className="md:col-span-4 lg:col-span-2 relative group">
                             <input
                                 type="text"

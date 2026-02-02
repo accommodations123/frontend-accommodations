@@ -169,10 +169,15 @@ export default function TravelPage() {
   };
 
   const { activeCountry } = useCountry();
+
+  // Filter by ORIGIN country (from_country) - Shows travelers departing FROM the selected country
+  // This helps users find CO-TRAVELERS going on the same journey
+  // Example: User in India sees other travelers also flying FROM India → they can travel together!
   const { data: publicTripsData } = useGetPublicTripsQuery({
     page: 1,
-    limit: 10,
-    country: activeCountry?.name
+    limit: 20,
+    from_country: activeCountry?.name,  // Uses backend index: idx_trip_search (from_country, to_country, travel_date, status)
+    status: 'active'
   });
 
   // Sync My Trips
@@ -248,9 +253,10 @@ export default function TravelPage() {
         plan.flight.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
         plan.flight.to.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesCountry = !filters.country || plan.user.country === filters.country;
+      // Filter by ORIGIN country (where traveler is flying FROM) - For CO-TRAVELER matching
+      const matchesCountry = !filters.country || plan.flight.from?.toLowerCase().includes(filters.country.toLowerCase());
       const matchesState = !filters.state || plan.user.state === filters.state;
-      const matchesCity = !filters.city || plan.user.city === filters.city;
+      const matchesCity = !filters.city || plan.flight.from?.toLowerCase().includes(filters.city.toLowerCase());
 
       return matchesSearch && matchesCountry && matchesState && matchesCity;
     });

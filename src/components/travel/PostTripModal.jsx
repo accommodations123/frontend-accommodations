@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plane, User, MapPin, Clock, Loader2 } from "lucide-react";
 import { useCreateTripMutation, useGetHostProfileQuery } from "../../store/api/hostApi";
 import { useAuth } from "../../app/events/[id]/hooks/useAuth";
 import { useGetMeQuery } from "../../store/api/authApi";
+import { Country, State, City } from 'country-state-city';
+import SearchableDropdown from "@/components/ui/SearchableDropdown";
 
 export default function PostTripModal({ onClose, onAdd }) {
     const { user: currentUser } = useAuth();
@@ -18,6 +20,7 @@ export default function PostTripModal({ onClose, onAdd }) {
         from_state: "",
         from_city: "",
         to_country: "",
+        to_state: "",
         to_city: "",
         travelers_count: "1",
         travel_date: "",
@@ -30,9 +33,70 @@ export default function PostTripModal({ onClose, onAdd }) {
     const [activeTab, setActiveTab] = useState("personal");
     const [formErrors, setFormErrors] = useState({});
 
+    // Country/State/City lists
+    const [countriesList] = useState(Country.getAllCountries());
+
+    // Origin location lists
+    const [fromStatesList, setFromStatesList] = useState([]);
+    const [fromCitiesList, setFromCitiesList] = useState([]);
+    const [selectedFromCountry, setSelectedFromCountry] = useState(null);
+    const [selectedFromState, setSelectedFromState] = useState(null);
+
+    // Destination location lists
+    const [toStatesList, setToStatesList] = useState([]);
+    const [toCitiesList, setToCitiesList] = useState([]);
+    const [selectedToCountry, setSelectedToCountry] = useState(null);
+    const [selectedToState, setSelectedToState] = useState(null);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    // Handle Origin Country Change
+    const handleFromCountryChange = (country) => {
+        setSelectedFromCountry(country);
+        setForm(prev => ({ ...prev, from_country: country.name, from_state: "", from_city: "" }));
+        setFromStatesList(State.getStatesOfCountry(country.isoCode));
+        setFromCitiesList([]);
+        setSelectedFromState(null);
+    };
+
+    // Handle Origin State Change
+    const handleFromStateChange = (state) => {
+        setSelectedFromState(state);
+        setForm(prev => ({ ...prev, from_state: state.name, from_city: "" }));
+        if (selectedFromCountry) {
+            setFromCitiesList(City.getCitiesOfState(selectedFromCountry.isoCode, state.isoCode));
+        }
+    };
+
+    // Handle Origin City Change
+    const handleFromCityChange = (city) => {
+        setForm(prev => ({ ...prev, from_city: city.name }));
+    };
+
+    // Handle Destination Country Change
+    const handleToCountryChange = (country) => {
+        setSelectedToCountry(country);
+        setForm(prev => ({ ...prev, to_country: country.name, to_state: "", to_city: "" }));
+        setToStatesList(State.getStatesOfCountry(country.isoCode));
+        setToCitiesList([]);
+        setSelectedToState(null);
+    };
+
+    // Handle Destination State Change
+    const handleToStateChange = (state) => {
+        setSelectedToState(state);
+        setForm(prev => ({ ...prev, to_state: state.name, to_city: "" }));
+        if (selectedToCountry) {
+            setToCitiesList(City.getCitiesOfState(selectedToCountry.isoCode, state.isoCode));
+        }
+    };
+
+    // Handle Destination City Change
+    const handleToCityChange = (city) => {
+        setForm(prev => ({ ...prev, to_city: city.name }));
     };
 
     const validateForm = () => {
@@ -43,7 +107,6 @@ export default function PostTripModal({ onClose, onAdd }) {
         if (!form.airline) errors.airline = "Airline is required";
         if (!form.flight_number) errors.flight_number = "Flight number is required";
         if (!form.from_country) errors.from_country = "Origin country is required";
-        if (!form.from_state) errors.from_state = "Origin state is required";
         if (!form.from_city) errors.from_city = "Origin city is required";
         if (!form.to_country) errors.to_country = "Destination country is required";
         if (!form.to_city) errors.to_city = "Destination city is required";
@@ -172,7 +235,6 @@ export default function PostTripModal({ onClose, onAdd }) {
                                 : "You need to be an approved host to post travel plans."
                             }
                         </p>
-
                     </motion.div>
                 )}
 
@@ -325,74 +387,75 @@ export default function PostTripModal({ onClose, onAdd }) {
                                         </div>
                                     </div>
 
+                                    {/* Origin Section */}
                                     <div className="space-y-4">
                                         <h4 className="text-md font-medium flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
                                             <MapPin size={16} style={{ color: 'var(--color-accent)' }} /> Origin (Flying From)
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>Country</label>
-                                                <input
-                                                    name="from_country"
-                                                    placeholder="Country"
-                                                    className={`w-full rounded-lg border ${formErrors.from_country ? "border-red-500" : "border-gray-300"} bg-white px-3 py-2.5 text-sm outline-none transition-all`}
-                                                    onChange={handleChange}
-                                                    value={form.from_country}
-                                                    style={{ borderColor: formErrors.from_country ? '#ef4444' : 'var(--color-neutral)', color: 'var(--color-foreground)' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>State</label>
-                                                <input
-                                                    name="from_state"
-                                                    placeholder="State"
-                                                    className={`w-full rounded-lg border ${formErrors.from_state ? "border-red-500" : "border-gray-300"} bg-white px-3 py-2.5 text-sm outline-none transition-all`}
-                                                    onChange={handleChange}
-                                                    value={form.from_state}
-                                                    style={{ borderColor: formErrors.from_state ? '#ef4444' : 'var(--color-neutral)', color: 'var(--color-foreground)' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>City</label>
-                                                <input
-                                                    name="from_city"
-                                                    placeholder="City"
-                                                    className={`w-full rounded-lg border ${formErrors.from_city ? "border-red-500" : "border-gray-300"} bg-white px-3 py-2.5 text-sm outline-none transition-all`}
-                                                    onChange={handleChange}
-                                                    value={form.from_city}
-                                                    style={{ borderColor: formErrors.from_city ? '#ef4444' : 'var(--color-neutral)', color: 'var(--color-foreground)' }}
-                                                />
-                                            </div>
+                                            <SearchableDropdown
+                                                label="Country"
+                                                placeholder="Select Country"
+                                                options={countriesList}
+                                                value={form.from_country}
+                                                onChange={handleFromCountryChange}
+                                                error={formErrors.from_country}
+                                            />
+                                            <SearchableDropdown
+                                                label="State"
+                                                placeholder="Select State"
+                                                options={fromStatesList}
+                                                value={form.from_state}
+                                                disabled={!selectedFromCountry}
+                                                isLoading={!fromStatesList.length && selectedFromCountry}
+                                                onChange={handleFromStateChange}
+                                            />
+                                            <SearchableDropdown
+                                                label="City"
+                                                placeholder="Select City"
+                                                options={fromCitiesList}
+                                                value={form.from_city}
+                                                disabled={!selectedFromState}
+                                                isLoading={!fromCitiesList.length && selectedFromState}
+                                                onChange={handleFromCityChange}
+                                                error={formErrors.from_city}
+                                            />
                                         </div>
                                     </div>
 
+                                    {/* Destination Section */}
                                     <div className="space-y-4">
                                         <h4 className="text-md font-medium flex items-center gap-2" style={{ color: 'var(--color-foreground)' }}>
                                             <MapPin size={16} style={{ color: 'var(--color-accent)' }} /> Destination (Flying To)
                                         </h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>Country</label>
-                                                <input
-                                                    name="to_country"
-                                                    placeholder="Country"
-                                                    className={`w-full rounded-lg border ${formErrors.to_country ? "border-red-500" : "border-gray-300"} bg-white px-3 py-2.5 text-sm outline-none transition-all`}
-                                                    onChange={handleChange}
-                                                    value={form.to_country}
-                                                    style={{ borderColor: formErrors.to_country ? '#ef4444' : 'var(--color-neutral)', color: 'var(--color-foreground)' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-foreground)' }}>City</label>
-                                                <input
-                                                    name="to_city"
-                                                    placeholder="City"
-                                                    className={`w-full rounded-lg border ${formErrors.to_city ? "border-red-500" : "border-gray-300"} bg-white px-3 py-2.5 text-sm outline-none transition-all`}
-                                                    onChange={handleChange}
-                                                    value={form.to_city}
-                                                    style={{ borderColor: formErrors.to_city ? '#ef4444' : 'var(--color-neutral)', color: 'var(--color-foreground)' }}
-                                                />
-                                            </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <SearchableDropdown
+                                                label="Country"
+                                                placeholder="Select Country"
+                                                options={countriesList}
+                                                value={form.to_country}
+                                                onChange={handleToCountryChange}
+                                                error={formErrors.to_country}
+                                            />
+                                            <SearchableDropdown
+                                                label="State"
+                                                placeholder="Select State"
+                                                options={toStatesList}
+                                                value={form.to_state}
+                                                disabled={!selectedToCountry}
+                                                isLoading={!toStatesList.length && selectedToCountry}
+                                                onChange={handleToStateChange}
+                                            />
+                                            <SearchableDropdown
+                                                label="City"
+                                                placeholder="Select City"
+                                                options={toCitiesList}
+                                                value={form.to_city}
+                                                disabled={!selectedToState}
+                                                isLoading={!toCitiesList.length && selectedToState}
+                                                onChange={handleToCityChange}
+                                                error={formErrors.to_city}
+                                            />
                                         </div>
                                     </div>
 
