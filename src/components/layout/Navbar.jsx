@@ -164,6 +164,20 @@ export function Navbar({ minimal = false, onMenuClick }) {
             icon: <Users className="h-5 w-5" />,
             path: getHostPath('group', isAuthenticated)
         },
+        {
+            id: 'travel',
+            title: 'Become Travel Partner',
+            description: 'Connect with fellow travelers.',
+            icon: <Plane className="h-5 w-5" />,
+            path: getHostPath('travel', isAuthenticated)
+        },
+        {
+            id: 'marketplace',
+            title: 'Sell an Item',
+            description: 'List products in Buy/Sell marketplace.',
+            icon: <ShoppingBag className="h-5 w-5" />,
+            path: getHostPath('marketplace', isAuthenticated)
+        },
     ]
 
     // Navigation items - ensuring consistent paths for desktop and mobile

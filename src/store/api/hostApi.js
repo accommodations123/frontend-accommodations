@@ -800,6 +800,24 @@ export const hostApi = createApi({
             }),
             invalidatesTags: ["Notification"],
         }),
+
+        // Delete single notification
+        deleteNotification: builder.mutation({
+            query: (id) => ({
+                url: `notification/notifications/${id}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: ["Notification"],
+        }),
+
+        // Delete all notifications
+        deleteAllNotifications: builder.mutation({
+            query: () => ({
+                url: "notification/notifications",
+                method: "DELETE",
+            }),
+            invalidatesTags: ["Notification"],
+        }),
     }),
 });
 
@@ -869,5 +887,7 @@ export const {
     useGetNotificationsQuery,
     useMarkNotificationAsReadMutation,
     useMarkAllNotificationsAsReadMutation,
+    useDeleteNotificationMutation,
+    useDeleteAllNotificationsMutation,
     useGetMyApplicationsQuery,
 } = hostApi;

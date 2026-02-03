@@ -8,6 +8,8 @@ export const getHostPath = (type, isAuthenticated) => {
         case 'property': return '/host/create';
         case 'event': return '/events/host';
         case 'group': return '/groups/add-resource';
+        case 'travel': return '/travel';
+        case 'marketplace': return '/marketplace?action=sell';
         default: return '/hosts';
     }
 };

@@ -147,6 +147,10 @@ export const EventDetailsSection = ({ formData, handleInputChange }) => {
                         className="mt-1 text-gray-900 placeholder-gray-400 border-[#00162d]"
                         placeholder="0.00"
                     />
+                    <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                        <span>💡</span>
+                        <span>Currency ({currencySymbol}) auto-selects based on your country</span>
+                    </p>
                 </div>
 
                 <div>

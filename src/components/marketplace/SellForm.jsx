@@ -577,6 +577,10 @@ export function SellForm({ onPost, initialData, isEditing: externalIsEditing }) 
               placeholder="0.00"
             />
           </div>
+          <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+            <span>💡</span>
+            <span>Currency auto-selects based on your country</span>
+          </p>
         </div>
 
         {/* LOCATION & DESCRIPTION */}

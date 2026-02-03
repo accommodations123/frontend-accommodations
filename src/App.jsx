@@ -44,6 +44,8 @@ const MarketplacePage = lazy(() => import("@/app/marketplace/page"));
 const ProductDetailsPage = lazy(() => import("@/app/marketplace/[id]/page"));
 const ChatPage = lazy(() => import("@/app/ChatPage"));
 const NewDashboard = lazy(() => import("@/app/dashboard/NewDashboard"));
+const PrivacyPage = lazy(() => import("@/app/privacy/page"));
+const TermsPage = lazy(() => import("@/app/terms/page"));
 // const PropertiesList = lazy(() => import("@/app/properties/page"));
 // const HostPage = lazy(() => import("@/app/host/page")); 
 
@@ -105,6 +107,8 @@ export default function App() {
                             <Route path="/signup" element={<Signup />} />
                             <Route path="/signin" element={<Signin />} />
                             <Route path="/resources/travel" element={<TravelCommunity />} />
+                            <Route path="/privacy" element={<PrivacyPage />} />
+                            <Route path="/terms" element={<TermsPage />} />
                         </Routes>
                     </Suspense>
                 </RootLayout>
