@@ -13,6 +13,7 @@ const StatusBadge = ({ status }) => {
     const statusStyles = {
         submitted: "bg-blue-100 text-blue-700 border-blue-200",
         viewed: "bg-yellow-100 text-yellow-700 border-yellow-200",
+        reviewing: "bg-orange-100 text-orange-700 border-orange-200",
         shortlisted: "bg-green-100 text-green-700 border-green-200",
         interview: "bg-purple-100 text-purple-700 border-purple-200",
         offer: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -23,6 +24,7 @@ const StatusBadge = ({ status }) => {
     const statusLabels = {
         submitted: "Submitted",
         viewed: "Viewed",
+        reviewing: "Under Review",
         shortlisted: "Shortlisted",
         interview: "Interview",
         offer: "Offer Extended",
