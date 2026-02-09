@@ -150,23 +150,7 @@ export const EventCard = memo(({ event, viewMode, onViewDetails, index }) => {
                         </div>
                     </div>
 
-                    {/* Rating */}
-                    <div className="flex items-center justify-between mb-3 sm:mb-4">
-                        <div className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <Star key={star} className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
-                            ))}
-                            <span className="text-xs sm:text-sm text-gray-600 ml-1">
-                                ({event.reviews_count || 0})
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-gray-500">
-                            <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="text-xs sm:text-sm">
-                                {event.comments_count || 0}
-                            </span>
-                        </div>
-                    </div>
+
 
                     {/* Action Buttons */}
                     <div className="flex gap-2">

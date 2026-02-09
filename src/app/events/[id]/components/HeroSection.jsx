@@ -17,28 +17,14 @@ export const HeroSection = memo(({ event, isSaved, onSave, shareOpen, onShare, c
                 to="/events"
                 className="inline-flex items-center gap-2 text-white bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full transition-all duration-300 hover:bg-black hover:scale-105 shadow-lg"
             >
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back to Events</span>
-                <span className="sm:hidden">Back</span>
+
             </Link>
             <div className="flex gap-2">
                 <div className="relative">
-                    <Button
-                        variant="outline"
-                        className="bg-white/90 backdrop-blur-sm text-gray-800 hover:bg-white border-white/20 rounded-full transition-all duration-300 hover:scale-105 shadow-lg"
-                        onClick={onShare}
-                    >
-                        <Share2 className="h-4 w-4" />
-                    </Button>
+
                     <ShareMenu open={shareOpen} copied={copied} onCopy={onCopy} />
                 </div>
-                <Button
-                    variant="outline"
-                    className={`${isSaved ? 'bg-accent text-white' : 'bg-white/90 backdrop-blur-sm text-gray-800 hover:bg-white'} border-white/20 rounded-full transition-all duration-300 hover:scale-105 shadow-lg`}
-                    onClick={onSave}
-                >
-                    <Heart className={`h-4 w-4 transition-all duration-300 ${isSaved ? 'fill-current scale-110' : ''}`} />
-                </Button>
+
             </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0 p-4 md:p-12">
