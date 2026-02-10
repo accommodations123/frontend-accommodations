@@ -9,7 +9,6 @@ export function FilterPanel({ filters, onChange }) {
   const [open, setOpen] = useState({
     all: false,
     price: false,
-    condition: false,
     category: false,
     location: false,
   });
@@ -40,7 +39,6 @@ export function FilterPanel({ filters, onChange }) {
     onChange({
       priceMin: "",
       priceMax: "",
-      condition: "",
       category: "",
       country: "",
       state: "",
@@ -78,31 +76,14 @@ export function FilterPanel({ filters, onChange }) {
             Location & More
           </Button>
 
-          {/* Individual toggles for quick access if needed, or just use the All Filters */}
-          <Button
-            variant={open.location ? "default" : "outline"}
-            size="sm"
-            onClick={() => setOpen(o => ({ ...o, location: !o.location }))}
-            className="text-xs sm:text-sm"
-          >
-            <MapPin className="h-3.5 w-3.5 mr-2" />
-            Location
-          </Button>
 
-          {/* ✅ CLEAR BUTTON */}
-          <Button
-            size="sm"
-            onClick={handleClear}
-            className="text-xs sm:text-sm"
-          >
-            <X className="h-3.5 w-3.5 mr-1" />
-            Clear
-          </Button>
+
+
         </div>
       </div>
 
       {/* FILTER PANELS */}
-      {(open.all || open.price || open.condition || open.category || open.location) && (
+      {(open.all || open.price || open.category || open.location) && (
         <div className="mt-4 grid grid-cols-1 text-[#00152d] text-md md:grid-cols-3 gap-6 border-t pt-4">
 
           {/* LOCATION SECTION */}
@@ -188,28 +169,6 @@ export function FilterPanel({ filters, onChange }) {
                   className="h-9 sm:h-10 text-sm"
                 />
               </div>
-            </div>
-          )}
-
-          {/* CONDITION */}
-          {(open.all || open.condition) && (
-            <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Condition</h4>
-              <select
-                value={filters.condition}
-                onChange={(e) =>
-                  onChange({
-                    ...filters,
-                    condition: e.target.value,
-                  })
-                }
-                className="w-full h-9 sm:h-10 border text-[#00152d] border-gray-300 rounded-lg px-3 text-sm"
-              >
-                <option value="">All</option>
-                <option value="Like New">Like New</option>
-                <option value="Good">Good</option>
-                <option value="Fair">Fair</option>
-              </select>
             </div>
           )}
 

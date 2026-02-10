@@ -70,8 +70,8 @@ export default function EventDetailsPage() {
             host: apiEvent.Host
                 ? {
                     full_name: apiEvent.Host.full_name,
-                    selfie_photo: apiEvent.Host.selfie_photo,
-                    phone: apiEvent.Host.phone,
+                    selfie_photo: apiEvent.Host.selfie_photo || apiEvent.Host.profile_image || apiEvent.Host.avatar,
+                    phone: apiEvent.Host.phone || apiEvent.Host.whatsapp,
                     email: apiEvent.Host.email,
                     status: apiEvent.Host.status
                 }

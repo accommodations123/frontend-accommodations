@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 
 const FALLBACK_IMAGE = null;
 
-export function ProductCard({ product, onMessage, onClick }) {
+export function ProductCard({ product, onClick }) {
   const { formatPrice } = useCountry();
   if (!product || !product.title) return null;
 

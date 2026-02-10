@@ -7,9 +7,9 @@ import { MarketplaceLayout } from "@/components/marketplace/MarketplaceLayout";
 import { FilterPanel } from "@/components/marketplace/FilterPanel";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { SellForm } from "@/components/marketplace/SellForm";
-import { ChatPopup } from "@/components/marketplace/ChatPopup";
+
 import { VerificationModal } from "@/components/marketplace/VerificationModal";
-import { ShieldCheck, Zap, Tag, MessageCircle } from "lucide-react";
+import { ShieldCheck, Zap, Tag } from "lucide-react";
 import { useCountry } from "@/context/CountryContext";
 import { useGetBuySellListingsQuery, useGetHostProfileQuery, useGetBuySellByIdQuery } from "@/store/api/hostApi";
 import { useGetMeQuery } from "@/store/api/authApi";
@@ -25,7 +25,6 @@ export default function MarketplacePage() {
   const productIdFromUrl = searchParams.get("product");
 
   const [activeTab, setActiveTab] = useState("buy");
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [viewProduct, setViewProduct] = useState(null);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
@@ -33,7 +32,6 @@ export default function MarketplacePage() {
   const [filters, setFilters] = useState({
     priceMin: "",
     priceMax: "",
-    condition: "",
     category: "",
     country: "",
     state: "",
@@ -104,10 +102,7 @@ export default function MarketplacePage() {
 
   /* ================= HANDLERS ================= */
 
-  const handleMessage = product => {
-    setSelectedProduct(product);
-    setIsChatOpen(true);
-  };
+
 
   const handlePost = () => {
     setActiveTab("buy");
@@ -143,7 +138,6 @@ export default function MarketplacePage() {
                     <SingleProductView
                       product={viewProduct}
                       onBack={handleBackFromProduct}
-                      onMessage={handleMessage}
                     />
                   ) : filteredProducts.length > 0 ? (
                     <>
@@ -152,7 +146,7 @@ export default function MarketplacePage() {
                           <ProductCard
                             key={product._id || product.id}
                             product={product}
-                            onMessage={handleMessage}
+                            onMessage={() => { }} // No-op or remove prop entirely
                             onClick={() => setViewProduct(product)}
                           />
                         ))}
@@ -192,11 +186,7 @@ export default function MarketplacePage() {
         </MarketplaceLayout>
       </div>
 
-      <ChatPopup
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        product={selectedProduct}
-      />
+
 
       <VerificationModal
         isOpen={isVerificationOpen}
@@ -214,7 +204,7 @@ export default function MarketplacePage() {
 
 /* ================= SINGLE PRODUCT ================= */
 
-const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
+const SingleProductView = ({ product: initialProduct, onBack }) => {
   const [imageError, setImageError] = useState(false);
   const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1000&auto=format&fit=crop";
 
@@ -356,13 +346,7 @@ const SingleProductView = ({ product: initialProduct, onBack, onMessage }) => {
                       </button>
                     )}
 
-                    <button
-                      onClick={() => onMessage(product)}
-                      className="h-10 sm:h-12 w-10 sm:w-12 bg-white/10 hover:bg-[#CB2A25] text-white rounded-xl flex items-center justify-center border border-white/10 transition-all active:scale-95"
-                      title="Internal Chat"
-                    >
-                      <MessageCircle size={18} />
-                    </button>
+
 
                     <button
                       onClick={() => window.open(`tel:${product.sellerPhone || ''}`)}

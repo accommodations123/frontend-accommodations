@@ -13,10 +13,30 @@ export default function TravelFilter({
     const [isCountryOpen, setIsCountryOpen] = React.useState(false);
     const countryRef = React.useRef(null);
 
+    const [countrySearch, setCountrySearch] = React.useState("");
+    const countryInputRef = React.useRef(null);
+
     const hasActiveFilters = filters.country || filters.state || filters.city || searchQuery;
 
     // Get selected country object
     const selectedCountry = COUNTRIES.find(c => c.name === filters.country);
+
+    // Filter countries based on search
+    const filteredCountries = COUNTRIES.filter(c =>
+        c.name.toLowerCase().includes(countrySearch.toLowerCase())
+    );
+
+    // Reset search when dropdown closes or opens
+    React.useEffect(() => {
+        if (!isCountryOpen) {
+            setCountrySearch("");
+        } else {
+            // Focus input when opened
+            setTimeout(() => {
+                countryInputRef.current?.focus();
+            }, 100);
+        }
+    }, [isCountryOpen]);
 
     // Close dropdown when clicking outside
     React.useEffect(() => {
@@ -33,7 +53,7 @@ export default function TravelFilter({
         <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl overflow-hidden mt-6 mb-12 border border-white/50 relative z-20"
+            className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl mt-6 mb-12 border border-white/50 relative z-20"
         >
             <div className="p-6 lg:p-8">
                 <div className="flex flex-col gap-6">
@@ -109,41 +129,66 @@ export default function TravelFilter({
                                             <p className="text-[10px] text-gray-500 mt-0.5">Filter trips by destination country</p>
                                         </div>
                                         <div className="max-h-64 overflow-y-auto">
-                                            {/* All Countries Option */}
-                                            <button
-                                                onClick={() => {
-                                                    setFilters({ ...filters, country: "" });
-                                                    setIsCountryOpen(false);
-                                                }}
-                                                className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${!filters.country
-                                                    ? 'bg-accent/10 text-accent font-bold'
-                                                    : 'hover:bg-gray-50 text-gray-700'
-                                                    }`}
-                                            >
-                                                <Globe size={18} className="text-gray-400" />
-                                                <span>All Countries</span>
-                                            </button>
-
-                                            {COUNTRIES.map((country) => (
+                                            <div className="p-3 border-b border-gray-100 bg-white sticky top-0 z-10">
+                                                <div className="relative">
+                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                                    <input
+                                                        ref={countryInputRef}
+                                                        type="text"
+                                                        placeholder="Search country..."
+                                                        className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-accent/50 focus:bg-white transition-all"
+                                                        value={countrySearch}
+                                                        onChange={(e) => setCountrySearch(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="max-h-64 overflow-y-auto">
+                                            {/* All Countries Option - Only show if no search or matches "All" */}
+                                            {(!countrySearch || "all countries".includes(countrySearch.toLowerCase())) && (
                                                 <button
-                                                    key={country.code}
                                                     onClick={() => {
-                                                        setFilters({ ...filters, country: country.name });
+                                                        setFilters({ ...filters, country: "" });
                                                         setIsCountryOpen(false);
                                                     }}
-                                                    className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${filters.country === country.name
+                                                    className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${!filters.country
                                                         ? 'bg-accent/10 text-accent font-bold'
                                                         : 'hover:bg-gray-50 text-gray-700'
                                                         }`}
                                                 >
-                                                    {country.flag.startsWith('/') ? (
-                                                        <img src={country.flag} alt={country.name} className="w-6 h-4 object-cover rounded shadow-sm" />
-                                                    ) : (
-                                                        <span className="text-lg">{country.flag}</span>
-                                                    )}
-                                                    <span>{country.name}</span>
+                                                    <Globe size={18} className="text-gray-400" />
+                                                    <span>All Countries</span>
                                                 </button>
-                                            ))}
+                                            )}
+
+                                            {filteredCountries.length > 0 ? (
+                                                filteredCountries.map((country) => (
+                                                    <button
+                                                        key={country.code}
+                                                        onClick={() => {
+                                                            setFilters({ ...filters, country: country.name });
+                                                            setIsCountryOpen(false);
+                                                        }}
+                                                        className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${filters.country === country.name
+                                                            ? 'bg-accent/10 text-accent font-bold'
+                                                            : 'hover:bg-gray-50 text-gray-700'
+                                                            }`}
+                                                    >
+                                                        {country.flag.startsWith('/') ? (
+                                                            <img src={country.flag} alt={country.name} className="w-6 h-4 object-cover rounded shadow-sm" />
+                                                        ) : (
+                                                            <span className="text-lg">{country.flag}</span>
+                                                        )}
+                                                        <span>{country.name}</span>
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="p-4 text-center text-sm text-gray-500">
+                                                    No countries found
+                                                </div>
+                                            )}
+
                                         </div>
                                     </motion.div>
                                 )}

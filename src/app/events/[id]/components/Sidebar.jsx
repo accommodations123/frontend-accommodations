@@ -13,12 +13,25 @@ export const Sidebar = memo(({ event }) => {
 
     const handleContactHost = () => {
         if (event?.host?.phone) {
-            const cleanPhone = event.host.phone.replace(/[^0-9]/g, '');
+            const cleanPhone = event.host.phone.replace(/\D/g, '');
             window.open(`https://wa.me/${cleanPhone}`, '_blank');
         } else {
             toast.error("Host contact number not available");
         }
     }
+
+    const getMapsUrl = () => {
+        return event.googleMapsUrl || null;
+    };
+
+    const handleOpenMaps = () => {
+        const url = getMapsUrl();
+        if (url) {
+            window.open(url, '_blank');
+        } else {
+            toast.error("Event location details not available");
+        }
+    };
 
     return (
         <aside className="space-y-6 sticky top-24">
@@ -77,7 +90,21 @@ export const Sidebar = memo(({ event }) => {
                     </div>
                 )}
                 <p className="text-sm text-gray-600 mb-6 text-center">{event?.attendeesCount || 0} people attending</p>
-                <Button className="w-full gap-2 bg-accent text-white hover:bg-accent/90 transition-all duration-300 transform hover:scale-105 shadow-lg rounded-2xl">
+                <Button
+                    onClick={() => {
+                        if (navigator.share) {
+                            navigator.share({
+                                title: event.title,
+                                text: `Check out this event: ${event.title}`,
+                                url: window.location.href,
+                            }).catch((error) => console.log('Error sharing', error));
+                        } else {
+                            navigator.clipboard.writeText(window.location.href);
+                            toast.success("Event link copied to clipboard!");
+                        }
+                    }}
+                    className="w-full gap-2 bg-accent text-white hover:bg-accent/90 transition-all duration-300 transform hover:scale-105 shadow-lg rounded-2xl"
+                >
                     <UserPlus className="h-4 w-4" />
                     Invite Friends
                 </Button>
@@ -109,7 +136,7 @@ export const Sidebar = memo(({ event }) => {
                     {event.event_mode === 'hybrid' && (
                         <div className="grid grid-cols-2 gap-2">
                             <Button
-                                onClick={() => window.open(event.googleMapsUrl, '_blank')}
+                                onClick={handleOpenMaps}
                                 className="bg-accent text-white hover:bg-accent/90 transition-all duration-300 transform hover:scale-105 shadow-xl rounded-2xl"
                             >
                                 In-Person
@@ -124,7 +151,7 @@ export const Sidebar = memo(({ event }) => {
                     )}
                     {event.event_mode === 'offline' && (
                         <Button
-                            onClick={() => window.open(event.googleMapsUrl, '_blank')}
+                            onClick={handleOpenMaps}
                             className="w-full bg-accent text-white hover:bg-accent/90 transition-all duration-300 transform hover:scale-105 shadow-xl rounded-2xl"
                         >
                             Get Directions

@@ -1,6 +1,7 @@
 import React, { memo } from "react"
 import { Video, Monitor, MapPin, Link2, ExternalLink, Volume2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 export const EventModeSection = memo(({ event }) => {
     const isOnline = event.event_mode === 'online';
@@ -85,7 +86,13 @@ export const EventModeSection = memo(({ event }) => {
                             <p className="text-gray-700">{event.venueName || event.location}</p>
                             <p className="text-gray-600 text-sm mt-1">{event.address}</p>
                             <Button
-                                onClick={() => window.open(event.googleMapsUrl, '_blank')}
+                                onClick={() => {
+                                    if (event.googleMapsUrl) {
+                                        window.open(event.googleMapsUrl, '_blank');
+                                    } else {
+                                        toast.error("Location not available");
+                                    }
+                                }}
                                 variant="link"
                                 className="text-accent hover:text-accent/90 transition-colors font-medium mt-2"
                             >

@@ -68,6 +68,12 @@ export default function TravelPage() {
 
   // Mapping utility to transform backend trip to frontend structure
   const mapTripToPlan = (trip) => {
+    const normalizeCountry = (c) => {
+      if (!c) return "";
+      if (c === "United States" || c === "USA" || c === "US") return "United States of America";
+      return c;
+    };
+
     // Handle user's new "My Trips" structure (Lightweight response)
     if (trip.sent_matches || trip.received_matches) {
       return {
@@ -79,7 +85,11 @@ export default function TravelPage() {
         ],
         // Provide minimal defaults to prevent UI crashes if this is erroneously rendered
         user: { fullName: currentUser?.fullName || "Me", image: currentUser?.image || null },
-        flight: { from: trip.from_city || "", to: trip.to_city || "" },
+        flight: {
+          from: trip.from_city || "",
+          to: trip.to_city || "",
+          from_country: normalizeCountry(trip.from_country || ""),
+        },
         destination: trip.to_city ? `${trip.to_city}` : "",
         date: trip.travel_date,
         status: trip.status || "active"
@@ -92,6 +102,10 @@ export default function TravelPage() {
         ...trip,
         matches: trip.matches || [],
         host_id: trip.host?.id,
+        flight: {
+          ...trip.flight,
+          from_country: normalizeCountry(trip.flight.from_country || trip.from_country || trip.host.country)
+        },
         user: {
           fullName: trip.host.full_name,
           age: trip.trip_meta.age || "",
@@ -111,6 +125,10 @@ export default function TravelPage() {
       return {
         ...trip,
         host_id: trip.host_id || (trip.host ? trip.host.id : undefined),
+        flight: {
+          ...trip.flight,
+          from_country: normalizeCountry(trip.flight.from_country || trip.from_country || trip.user.country)
+        },
         user: {
           ...trip.user,
           image: trip.user.image || trip.user.profile_image || null
@@ -132,12 +150,6 @@ export default function TravelPage() {
     } else if (trip.host_id === currentUser?.id && (currentUser?.first_name || currentUser?.last_name)) {
       fullName = `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim();
     }
-
-    const normalizeCountry = (c) => {
-      if (!c) return "";
-      if (c === "United States" || c === "USA" || c === "US") return "United States of America";
-      return c;
-    };
 
     return {
       id: trip.id,
@@ -166,6 +178,7 @@ export default function TravelPage() {
         flightNumber: trip.flight_number,
         from: trip.from_city,
         to: trip.to_city,
+        from_country: normalizeCountry(trip.from_country || trip.user?.country || trip.host?.country),
         departureDate: trip.travel_date,
         departureTime: trip.departure_time,
         arrivalDate: trip.arrival_date,
@@ -182,7 +195,7 @@ export default function TravelPage() {
   const { data: publicTripsData } = useGetPublicTripsQuery({
     page: 1,
     limit: 20,
-    from_country: activeCountry?.name,  // Uses backend index: idx_trip_search (from_country, to_country, travel_date, status)
+    from_country: filters.country || activeCountry?.name,  // Uses backend index: idx_trip_search (from_country, to_country, travel_date, status)
     status: 'active'
   });
 
@@ -263,7 +276,17 @@ export default function TravelPage() {
         plan.flight.to.toLowerCase().includes(searchTerm.toLowerCase());
 
       // Filter by ORIGIN country (where traveler is flying FROM) - For CO-TRAVELER matching
-      const matchesCountry = !filters.country || plan.flight.from?.toLowerCase().includes(filters.country.toLowerCase());
+      const matchesCountry = !filters.country || plan.flight.from_country?.toLowerCase() === filters.country.toLowerCase();
+
+      if (filters.country && !matchesCountry) {
+        console.log("Filter Mismatch:", {
+          filter: filters.country,
+          planCountry: plan.flight.from_country,
+          planFrom: plan.flight.from,
+          matches: matchesCountry
+        });
+      }
+
       const matchesState = !filters.state || plan.user.state === filters.state;
       const matchesCity = !filters.city || plan.flight.from?.toLowerCase().includes(filters.city.toLowerCase());
 
